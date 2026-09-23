@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Generated results: keep the folder, ignore its content
+outputs/*
+!outputs/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
