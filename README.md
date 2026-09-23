@@ -28,7 +28,7 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 
 | Name | GitHub | Main area |
 |---|---|---|
-| Léo-Paul Kerrinckx | _@handle_ | _to fill_ |
+| Léo-Paul Kerrinckx | @Lpk78 | _to fill_ |
 | _to fill_ | @SamDana-maker | _to fill_ |
 | _to fill_ | _@handle_ | _to fill_ |
 
@@ -45,8 +45,8 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 Prerequisites: Python 3.11 or newer, Git.
 
 ```bash
-git clone <REPOSITORY-URL>
-cd <repository-folder>
+git clone https://github.com/Lpk78/quai.git
+cd quai
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
