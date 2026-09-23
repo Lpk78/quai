@@ -41,4 +41,5 @@ We plan to *measure* this with an experiment (LLM-only placement vs solver), whi
 
 ## Session 2 — repository setup
 
-_To complete by the team: date, who did what, first commits._
+- 2026-09-23 — Léo-Paul created the private repository `Lpk78/quai`, pushed the scaffold in three commits and invited Sam.
+- From now on, every change goes through a branch and a reviewed Pull Request.
