@@ -24,13 +24,13 @@ Every PR gets one reviewer, chosen from the author's GitHub login (`gh api user 
 | `SamDana-maker` (Sam) | Server: solver, FastAPI, Supabase database, routes | `MORHI11` |
 | `MORHI11` | Interface: mobile app, 3D view, operator mode, landing page | `Lpk78` |
 
-Every PR gets an automatic first-pass review from Claude (GitHub Action `claude-review.yml`) and runs the tests (`tests.yml`).
-The author never merges their own PR. The human reviewer reads the automatic review, then approves and merges (`/review`).
+Every PR runs the tests on GitHub (`tests.yml`).
+The author never merges their own PR. The reviewer runs `/review`, validates the review text, then it is posted from their account, approved and merged.
 
 ## Team skills
 
 - `/task <description or #issue>` — branch, code, tests, commits, push, filled PR, reviewer assigned.
-- `/review <PR number>` — explain the PR and the automatic review, then approve and merge after the reviewer says yes.
+- `/review <PR number>` — explain the PR, draft the review in the reviewer's voice, then approve and merge after they say yes.
 - `/fix-review` — address review comments on the same branch.
 - `/prompt-version <change>` — new prompt file, evaluation on the same inputs, real scores, PR.
 
