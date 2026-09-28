@@ -14,7 +14,6 @@ The human running this session is the reviewer. You prepare the review; they dec
 4. Draft the review exactly as the reviewer would write it themselves: first person ("I ran the tests…", "I'd suggest…"), natural and concise, in English. It contains:
    - one or two sentences on what I checked and what I think of the change;
    - one to four comments, each on a file and line, in three parts: **Observation**, **Concern**, **Suggestion** (marked **Blocking** or **Optional**). At least one comment, even on a good PR.
-   Do not mention that the text was drafted by an assistant.
 5. Show the draft and ask: "Approve and merge, request changes, or edit the text?"
    - **Approve and merge** → `gh pr review $ARGUMENTS --approve --body "<review>"`, then `gh pr merge $ARGUMENTS --merge --delete-branch`.
    - **Request changes** → `gh pr review $ARGUMENTS --request-changes --body "<review>"`.
