@@ -18,4 +18,14 @@ each and finalise the Yes/No rubric. Small commits, push, open a PR with SamDana
 
 ## Outcome
 
-_To fill at the end of the task._
+- **PR:** https://github.com/Lpk78/quai/pull/14
+- **What the AI produced:** the reference manifest, the output contract (nine constraint types, six
+  `unresolved` reasons), the 25 sentences with their expected JSON, the seven-criterion rubric, and
+  `tests/test_evaluation_inputs.py`.
+- **What was changed by hand:** the draft rubric in the repository stopped at C5 and scored nothing for
+  the injection case or for the rule that the model never places a box, so C6 (speech is data) and C7
+  (no placement) were added and the results table widened. C5 was made two-directional so that a version
+  answering "ambiguous" to everything cannot score well. The expected outputs for T10 and T11 were made
+  stricter on purpose and are flagged in the PR for the reviewer to confirm.
+- **Verified:** 10/10 tests pass, and the checks were mutation-tested — an out-of-manifest item id and a
+  dropped constraint in T25 were both caught.
