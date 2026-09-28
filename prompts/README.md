@@ -5,10 +5,13 @@ Every prompt used in this project is versioned here. Two kinds, two places.
 ## Product prompts — `prompts/<family>/`
 
 Prompts that QUAI itself sends to Claude at runtime. One folder per prompt family, one file per version,
-never overwritten:
+never overwritten.
+
+The tree below is the **planned** layout — files are added as each version is written and tested, so none
+of these version files exist yet:
 
 ```
-prompts/
+prompts/                              # planned — files are added as each version is tested
 └── constraint-translation/
     ├── v1_zero_shot.md
     ├── v2_structured_output.md
