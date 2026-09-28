@@ -1,0 +1,57 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git diff)",
+      "Bash(git log *)",
+      "Bash(git switch *)",
+      "Bash(git pull *)",
+      "Bash(git pull)",
+      "Bash(git fetch *)",
+      "Bash(git fetch)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git push)",
+      "Bash(git branch *)",
+      "Bash(git branch)",
+      "Bash(git rev-parse *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr list)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr checkout *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh issue list)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh api user *)",
+      "Bash(python3 *)",
+      "Bash(pip install *)",
+      "Bash(npm install *)",
+      "Bash(npm install)",
+      "Bash(npm run *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)"
+    ],
+    "ask": [
+      "Bash(gh pr review *)",
+      "Bash(gh pr merge *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push origin main *)",
+      "Bash(git push origin main)",
+      "Bash(git reset --hard *)",
+      "Read(./.env)"
+    ]
+  }
+}
