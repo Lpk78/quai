@@ -8,7 +8,7 @@ Any AI assistant working in this repository (Claude, Copilot, ChatGPT, Cursor…
 - Everything written in the repository is in English: code, comments, docs, prompts, commit messages, PRs, reviews.
 - The LLM in QUAI never computes placement: it translates constraints into validated JSON and explains
   solver output. Do not propose designs that break this rule.
-- A new prompt version is a new file in `prompts/`; never overwrite an old version.
+- A new prompt version is a new file in `prompts/<family>/`; never overwrite an old version. Every development task is saved in `prompts/dev/<ID>_<slug>.md` (IDs: `LP-nn`, `SA-nn`, `HY-nn`). See `prompts/README.md`.
 - Never invent evaluation scores. Record only results that were actually run.
 - Never write secrets in the repository; use `.env`.
 - Log notable AI help in `documentation/ai_usage.md` and failures in `documentation/failures.md`.
@@ -29,7 +29,7 @@ The author never merges their own PR. The reviewer runs `/review`, validates the
 
 ## Team skills
 
-- `/task <description or #issue>` — branch, code, tests, commits, push, filled PR, reviewer assigned.
+- `/task <ID> <description or #issue>` — saves the prompt in prompts/dev/, then branch, code, tests, commits, push, filled PR, reviewer assigned.
 - `/review <PR number>` — explain the PR, draft the review in the reviewer's voice, then approve and merge after they say yes.
 - `/fix-review` — address review comments on the same branch.
 - `/prompt-version <change>` — new prompt file, evaluation on the same inputs, real scores, PR.
