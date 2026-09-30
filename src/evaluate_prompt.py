@@ -131,7 +131,7 @@ def main(argv=None) -> int:
         print(f"\nReplies written to {write_transcript(run, TRANSCRIPTS)}")
 
     if partial:
-        print("\nPartial run: no results row. Run all 25 sentences to record a score.")
+        print("\nPartial run: no results row. Run all 26 sentences to record a score.")
         return 0
     if not run.complete:
         print("\nNo results row: " + ", ".join(f"{s.case_id} ({s.error})"

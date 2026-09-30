@@ -1,7 +1,7 @@
 """Check the command line: what it runs, and what it refuses to print.
 
 The rule under test is the one from `documentation/prompt_evaluation.md` and `CLAUDE.md`: a score
-is only ever printed for a run that happened over all 25 sentences.
+is only ever printed for a run that happened over all 26 sentences.
 """
 import json
 import sys

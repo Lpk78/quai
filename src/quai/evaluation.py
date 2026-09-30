@@ -437,7 +437,7 @@ def run(translate, prompt: str, cases, manifest: Manifest, manifest_text: str,
     `translate(prompt, sentence, manifest_text) -> str` is whatever talks to the model. A
     `quai.llm.CallFailed` from it is recorded against that sentence and does not stop the run, so
     one rate limit does not throw away the sentences that did answer. A `quai.llm.FatalCall` is not
-    caught: a rejected request or a bad key would say the same thing on all 75 calls.
+    caught: a rejected request or a bad key would say the same thing on all 78 calls.
     """
     from quai.llm import CallFailed
 

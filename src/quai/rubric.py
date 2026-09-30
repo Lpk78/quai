@@ -1,7 +1,7 @@
-"""Read the rubric document: the reference manifest, the contract and the 25 test inputs.
+"""Read the rubric document: the reference manifest, the contract and the 26 test inputs.
 
 `documentation/prompt_evaluation.md` is the single source of truth for what a prompt version is
-scored on. Reading it, rather than copying the manifest and the 25 expected outputs into Python,
+scored on. Reading it, rather than copying the manifest and the 26 expected outputs into Python,
 is what keeps scores comparable between versions: there is one place where a test input can be
 corrected, and `tests/test_evaluation_inputs.py` fails if that place stops agreeing with itself.
 
@@ -115,7 +115,7 @@ def reasons(text: str) -> set:
 
 
 def criteria(text: str) -> tuple[str, ...]:
-    """The rubric's criteria in document order, e.g. `("C1", ..., "C7")`."""
+    """The rubric's criteria in document order, e.g. `("C1", ..., "C8")`."""
     return tuple(row[0] for row in table_rows(text, "| # | Criterion | Yes when |"))
 
 

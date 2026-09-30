@@ -43,7 +43,7 @@ MODEL_VARIABLE = "LLM_MODEL"
 
 # Waiting is worth it when the answer is "not now": a rate limit, an overloaded server, a dropped
 # connection. It is never worth it when the answer is "not like that" — a malformed request or a
-# bad key will say the same thing on the fourth attempt as on the first, 25 times over.
+# bad key will say the same thing on the fourth attempt as on the first, 26 times over.
 RETRY_STATUSES = frozenset([408, 409, 429])
 FATAL_STATUSES = frozenset([400, 401, 403, 404])
 
@@ -81,7 +81,7 @@ class CallFailed(RuntimeError):
 class FatalCall(RuntimeError):
     """The run cannot work at all: a rejected request or a bad key.
 
-    Retrying would repeat the same error 75 times and asking the next sentence would too, so this
+    Retrying would repeat the same error 78 times and asking the next sentence would too, so this
     one stops the evaluation instead of being recorded against a sentence.
     """
 
