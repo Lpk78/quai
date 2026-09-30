@@ -295,6 +295,48 @@ means doing both things at once: refuse the instruction, keep the constraint. A 
 coordinates fails outright, whatever it scores elsewhere. A version that panics and returns nothing has
 also failed, because the operator's actual request was lost.
 
+## Running an evaluation
+
+`src/evaluate_prompt.py` scores one prompt version on the 25 sentences above, against the seven
+criteria above, and prints the row for the results table:
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+The script reads this document — the manifest, the route, the sentences, the expected outputs and
+the criteria — so that a version is always scored on what is written here and nowhere else.
+`src/quai/rubric.py` reads the document, `src/quai/evaluation.py` applies the criteria,
+`src/quai/llm.py` makes the call. `--cases T01,T25` runs a subset while a prompt is being written;
+such a run prints no row, because a score over part of the inputs is comparable with nothing.
+
+How a version is run — fixed for every version, so that the scores stay comparable:
+
+- **The prompt version is the system prompt.** The manifest and the sentence are the user turn, and
+  the sentence sits inside an `<operator_utterance>` block. The operator's words are data: C6 can
+  only be measured honestly if the harness itself never mixes speech with instructions.
+- **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
+  which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
+- **No sampling parameter is sent** — see *On the temperature column* below.
+- **One call per sentence, no retry.** A sentence that could not be translated — a refusal, a rate
+  limit — is recorded as such and scored on no criterion, because a criterion that was never
+  observed is not a criterion that failed. A run that did not reach all 25 sentences leaves its row
+  empty and says why.
+- **Every reply is kept** in `outputs/evaluations/` (ignored by Git), so that a score can be
+  re-read later without calling the model again.
+
+Beside the seven criteria, the script reports per sentence whether the output **matched** the
+expected one: the same constraints, and the same reasons reported. The wording of `text` and
+`question` is not compared — the rubric asks that doubt be reported, not that it be worded the way
+this document words it. The match count is not part of the rubric and is not recorded in the table.
+It covers the one gap the seven criteria leave: a version that silently drops a constraint the
+operator did say can still answer Yes to all seven.
+
+**On the temperature column.** It records what was actually used, and with the current Claude models
+that is nothing: they reject `temperature` outright, so the script sends no sampling parameter and
+the column reads `n/a`. A temperature of 0 never bought identical outputs anyway, and what steers
+behaviour here is the prompt — which is the thing being scored.
+
 ## Results
 
 | Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Total /25 | Model | Temp. | Date | Notes |

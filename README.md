@@ -65,6 +65,16 @@ Expected output:
 QUAI starts successfully.
 ```
 
+Score a prompt version on the fixed test inputs (needs `LLM_API_KEY` in `.env`):
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+It prints one line per sentence, the seven rubric criteria per sentence, and the row to paste into
+the results table of `documentation/prompt_evaluation.md`. With no key it says so and prints no
+scores. The method is described in that document, under *Running an evaluation*.
+
 ## Current scope
 
 The smallest useful version: a hand-typed list of boxes and one container, a solver that places them
