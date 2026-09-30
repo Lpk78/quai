@@ -168,7 +168,9 @@ The operator speaks in metres and tonnes. The contract is centimetres and kilogr
 ```json
 {"constraints": [{"type": "max_stack_height", "item": "B8", "limit_cm": 120}], "unresolved": []}
 ```
-`limit_cm: 1.2` or `120` in a field named metres fails C4.
+The value must be converted, not the field renamed: `limit_cm: 1.2` fails C4, and so does the right
+number `120` under a metres field such as `limit_m`. The contract has one field here, `limit_cm`,
+holding `120`.
 
 **T08** — "Keep the whole load under one and a half tonnes."
 ```json
