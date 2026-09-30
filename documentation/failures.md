@@ -69,3 +69,45 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `docs/team-automation`, #4, conflict with #3.
 
 ---
+
+## 2026-09-30 — The route parser read the same stop twice
+
+- What happened: `tests/test_constraints.py` builds a `Manifest` from the document's own route so that
+  the 25 expected outputs can be validated against it. Reading the stops in route order off the manifest line
+  ("Stops on the route: `S1` Rouen, then `S2` Le Havre, then `S3` Caen — in that order, `S3` last.")
+  returned `('S1', 'S2', 'S3', 'S3')`, and `Manifest.__post_init__` refused it with
+  `manifest stops contains the same id twice`. Three tests errored out.
+- Why: the sentence names the last stop twice on purpose — once in the list, once to insist it is last —
+  and a regex over the line cannot tell a member of the route from a comment about it. The first version
+  of the fixture used `stop_ids()` from the other test file, which returns a *set*, so the duplicate was
+  invisible; the bug only appeared when we needed the stops in order, because the route order is part of
+  the contract and sorting a set is not reading a route.
+- What we tried: kept the order and dropped repeats with `dict.fromkeys`, first mention winning, and
+  wrote down why in the helper's docstring. Added a test that the parsed route holds exactly the stops
+  `stop_ids()` finds and that its last element is what `last_stop` returns, so the two readings of the
+  same line cannot drift apart.
+- What we learned: the duplicate check we had just written in the schema is what caught it — strict
+  validation pays for itself the first time something feeds it real data, even our own test fixture.
+  And a set hides exactly the mistakes an ordered list exposes: sorting `S1, S2, S3` looked correct and
+  would have silently reordered any route whose ids are not alphabetical.
+- Related branch / PR: `feature/constraint-schema`, #10.
+
+---
+
+## 2026-09-30 — `Infinity` is valid JSON to Python, and it crashed the validator
+
+- What happened: `_limit_problems` rejected fractional centimetres with `value != int(value)`, which
+  reads well until the value is `inf` or `nan`: `int(float("inf"))` raises `OverflowError` and
+  `int(float("nan"))` raises `ValueError`. `find_problems` would have crashed with a traceback instead of
+  returning a problem, on the one path whose whole job is to survive bad input.
+- Why: `json.loads` accepts the non-standard literals `Infinity`, `-Infinity` and `NaN` by default, so a
+  model can hand us a limit that is not a number in any useful sense. The check assumed a finite value
+  because every example we had written by hand was finite.
+- What we tried: reproduced it with `json.loads('{"limit_cm": Infinity}')`, added an `math.isfinite`
+  guard before the whole-number test, and a test for both literals.
+- What we learned: a validator has to be written against what the format actually allows, not against the
+  examples in the contract. We found this one by asking "what does `json.loads` accept that we never
+  write?" — the same question is worth asking of every field we add later.
+- Related branch / PR: `feature/constraint-schema`, #10.
+
+---
