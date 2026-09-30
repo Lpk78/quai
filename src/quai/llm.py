@@ -13,11 +13,12 @@ Three decisions that belong to the rubric rather than to the API:
 - **The reply is plain text, parsed afterwards.** The API can constrain a reply to a JSON schema,
   which would make C1 true by construction; the point of C1 is to find out whether the prompt gets
   there on its own.
-- **`temperature` 0 is sent.** The method asks for it and `claude-haiku-4-5-20251001`, the model
-  `.env` names, accepts it. It does not make a score repeatable — that is what the three runs per
-  sentence are for — but it is what was used, and the rubric's column says so. A model that
-  removed sampling parameters (Opus 5, Sonnet 5, Opus 4.7 and 4.8) answers a 400, which is a
-  `FatalCall` and stops the run at the first sentence rather than scoring anything.
+- **`temperature` 0 is sent**, through `extra_body` — see `sampling()` for why it cannot be passed
+  by name. The method asks for it and `claude-haiku-4-5-20251001`, the model `.env` names, accepts
+  it. It does not make a score repeatable — that is what the three runs per sentence are for — but
+  it is what was used, and the rubric's column says so. A model that removed sampling parameters
+  (Opus 5, Sonnet 5, Opus 4.7 and 4.8) answers a 400, which is a `FatalCall` and stops the run at
+  the first sentence rather than scoring anything.
 """
 import os
 import pathlib
@@ -143,14 +144,13 @@ class Translator:
         delay = self.base_delay
         for attempt in range(1, self.attempts + 1):
             last = attempt == self.attempts
-            sampling = {} if self.temperature is None else {"temperature": self.temperature}
             try:
                 reply = self._client.messages.create(
                     model=self.model,
                     max_tokens=self.max_tokens,
                     system=prompt,
                     messages=[{"role": "user", "content": user_message(sentence, manifest)}],
-                    **sampling,
+                    **sampling(self.temperature),
                 )
             except anthropic.APIStatusError as error:
                 status = getattr(error, "status_code", None)
@@ -171,6 +171,17 @@ class Translator:
                 return read_reply(reply)
             delay = min(delay * 2, self.max_delay)
         raise CallFailed("the call was never made")  # unreachable: the loop returns or raises
+
+
+def sampling(temperature) -> dict:
+    """How `temperature` reaches the request — `extra_body`, not a keyword argument.
+
+    The SDK dropped `temperature` from `messages.create()` when the newest models removed sampling
+    parameters, so passing it by name is a `TypeError` before anything is sent, whatever the model
+    would have answered. `extra_body` is the SDK's own way through: it goes into the request body
+    untouched, and `claude-haiku-4-5-20251001` accepts it. `None` sends nothing at all.
+    """
+    return {} if temperature is None else {"extra_body": {"temperature": temperature}}
 
 
 def _worth_retrying(status) -> bool:

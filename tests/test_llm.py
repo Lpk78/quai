@@ -6,6 +6,7 @@ that a refusal is reported rather than scored, and that a missing key stops the 
 producing numbers.
 """
 import importlib.util
+import inspect
 import os
 import sys
 import tempfile
@@ -211,7 +212,7 @@ class TestTheCall(CallHarness, unittest.TestCase):
         """The method asks for temperature 0 and the model in .env accepts it."""
         translator, calls = self.translator(Reply([Block("{}")]))
         translator.translate("p", "s", "m")
-        self.assertEqual(calls.sent[0]["temperature"], 0)
+        self.assertEqual(calls.sent[0]["extra_body"], {"temperature": 0.0})
         for name in ("top_p", "top_k"):
             with self.subTest(name):
                 self.assertNotIn(name, calls.sent[0])
@@ -220,7 +221,23 @@ class TestTheCall(CallHarness, unittest.TestCase):
         """For a model that removed them: sending 0 there would 400 on the first sentence."""
         translator, calls = self.translator(Reply([Block("{}")]), temperature=None)
         translator.translate("p", "s", "m")
-        self.assertNotIn("temperature", calls.sent[0])
+        self.assertNotIn("extra_body", calls.sent[0])
+
+    def test_the_sdk_would_accept_the_call_the_harness_makes(self):
+        """The stand-in client takes anything; the real one does not.
+
+        `messages.create()` has no `temperature` argument — the SDK dropped it when the newest
+        models removed sampling parameters — so sending it by name raises a TypeError before any
+        request is made. Binding what the harness sends against the real signature is what catches
+        that here instead of on the first call of a 78-call run.
+        """
+        import anthropic
+
+        signature = inspect.signature(anthropic.Anthropic(api_key="k").messages.create)
+        self.assertNotIn("temperature", signature.parameters)
+        translator, calls = self.translator(Reply([Block("{}")]))
+        translator.translate("p", "s", "m")
+        signature.bind(**calls.sent[0])
 
 
 @unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")
