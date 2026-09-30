@@ -231,6 +231,11 @@ class TestRejectedConstraint(unittest.TestCase):
         self.assertRejected({"type": "place_near_door", "item": "B1"},
                             "unknown constraint type 'place_near_door'")
 
+    def test_a_type_that_is_not_even_a_name_is_rejected(self):
+        """A list cannot be looked up among the declared types; it must be refused, not crash."""
+        self.assertRejected({"type": ["on_top", "at_bottom"], "item": "B1"},
+                            "unknown constraint type ['on_top', 'at_bottom']")
+
     def test_a_missing_type_is_rejected(self):
         self.assertRejected({"item": "B1"}, "unknown constraint type None")
 
@@ -299,6 +304,10 @@ class TestRejectedUnresolvedEntry(unittest.TestCase):
     def test_an_undeclared_reason_is_rejected(self):
         self.assertRejected({"text": "the piano", "reason": "not_sure", "question": "Which item?"},
                             "unknown reason 'not_sure'")
+
+    def test_a_reason_that_is_not_even_a_name_is_rejected(self):
+        self.assertRejected({"text": "the piano", "reason": ["unknown_item"], "question": None},
+                            "unknown reason ['unknown_item']")
 
     def test_the_three_fields_are_required(self):
         self.assertRejected({"text": "the piano", "reason": "unknown_item"}, "needs 'question'")

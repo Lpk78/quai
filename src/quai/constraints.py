@@ -184,7 +184,9 @@ def _constraint_problems(constraint, manifest: Manifest, where: str) -> list[str
     if not isinstance(constraint, dict):
         return [f"{where} must be an object, got {type(constraint).__name__}"]
     kind = constraint.get("type")
-    if kind not in CONSTRAINT_FIELDS:
+    # `isinstance` first: a type given as a list or a dict is unhashable and would not even be
+    # comparable to the declared names.
+    if not isinstance(kind, str) or kind not in CONSTRAINT_FIELDS:
         return [f"{where}: unknown constraint type {kind!r}"]
     expected, given = CONSTRAINT_FIELDS[kind], set(constraint) - {"type"}
     problems = [f"{where}: {kind} needs {field!r}" for field in sorted(expected - given)]
@@ -221,11 +223,12 @@ def _unresolved_problems(entry, where: str) -> list[str]:
     given = set(entry)
     problems = [f"{where}: needs {field!r}" for field in sorted(UNRESOLVED_FIELDS - given)]
     problems += [f"{where}: does not take {field!r}" for field in sorted(given - UNRESOLVED_FIELDS)]
-    if "reason" in given and entry["reason"] not in REASONS:
-        problems.append(f"{where}: unknown reason {entry['reason']!r}")
+    reason = entry.get("reason")
+    if "reason" in given and (not isinstance(reason, str) or reason not in REASONS):
+        problems.append(f"{where}: unknown reason {reason!r}")
     if "text" in given and not _is_quoted_text(entry["text"]):
         problems.append(f"{where}: text must quote the part of the sentence at fault")
-    question = entry.get("question", None)
+    question = entry.get("question")
     if "question" in given and question is not None and not _is_quoted_text(question):
         problems.append(f"{where}: question must be a question to ask the operator, or null")
     return problems
