@@ -110,3 +110,23 @@ the key rename.
   the CI. No test makes a network call: the API is a stand-in replaying scripted 429s, 503s, 400s and
   dropped connections, and the backoff is checked by recording the waits instead of sleeping.
 
+## Outcome of the third round: C8
+
+- **Why:** the review of #21 is where this came from. C3 ("nothing invented") subtracts the expected
+  constraints from the given ones, so it only ever catches an invention. Nothing in the rubric looked
+  the other way, and the LP-06 notes above had already recorded the consequence as a known gap covered
+  by `match` alone: a version that answers T20 with the `unknown_item` and drops "keep the washing
+  machine upright" scored Yes on all seven criteria. C8 closes it.
+- **What the AI produced:** the C8 row and its paragraph in `documentation/prompt_evaluation.md`,
+  `_c8_nothing_missing` in `src/quai/evaluation.py`, the results-row and per-sentence-table column, the
+  counts moved to eight criteria and 26 sentences across the module, `src/evaluate_prompt.py`, the
+  README and the tests, and `tests/test_evaluation.TestC8NothingMissing`.
+- **What was changed by hand:** what `match` is now for. It was justified in the code and in the
+  document as covering the gap C8 now covers, so the docstring and the document had to say what it
+  still adds instead — the count of `unresolved` entries, which no criterion compares — and a test was
+  written for that (T17 has two faults; answering with one is Yes everywhere and matches nothing).
+  `rubric.criteria()` needed no change: it reads the rubric table, so it picked C8 up on its own, which
+  is the point of reading the document instead of copying it.
+- **Verified:** 195 tests pass. Neutralising `_c8_nothing_missing` fails four of them. The rubric's own
+  26 expected outputs still score all eight Yes and match, which is the property every score depends
+  on.
