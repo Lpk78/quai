@@ -32,6 +32,30 @@ class TestChecks(unittest.TestCase):
         problems = find_problems([Placement(box, 0, 0, 50, 10, 10, 10)], CONTAINER)
         self.assertIn("a is not supported enough", problems)
 
+    def test_shrunk_box_is_reported(self):
+        """A placement may not claim dimensions smaller than the box really is."""
+        fridge = Box("fridge", 70, 70, 90)
+        problems = find_problems([Placement(fridge, 0, 0, 0, 10, 10, 10)], CONTAINER)
+        self.assertIn("fridge is not one of its upright rotations", problems)
+
+    def test_box_lying_on_its_side_is_reported(self):
+        """Boxes stay upright, so swapping a side with the height is not allowed."""
+        fridge = Box("fridge", 70, 70, 90)
+        problems = find_problems([Placement(fridge, 0, 0, 0, 90, 70, 70)], CONTAINER)
+        self.assertIn("fridge is not one of its upright rotations", problems)
+
+    def test_footprint_rotation_is_still_accepted(self):
+        """The legitimate rotation must not be caught by the check above."""
+        desk = Box("desk", 80, 40, 40)
+        problems = find_problems([Placement(desk, 0, 0, 0, 40, 80, 40)], CONTAINER)
+        self.assertEqual(problems, [])
+
+    def test_box_placed_twice_is_reported(self):
+        fridge = Box("fridge", 30, 30, 30)
+        twice = [Placement(fridge, 0, 0, 0, 30, 30, 30),
+                 Placement(fridge, 30, 0, 0, 30, 30, 30)]
+        self.assertIn("fridge is placed 2 times", find_problems(twice, CONTAINER))
+
 
 class TestSolver(unittest.TestCase):
     def test_exact_fit_uses_all_space(self):
