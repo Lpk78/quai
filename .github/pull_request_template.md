@@ -15,5 +15,5 @@
 - [ ] Branch created from an up-to-date `main`
 - [ ] `python src/main.py` (or `python3`) still runs
 - [ ] No secret, no `.env`, no conflict marker in the diff
-- [ ] If a prompt changed: new file in `prompts/`, scores recorded in `documentation/prompt_evaluation.md`
+- [ ] If a prompt changed: new file in `prompts/<family>/`, scores recorded in `documentation/prompt_evaluation.md`
 - [ ] If something failed along the way: entry added to `documentation/failures.md`

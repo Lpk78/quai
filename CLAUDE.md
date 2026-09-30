@@ -14,7 +14,9 @@ Any AI assistant working in this repository (Claude, Copilot, ChatGPT, Cursor…
 - A new prompt version is a new file in `prompts/<family>/`; never overwrite an old version. Every development task is saved in `prompts/dev/<ID>_<slug>.md` (IDs: `LP-nn`, `SA-nn`, `HY-nn`). See `prompts/README.md`.
 - Never invent evaluation scores. Record only results that were actually run.
 - Never write secrets in the repository; use `.env`.
-- Log notable AI help in `documentation/ai_usage.md` and failures in `documentation/failures.md`.
+- Record AI help per task, in the "Outcome" section of `prompts/dev/<ID>_<slug>.md`. A Pull Request never
+  adds a row to `documentation/ai_usage.md`: that table is filled once, at the end, from those files.
+- Log failures in `documentation/failures.md`.
 - Prefer the simplest code and the simplest prompt that work.
 
 ## Team and review rotation
