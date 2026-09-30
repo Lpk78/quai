@@ -243,9 +243,11 @@ def _is_quoted_text(value) -> bool:
 def _conflict_problems(constraints) -> list[str]:
     """Contradictions the model should have reported as `contradiction` instead of emitting."""
     problems = []
-    flags = {kind: set(c["item"] for c in constraints if c["type"] == kind)
-             for kind in ("at_bottom", "on_top")}
-    for item in sorted(flags["at_bottom"] & flags["on_top"]):
+
+    def items_of(kind: str) -> set[str]:
+        return set(c["item"] for c in constraints if c["type"] == kind)
+
+    for item in sorted(items_of("at_bottom") & items_of("on_top")):
         problems.append(f"{item} cannot be both at_bottom and on_top")
     for kind, field in (("unload_at", "stop"), ("max_stack_height", "limit_cm"),
                         ("max_weight_on", "limit_kg"), ("max_total_weight", "limit_kg")):
@@ -258,6 +260,11 @@ def _conflict_problems(constraints) -> list[str]:
                 problems.append(f"{kind} for {item or 'the whole load'} is given twice, "
                                 f"as {stated[item]} and as {c[field]}")
             stated.setdefault(item, c[field])
+    # "Nothing on it" and "up to 20 kg on it" cannot both be the rule, the same way `at_bottom` and
+    # `on_top` cannot: a limit says what may be stacked, `not_stackable` says nothing may be.
+    for kind in ("max_stack_height", "max_weight_on"):
+        for item in sorted(items_of("not_stackable") & items_of(kind)):
+            problems.append(f"{item} cannot be both not_stackable and given a {kind}")
     # Several `load_last` items at one stop are not a clash: "load the toolbox and the paint cans
     # last" is one request, and refusing it would lose the whole sentence. They form the last group
     # at that stop and the solver orders them among themselves.

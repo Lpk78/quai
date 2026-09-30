@@ -348,6 +348,21 @@ class TestRejectedContradiction(unittest.TestCase):
                              {"type": "on_top", "item": "B3"}],
                             "B3 cannot be both at_bottom and on_top")
 
+    def test_nothing_on_top_and_a_stack_limit_for_the_same_item_are_rejected(self):
+        """"Nothing on it" and "up to 20 kg on it" cannot both be the rule; the solver would have
+        to pick silently."""
+        for limit in ({"type": "max_weight_on", "item": "B3", "limit_kg": 20},
+                      {"type": "max_stack_height", "item": "B3", "limit_cm": 40}):
+            with self.subTest(limit["type"]):
+                self.assertRejected([{"type": "not_stackable", "item": "B3"}, limit],
+                                    f"B3 cannot be both not_stackable and given a {limit['type']}")
+
+    def test_a_stack_limit_on_another_item_is_not_a_conflict(self):
+        payload = {"constraints": [{"type": "not_stackable", "item": "B3"},
+                                   {"type": "max_weight_on", "item": "B1", "limit_kg": 20}],
+                   "unresolved": []}
+        self.assertEqual(find_problems(payload, MANIFEST), [])
+
     def test_two_stops_for_the_same_item_is_rejected(self):
         self.assertRejected([{"type": "unload_at", "item": "B1", "stop": "S1"},
                              {"type": "unload_at", "item": "B1", "stop": "S2"}],

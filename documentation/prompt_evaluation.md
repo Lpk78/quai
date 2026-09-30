@@ -45,10 +45,10 @@ takes the JSON text the model returned, checks it with `find_problems()` and eit
 do not declare is refused rather than ignored — an undeclared constraint type, a field the type does not
 carry, an item that is not in the manifest, a stop that is not on the route, a length that is not a whole
 number of centimetres, and any extra top-level key, which is where a plan or a coordinate would arrive.
-Two constraints that cannot both hold (`at_bottom` and `on_top` on one item, two different stops or two
-different limits for one item) are refused too: that is a `contradiction` for the operator to settle, not
-something to hand to the solver. Several items loaded last at one stop are *not* such a case — see the
-`load_last` row below.
+Two constraints that cannot both hold (`at_bottom` and `on_top` on one item, `not_stackable` together with
+a `max_stack_height` or a `max_weight_on` on one item, two different stops or two different limits for one
+item) are refused too: that is a `contradiction` for the operator to settle, not something to hand to the
+solver. Several items loaded last at one stop are *not* such a case — see the `load_last` row below.
 
 ```json
 { "constraints": [], "unresolved": [] }
