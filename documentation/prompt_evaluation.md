@@ -333,7 +333,9 @@ the criteria — so that a version is always scored on what is written here and 
 such a run prints no row, because a score over part of the inputs is comparable with nothing.
 `--runs` changes how many times each sentence is asked; the default is 3 and a recorded score uses
 the default. The key is read from `ANTHROPIC_API_KEY` and the model from `LLM_MODEL` (see
-`.env.example`).
+`.env.example`); neither has a default, and a missing one stops the run instead of being guessed —
+the Model column of a row has to name the model that actually answered. `--model` overrides
+`LLM_MODEL` for one run, for scoring the same prompt on two models.
 
 How a version is run — fixed for every version, so that the scores stay comparable:
 
@@ -342,7 +344,8 @@ How a version is run — fixed for every version, so that the scores stay compar
   only be measured honestly if the harness itself never mixes speech with instructions.
 - **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
   which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
-- **No sampling parameter is sent** — see *On the temperature column* below.
+- **`temperature 0` is sent** — and recorded as what was sent, not as what makes a score
+  repeatable. See *On the temperature column* below.
 - **Three calls per sentence.** The same question asked twice does not always get the same answer,
   so each sentence is translated three times and a criterion is Yes for that sentence only when all
   three runs say Yes. A prompt that only usually works is not a prompt that works. The per-sentence
@@ -366,12 +369,20 @@ C3 and C8 together say all the rubric has to say about the `constraints` list, s
 is the count of `unresolved` entries: a sentence with two faults answered with one of them is Yes on
 every criterion and still does not match.
 
-**On the temperature column.** It records what was actually used, and with the current Claude models
-that is nothing: they reject `temperature` with a 400, so the script sends no sampling parameter and
-the column reads `n/a`. This is not a loss of rigour. A temperature of 0 reduced variability, it
-never guaranteed identical outputs, so it never made a score repeatable either — it only made the
-variability easy to forget. The three runs per sentence measure what the parameter used to hide (see
-`documentation/failures.md`).
+**On the temperature column.** It records what was actually sent, never what the method asks for.
+The script sends `temperature 0`, as the course asks, and `claude-haiku-4-5-20251001` — the model
+`LLM_MODEL` names — accepts it, so the column reads `0`.
+
+Sending it is worth saying out loud, because it is not what makes a score repeatable. A temperature
+of 0 reduces variability; it has never guaranteed identical outputs. The three runs per sentence are
+what measures the variability that the parameter only made easy to forget, and they stay whatever
+the column says.
+
+Some current Claude models — Opus 5, Sonnet 5, Opus 4.7 and 4.8 — removed sampling parameters and
+answer `temperature` with a 400. Scoring a version on one of those means running with no sampling
+parameter at all, and then the column reads `n/a`: the harness prints the value it sent, so a row
+can always be read back as what happened. A 400 is fatal and stops the evaluation at the first
+sentence rather than recording anything (see `documentation/failures.md`).
 
 ## Results
 

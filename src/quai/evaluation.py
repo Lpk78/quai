@@ -351,6 +351,15 @@ def _same_translation(one: str | None, other: str | None) -> bool:
             and _reason_counts(first) == _reason_counts(second))
 
 
+def temperature_cell(value) -> str:
+    """The Temp. column: the number that was sent, or `n/a` when no sampling parameter was.
+
+    The column records what was used, never what the method asked for. A model that removed
+    sampling parameters is run with none, and the row has to be able to say so.
+    """
+    return "n/a" if value is None else f"{value:g}"
+
+
 @dataclass(frozen=True)
 class Run:
     """One prompt version, run over the test inputs. What goes in the results table comes from here.
@@ -364,7 +373,7 @@ class Run:
     cases: tuple[CaseRuns, ...]
     expected_cases: int
     runs: int = RUNS
-    temperature: str = "n/a"
+    temperature: str = "0"   # what the Temp. column says; `temperature_cell` builds it
 
     @property
     def complete(self) -> bool:

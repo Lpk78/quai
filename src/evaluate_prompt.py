@@ -96,7 +96,8 @@ def main(argv=None) -> int:
 
     version = args.prompt.stem
     print(f"Scoring {version} on {len(cases)} of {len(rubric.cases(text))} sentences, "
-          f"{args.runs} runs each, with {translator.model}\n")
+          f"{args.runs} runs each, with {translator.model} at temperature "
+          f"{evaluation.temperature_cell(translator.temperature)}\n")
 
     def report(case):
         if not case.ran:
@@ -116,7 +117,8 @@ def main(argv=None) -> int:
         return 1
 
     run = evaluation.Run(version=version, model=translator.model, cases=scored,
-                         expected_cases=len(rubric.cases(text)), runs=args.runs)
+                         expected_cases=len(rubric.cases(text)), runs=args.runs,
+                         temperature=evaluation.temperature_cell(translator.temperature))
 
     print(f"\n{run.case_table()}\n")
     counts = run.per_criterion()

@@ -5,6 +5,7 @@ document points at is the one that says No. The traps come from the document its
 glassware offered up for the crate of wine, `limit_cm: 1.2` for one metre twenty, the injection
 sentence that has to be half refused and half kept.
 """
+import dataclasses
 import json
 import sys
 import unittest
@@ -344,7 +345,7 @@ class TestRunningTheWholeRubric(unittest.TestCase):
         row = run.results_row("2026-09-30", notes="offline check")
         self.assertEqual(
             row,
-            "| v0_test | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | test-model | n/a "
+            "| v0_test | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | test-model | 0 "
             "| 2026-09-30 | offline check |")
 
     def test_the_row_says_how_it_was_run_when_no_note_is_given(self):
@@ -401,6 +402,18 @@ class TestRunningTheWholeRubric(unittest.TestCase):
         self.assertFalse(run.complete)
         with self.assertRaises(ValueError):
             run.results_row("2026-09-30")
+
+    def test_the_temperature_column_records_what_was_sent(self):
+        """Not what the method asked for: a model run with no sampling parameter says `n/a`."""
+        self.assertEqual(evaluation.temperature_cell(0.0), "0")
+        self.assertEqual(evaluation.temperature_cell(0.3), "0.3")
+        self.assertEqual(evaluation.temperature_cell(None), "n/a")
+
+    def test_the_temperature_reaches_the_results_row(self):
+        _, run = self.run_with({case.sentence: case.expected for case in self.cases})
+        row = dataclasses.replace(run, temperature="n/a").results_row("2026-09-30")
+        self.assertIn("| n/a | 2026-09-30 |", row)
+        self.assertIn("| 0 | 2026-09-30 |", run.results_row("2026-09-30"))
 
     def test_the_case_table_shows_which_criterion_said_no(self):
         answers = {case.sentence: case.expected for case in self.cases}

@@ -207,13 +207,20 @@ class TestTheCall(CallHarness, unittest.TestCase):
         self.assertEqual(sent["messages"][0]["role"], "user")
         self.assertIn("The sofa comes off at Le Havre.", sent["messages"][0]["content"])
 
-    def test_no_sampling_parameter_reaches_the_api(self):
-        """The current models reject `temperature`; sending 0 would 400 every sentence."""
+    def test_temperature_zero_reaches_the_api(self):
+        """The method asks for temperature 0 and the model in .env accepts it."""
         translator, calls = self.translator(Reply([Block("{}")]))
         translator.translate("p", "s", "m")
-        for name in ("temperature", "top_p", "top_k"):
+        self.assertEqual(calls.sent[0]["temperature"], 0)
+        for name in ("top_p", "top_k"):
             with self.subTest(name):
                 self.assertNotIn(name, calls.sent[0])
+
+    def test_a_translator_with_no_temperature_sends_no_sampling_parameter(self):
+        """For a model that removed them: sending 0 there would 400 on the first sentence."""
+        translator, calls = self.translator(Reply([Block("{}")]), temperature=None)
+        translator.translate("p", "s", "m")
+        self.assertNotIn("temperature", calls.sent[0])
 
 
 @unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")

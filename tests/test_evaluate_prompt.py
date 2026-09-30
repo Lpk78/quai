@@ -73,7 +73,7 @@ class TestTheTranscript(unittest.TestCase):
         kept = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(kept["version"], "v0_test")
         self.assertEqual(kept["model"], "test-model")
-        self.assertEqual(kept["temperature"], "n/a")
+        self.assertEqual(kept["temperature"], "0")
         self.assertTrue(kept["complete"])
         self.assertEqual(kept["cases"][0]["id"], "T01")
         self.assertEqual(kept["cases"][0]["attempts"][0]["output"], answer)

@@ -158,27 +158,32 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `feature/prompt-evaluation`, #11.
 
 ---
-## 2026-09-30 — `temperature 0` for repeatable outputs is no longer possible
+## 2026-09-30 — A harness written for a model the project does not use
 
-- What happened: the course material, and the results table of `documentation/prompt_evaluation.md`
-  with it, treats `temperature 0` as the way to make model output repeatable, and LP-06 was asked to
-  send it. The current Claude models — Opus 5, Sonnet 5, Opus 4.7 and 4.8 — **reject the
-  `temperature` parameter with a 400**. Sent as planned, the evaluation script would have failed on
-  its first call, and, since it is also meant to fail fast on a 400, it would have stopped there:
-  75 calls, none of them made, and an empty results table with no obvious cause.
-- Why: sampling parameters were removed from those models. The deeper point is that they were never
-  doing what the method assumed: `temperature 0` reduces variability, it never guaranteed identical
-  outputs, so a score taken at temperature 0 was never a repeatable measurement either — the
-  parameter made variability easy to forget rather than absent.
-- What we tried: the script sends no sampling parameter at all, and the temperature column of the
-  results table records `n/a` — what was actually used, rather than a number nobody sent. Variability
-  is now **measured instead of assumed away**: every sentence is translated three times, a criterion
-  counts as Yes only when all three runs say Yes, and the per-sentence table shows how many of the
-  three passed (`2/3`) and whether the three answers were the same. A prompt that only usually works
-  is no longer scored as a prompt that works.
-- What we learned: a method inherited from a course, a paper or an older model has to be checked
-  against the API that exists, not the one it was written for. And the honest response to losing a
-  knob that hid variability is to measure the variability, not to find another knob.
+- What happened: LP-06 was asked to send `temperature 0`, as the course material and the results
+  table ask. It was written not to, on the grounds that "the current Claude models reject
+  `temperature` with a 400" — true of Opus 5, Sonnet 5, Opus 4.7 and 4.8, and not true of
+  `claude-haiku-4-5-20251001`, which is what `LLM_MODEL` names in `.env`. The temperature column was
+  set to `n/a` and a failure entry was written here explaining a constraint that did not apply. The
+  review of #22 reasoned from the same wrong model, so it did not catch it either. One real call to
+  the model actually configured settled it in a second: `temperature 0`, HTTP 200.
+- Why: `src/quai/llm.py` carried `DEFAULT_MODEL = "claude-opus-5"` and fell back to it whenever
+  `.env` was silent, so the file read as though Opus 5 were the model in use. Nothing in the harness
+  ever compared that name against `LLM_MODEL`, and every comment, docstring and doc paragraph was
+  then written about Opus 5's behaviour — its thinking, its `max_tokens`, its sampling parameters —
+  while every call would have gone to Haiku 4.5. A default that is almost never right is worse than
+  no default: it is a claim about the run that nothing checks.
+- What we tried: the default is gone. `LLM_MODEL` (or `--model`) names the model or the run stops
+  with `MissingModel`, so a Results row cannot name a model that did not answer. `temperature 0` is
+  sent, the column records `0`, and `temperature_cell` prints what was sent — `n/a` when a model
+  that removed sampling parameters is run with none — rather than a constant.
+- What we learned: check a model's behaviour against the model that is configured, with one call,
+  before writing a paragraph about it. "The current models do X" is not a fact about a run; the name
+  in `.env` is. Separately, the point the wrong entry made still stands on its own: `temperature 0`
+  reduces variability and has never guaranteed identical outputs, so it never made a score
+  repeatable. That is why every sentence is translated three times and a criterion counts as Yes
+  only when all three runs say Yes — the three runs measure what the parameter merely made easy to
+  forget, and they are the part that matters whether the column says `0` or `n/a`.
 - Related branch / PR: `feature/prompt-evaluation`, #22.
 
 ---

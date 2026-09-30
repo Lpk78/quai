@@ -13,9 +13,11 @@ Three decisions that belong to the rubric rather than to the API:
 - **The reply is plain text, parsed afterwards.** The API can constrain a reply to a JSON schema,
   which would make C1 true by construction; the point of C1 is to find out whether the prompt gets
   there on its own.
-- **No sampling parameter is sent.** The current models reject `temperature` outright, so the
-  rubric's temperature column records what was actually used: nothing. See the note in
-  `documentation/prompt_evaluation.md`.
+- **`temperature` 0 is sent.** The method asks for it and `claude-haiku-4-5-20251001`, the model
+  `.env` names, accepts it. It does not make a score repeatable — that is what the three runs per
+  sentence are for — but it is what was used, and the rubric's column says so. A model that
+  removed sampling parameters (Opus 5, Sonnet 5, Opus 4.7 and 4.8) answers a 400, which is a
+  `FatalCall` and stops the run at the first sentence rather than scoring anything.
 """
 import os
 import pathlib
@@ -30,6 +32,10 @@ from dataclasses import dataclass
 # headroom rather than a limit — and `read_reply` refuses a reply that hit it anyway, so the
 # number decides how often a sentence is lost, never how a sentence is scored.
 MAX_TOKENS = 16384
+
+# What the method asks for, and what the model `.env` names accepts. `None` sends no sampling
+# parameter at all, for a model that removed them; the results table records either one as it is.
+TEMPERATURE = 0.0
 
 # The name the Anthropic SDK reads by default, so the key is configured in one place and one way.
 KEY_VARIABLE = "ANTHROPIC_API_KEY"
@@ -115,11 +121,10 @@ def user_message(sentence: str, manifest: str) -> str:
 
 @dataclass(frozen=True)
 class Translator:
-    """Sends one sentence at a time. `temperature` is None because none is sent: the models the
-    project uses reject it, and the rubric records what was actually used."""
+    """Sends one sentence at a time, at the temperature the rubric records."""
     model: str
     max_tokens: int = MAX_TOKENS
-    temperature: None = None
+    temperature: float | None = TEMPERATURE
     attempts: int = ATTEMPTS
     base_delay: float = BASE_DELAY
     max_delay: float = MAX_DELAY
@@ -138,12 +143,14 @@ class Translator:
         delay = self.base_delay
         for attempt in range(1, self.attempts + 1):
             last = attempt == self.attempts
+            sampling = {} if self.temperature is None else {"temperature": self.temperature}
             try:
                 reply = self._client.messages.create(
                     model=self.model,
                     max_tokens=self.max_tokens,
                     system=prompt,
                     messages=[{"role": "user", "content": user_message(sentence, manifest)}],
+                    **sampling,
                 )
             except anthropic.APIStatusError as error:
                 status = getattr(error, "status_code", None)
