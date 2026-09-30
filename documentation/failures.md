@@ -70,6 +70,91 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 
 ---
 
+## 2026-09-30 — The branch followed a rule that `main` had already replaced
+
+- What happened: `LP-05` added a row to `documentation/ai_usage.md`, as step 7 of `/task` asked when the
+  branch was created. While the branch was open, #20 merged the opposite rule: AI help is recorded in the
+  "Outcome" of `prompts/dev/<ID>_<slug>.md`, and a Pull Request never adds a row to that table. GitHub
+  marked #21 as conflicting, and the conflict was on exactly the row the new rule forbids.
+- Why: the branch was working from the rules as they stood when it started, and nothing tells a working
+  copy that the rules moved. The conflict was the only signal — and it appeared at push time, not while
+  the row was being written.
+- What we tried: dropped our row and kept `main`'s, since the AI help for this task is already recorded in
+  `prompts/dev/LP-05_constraint-schema.md`, then merged `main` into the branch and re-ran the tests.
+- What we learned: this is the second conflict on this table (see the entry above), which is what #20 set
+  out to end — so the rule works, it just arrived mid-branch. The habit to keep is merging `main` into a
+  branch before writing documentation, not only before pushing: rules live in the repository, and a long
+  branch reads an old copy of them.
+- Related branch / PR: `feature/constraint-schema`, #21, rule from #20.
+
+---
+
+## 2026-09-30 — The route parser read the same stop twice
+
+- What happened: `tests/test_constraints.py` builds a `Manifest` from the document's own route so that
+  the 25 expected outputs can be validated against it. Reading the stops in route order off the manifest line
+  ("Stops on the route: `S1` Rouen, then `S2` Le Havre, then `S3` Caen — in that order, `S3` last.")
+  returned `('S1', 'S2', 'S3', 'S3')`, and `Manifest.__post_init__` refused it with
+  `manifest stops contains the same id twice`. Three tests errored out.
+- Why: the sentence names the last stop twice on purpose — once in the list, once to insist it is last —
+  and a regex over the line cannot tell a member of the route from a comment about it. The first version
+  of the fixture used `stop_ids()` from the other test file, which returns a *set*, so the duplicate was
+  invisible; the bug only appeared when we needed the stops in order, because the route order is part of
+  the contract and sorting a set is not reading a route.
+- What we tried: kept the order and dropped repeats with `dict.fromkeys`, first mention winning, and
+  wrote down why in the helper's docstring. Added a test that the parsed route holds exactly the stops
+  `stop_ids()` finds and that its last element is what `last_stop` returns, so the two readings of the
+  same line cannot drift apart.
+- What we learned: the duplicate check we had just written in the schema is what caught it — strict
+  validation pays for itself the first time something feeds it real data, even our own test fixture.
+  And a set hides exactly the mistakes an ordered list exposes: sorting `S1, S2, S3` looked correct and
+  would have silently reordered any route whose ids are not alphabetical.
+- Related branch / PR: `feature/constraint-schema`, #10.
+
+---
+
+## 2026-09-30 — `Infinity` is valid JSON to Python, and it crashed the validator
+
+- What happened: `_limit_problems` rejected fractional centimetres with `value != int(value)`, which
+  reads well until the value is `inf` or `nan`: `int(float("inf"))` raises `OverflowError` and
+  `int(float("nan"))` raises `ValueError`. `find_problems` would have crashed with a traceback instead of
+  returning a problem, on the one path whose whole job is to survive bad input.
+- Why: `json.loads` accepts the non-standard literals `Infinity`, `-Infinity` and `NaN` by default, so a
+  model can hand us a limit that is not a number in any useful sense. The check assumed a finite value
+  because every example we had written by hand was finite.
+- What we tried: reproduced it with `json.loads('{"limit_cm": Infinity}')`, added an `math.isfinite`
+  guard before the whole-number test, and a test for both literals.
+- What we learned: a validator has to be written against what the format actually allows, not against the
+  examples in the contract. We found this one by asking "what does `json.loads` accept that we never
+  write?" — the same question is worth asking of every field we add later.
+- Related branch / PR: `feature/constraint-schema`, #10.
+
+---
+## 2026-09-30 — A validated contract that refused a normal sentence
+
+- What happened: the constraint schema refused `{"load_last": B9}` together with `{"load_last": B7}`
+  as a contradiction — "B9 and B7 cannot both be loaded last at S3". "Load the toolbox and the paint
+  cans last" is an ordinary thing for an operator to say, and because `parse()` refuses the whole
+  output and never repairs it, the request was lost entirely, with no other way for the model to
+  express it. The review of #21 caught it.
+- Why: the check was written from the words of the constraint rather than from a sentence someone
+  would say. "Loaded last" reads as a single position, one item per stop, and that reading was turned
+  into a validation rule without asking what the operator would be refused by it. Every test written
+  for the check confirmed the same wrong reading, so 90 green tests said nothing about it.
+- What we tried: `load_last` now names a group. The items carrying it at a stop are the last group
+  there and the solver orders them among themselves; the contract table, the *Route and unloading
+  order* rules and T26 say so, and the test that used to demand a refusal now demands acceptance. The
+  same review round found the opposite hole — `not_stackable` with `max_weight_on 20` on one item
+  passed validation, which the solver would have had to settle silently — so that is refused now.
+- What we learned: a rule that refuses is as much a design decision as a rule that accepts, and it
+  costs an operator something. Before adding one, write the sentence it refuses and read it out loud.
+  It was also cheap to fix only because no score had been recorded yet: the results table was empty,
+  so changing the contract cost nothing. A week later it would have meant re-running every
+  evaluation.
+- Related branch / PR: `feature/constraint-schema`, #21.
+
+---
+
 ## 2026-09-30 — The prompt that produced the solver is unrecoverable
 
 - What happened: `LP-16` backfilled `prompts/dev/` with the six development prompts given before the

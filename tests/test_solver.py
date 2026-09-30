@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps  # noqa: E402
-from quai.models import Box, Container, Placement  # noqa: E402
+from quai.models import Box, Container, Placement, Plan  # noqa: E402
 from quai.solver import solve  # noqa: E402
 
 CONTAINER = Container(100, 100, 100, max_weight=500)
@@ -78,6 +78,43 @@ class TestBox(unittest.TestCase):
 
     def test_valid_box_is_still_accepted(self):
         self.assertEqual(Box("ok", 10, 20, 30, 1.5).volume, 6000)
+
+
+class TestContainer(unittest.TestCase):
+    def test_zero_dimension_is_refused(self):
+        """A zero side used to be accepted and raise ZeroDivisionError later, in fill_rate."""
+        for sides in ((0, 200, 200), (200, 0, 200), (200, 200, 0)):
+            with self.subTest(sides), self.assertRaises(ValueError):
+                Container(*sides)
+
+    def test_negative_dimension_is_refused(self):
+        with self.assertRaises(ValueError):
+            Container(-400, 200, 200)
+
+    def test_negative_max_weight_is_refused(self):
+        with self.assertRaises(ValueError):
+            Container(100, 100, 100, max_weight=-1)
+
+    def test_error_names_the_field_and_the_value(self):
+        with self.assertRaisesRegex(ValueError, "length must be greater than 0, got 0"):
+            Container(0, 200, 200)
+
+    def test_valid_container_is_still_accepted(self):
+        self.assertEqual(Container(100, 40, 100).volume, 400_000)
+        self.assertEqual(Container(100, 40, 100, max_weight=0).max_weight, 0)
+
+
+class TestPlan(unittest.TestCase):
+    def test_fill_rate_of_a_zero_volume_container_is_zero(self):
+        # Container refuses this at construction; force it past validation to test the guard.
+        container = Container(100, 100, 100)
+        object.__setattr__(container, "length", 0)
+        self.assertEqual(Plan(container, [], []).fill_rate, 0.0)
+
+    def test_fill_rate_is_unchanged_for_a_normal_plan(self):
+        box = Box("half", 50, 100, 100)
+        plan = Plan(CONTAINER, [Placement(box, 0, 0, 0, 50, 100, 100)], [])
+        self.assertEqual(plan.fill_rate, 0.5)
 
 
 class TestSolver(unittest.TestCase):
