@@ -60,7 +60,8 @@ def route(text: str) -> tuple[str, ...]:
 
 def stop_names(text: str) -> dict[str, str]:
     """Stop id -> the place the operator would say, e.g. `S2` -> "Le Havre"."""
-    pairs = re.findall(r"`(S\d+)`\s+([A-Z][A-Za-z' -]*?)(?=,|\s+—|\s+in that|$)", _route_line(text))
+    pairs = re.findall(r"`(S\d+)`\s+([A-Z][A-Za-z' -]*?)(?=,|\s+—|\s+in that|$)",
+                       _route_line(text))
     named: dict[str, str] = {}
     for stop, name in pairs:
         named.setdefault(stop, name)  # the line names the last stop twice; the first wins
@@ -72,7 +73,8 @@ def _route_line(text: str) -> str:
 
 
 def items(text: str) -> tuple[Item, ...]:
-    rows = re.findall(r"^\| `(B\d+)` \| ([^|]+?) \| ([^|]+?) \| ([^|]+?) \|\s*$", text, re.MULTILINE)
+    rows = re.findall(r"^\| `(B\d+)` \| ([^|]+?) \| ([^|]+?) \| ([^|]+?) \|\s*$",
+                      text, re.MULTILINE)
     return tuple(Item(*(cell.strip() for cell in row)) for row in rows)
 
 
