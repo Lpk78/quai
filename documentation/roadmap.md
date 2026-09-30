@@ -11,7 +11,7 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 |---|---|---|---|---|---|---|
 | 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
 | 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | In review (#27) |
-| 3 | #6 | `feature/api-server` | FastAPI exposing the solver and the translation, key server-side | `SamDana-maker` | `MORHI11` | To do |
+| 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
 | 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | To do |
 | 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
