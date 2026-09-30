@@ -72,3 +72,15 @@ We plan to *measure* this with an experiment (LLM-only placement vs solver), whi
   replying to PR line comments with `gh api` moved from `allow` to `ask`, so a comment is never posted on
   GitHub without one of us saying yes.
 - Related branch / PR: `docs/per-task-ai-usage-rule`, follow-up to PR #4.
+
+## Session 5 — Sam's account is operated from Léo-Paul's machine
+
+- 2026-09-30 — The GitHub account `SamDana-maker` is used from Léo-Paul's machine, with Sam's agreement,
+  for the tasks Sam owns. Declared here once, dated, instead of being repeated as a line at the top of
+  every Pull Request body and every review.
+- **Why:** the Git history is graded on its authenticity, so who operated an account has to be written
+  down. Repeating it on every PR turned a fact about the team into noise inside the text a reviewer is
+  meant to read, and a line that appears everywhere stops being read at all. PR bodies and reviews are
+  written in the voice of the account they are posted from; this entry is where the arrangement lives.
+- **Unchanged:** the rotation still applies, and the author still never merges their own PR.
+- Related branch / PR: `feature/solver-v2`, #17.
