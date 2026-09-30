@@ -25,6 +25,11 @@ Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` 
 | 6 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | To do |
 | 7 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
 | 8 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
+| 9 | — | `feature/constraint-translation` | Spoken sentence → validated JSON → solver | `Lpk78` | `SamDana-maker` | To do |
+
+Row 9 is the feature the whole AI layer builds towards; rows 5 to 8 are what make it possible. It has
+no issue yet — it is opened once v1 has been scored, so that what it wires together is known. #10
+points at this row.
 
 ## Later — not yet opened as issues
 
