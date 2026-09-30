@@ -22,11 +22,9 @@ import pathlib
 import time
 from dataclasses import dataclass
 
-# Claude Opus 5, the model the project uses unless `.env` names another one. Thinking is on by
-# default on this model and `max_tokens` covers thinking as well as the reply, so the ceiling is
-# well above the size of any output in the contract: a truncated reply would be scored as invalid
-# JSON and blame the prompt for the harness's mistake.
-DEFAULT_MODEL = "claude-opus-5"
+# The model is named by `LLM_MODEL` in `.env` and nowhere else. There is deliberately no default:
+# a score belongs to the model that produced it, and a harness that quietly picks one of its own
+# would record a row saying a model that never ran. A missing `LLM_MODEL` stops the run instead.
 MAX_TOKENS = 8192
 
 # The name the Anthropic SDK reads by default, so the key is configured in one place and one way.
@@ -46,8 +44,20 @@ MAX_DELAY = 30.0
 ENV_FILE = pathlib.Path(__file__).resolve().parents[2] / ".env"
 
 
-class MissingKey(RuntimeError):
-    """No API key is configured, so no evaluation can be run — and none is invented."""
+class NotConfigured(RuntimeError):
+    """A setting the run needs is missing, so no evaluation happens — and no score is invented."""
+
+
+class MissingKey(NotConfigured):
+    """No API key is configured, so there is nothing to evaluate with."""
+
+
+class MissingModel(NotConfigured):
+    """`.env` does not name a model.
+
+    The harness never chooses one on its own: the results table records the model beside the score,
+    and a row is only comparable with another row when that name is the one that actually answered.
+    """
 
 
 class CallFailed(RuntimeError):
@@ -103,7 +113,7 @@ def user_message(sentence: str, manifest: str) -> str:
 class Translator:
     """Sends one sentence at a time. `temperature` is None because none is sent: the models the
     project uses reject it, and the rubric records what was actually used."""
-    model: str = DEFAULT_MODEL
+    model: str
     max_tokens: int = MAX_TOKENS
     temperature: None = None
     attempts: int = ATTEMPTS
@@ -187,18 +197,25 @@ def text_of(reply) -> str:
 
 
 def from_env(model: str | None = None) -> Translator:
-    """Build a translator from `.env`, or say plainly that there is no key."""
+    """Build a translator from `.env`, or say plainly what is missing.
+
+    Both the key and the model have to be configured. `model` overrides `LLM_MODEL` for one run,
+    for comparing two models on the same prompt; neither is guessed when both are silent.
+    """
     load_env()
     key = os.environ.get(KEY_VARIABLE, "").strip()
     if not key:
         raise MissingKey(f"{KEY_VARIABLE} is not set in .env, so there is nothing to "
                          "evaluate with")
+    name = (model or os.environ.get(MODEL_VARIABLE, "")).strip()
+    if not name:
+        raise MissingModel(f"{MODEL_VARIABLE} is not set in .env and no --model was given, so "
+                           "there is no model to score with; see .env.example")
     try:
         import anthropic
     except ImportError as error:  # pragma: no cover - depends on the machine, not on the code
-        raise MissingKey("the anthropic package is not installed: pip install -r requirements.txt"
-                         ) from error
-    name = model or os.environ.get(MODEL_VARIABLE, "").strip() or DEFAULT_MODEL
+        raise NotConfigured("the anthropic package is not installed: "
+                            "pip install -r requirements.txt") from error
     # max_retries=0: the backoff above is the only one, so a wait is ours to see and to test.
     return Translator(model=name,
                       _client=anthropic.Anthropic(api_key=key, max_retries=0))

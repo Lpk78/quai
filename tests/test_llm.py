@@ -93,6 +93,26 @@ class TestConfiguration(unittest.TestCase):
             with self.assertRaises(llm.MissingKey):
                 llm.from_env()
 
+    def test_no_model_means_no_evaluation(self):
+        """The harness never picks a model: the row would name one that did not answer."""
+        with mock.patch.dict(os.environ, {llm.KEY_VARIABLE: "k", llm.MODEL_VARIABLE: ""},
+                             clear=False), \
+             mock.patch.object(llm, "load_env", lambda *a, **k: None):
+            with self.assertRaises(llm.MissingModel) as missing:
+                llm.from_env()
+        self.assertIn(llm.MODEL_VARIABLE, str(missing.exception))
+
+    def test_both_failures_stop_the_script_the_same_way(self):
+        for failure in (llm.MissingKey, llm.MissingModel):
+            with self.subTest(failure.__name__):
+                self.assertTrue(issubclass(failure, llm.NotConfigured))
+
+    def test_a_model_cannot_be_left_to_a_default(self):
+        """`Translator` has no model of its own, so no call can be made without naming one."""
+        with self.assertRaises(TypeError):
+            llm.Translator()
+        self.assertFalse(hasattr(llm, "DEFAULT_MODEL"))
+
     def test_env_values_do_not_override_the_real_environment(self):
         env = self.an_env_file(
             "LLM_MODEL=from-the-file\nANTHROPIC_API_KEY=unused\n# comment\n\n")
@@ -110,10 +130,14 @@ class TestConfiguration(unittest.TestCase):
     def test_a_missing_env_file_is_not_an_error(self):
         llm.load_env(Path("/nonexistent/.env"))
 
-    def test_no_sampling_parameter_is_sent(self):
-        """The models reject `temperature`, so the rubric records that and not a guess."""
-        self.assertIsNone(llm.Translator().temperature)
-        self.assertEqual(llm.Translator().model, llm.DEFAULT_MODEL)
+    @unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")
+    def test_the_model_asked_for_wins_over_the_file(self):
+        """`--model` compares two models on one prompt without editing `.env`."""
+        with mock.patch.dict(os.environ, {llm.KEY_VARIABLE: "k",
+                                          llm.MODEL_VARIABLE: "from-the-file"}, clear=False), \
+             mock.patch.object(llm, "load_env", lambda *a, **k: None):
+            self.assertEqual(llm.from_env("asked-for").model, "asked-for")
+            self.assertEqual(llm.from_env().model, "from-the-file")
 
 
 class Response:
@@ -149,6 +173,7 @@ class CallHarness:
         calls = Calls(outcomes)
         client = type("Client", (), {"messages": calls})()
         self.waits = []
+        settings.setdefault("model", "a-model")
         return llm.Translator(_client=client, _sleep=self.waits.append, **settings), calls
 
     def status_error(self, status, headers=None, message="no"):

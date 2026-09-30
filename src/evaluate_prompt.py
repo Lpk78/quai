@@ -6,8 +6,9 @@ Run from the repository root:
 
 The inputs, the reference manifest and the rubric all come from
 `documentation/prompt_evaluation.md`, so every version is scored on the same 26 sentences with the
-same eight criteria. The key comes from `.env`. With no key the script says so and prints no
-scores: a row in the results table means a run that actually happened.
+same eight criteria. The key and the model both come from `.env` (`ANTHROPIC_API_KEY`, `LLM_MODEL`);
+neither is guessed. With either one missing the script says so and prints no scores: a row in the
+results table means a run that actually happened, on the model the row names.
 
 `--cases T01,T25` runs a subset while working on a prompt. Such a run is marked partial and gets no
 results row, on purpose — a score over part of the inputs is not comparable with anything.
@@ -35,7 +36,7 @@ def parse_args(argv=None):
                         help=f"calls per sentence, to measure how much the output varies "
                              f"(default {evaluation.RUNS})")
     parser.add_argument("--model", default=None,
-                        help="override the model from .env, recorded in the results row")
+                        help="override LLM_MODEL from .env, recorded in the results row")
     parser.add_argument("--no-transcript", action="store_true",
                         help="do not write the replies to outputs/evaluations/")
     return parser.parse_args(argv)
@@ -88,7 +89,7 @@ def main(argv=None) -> int:
 
     try:
         translator = llm.from_env(args.model)
-    except llm.MissingKey as missing:
+    except llm.NotConfigured as missing:
         print(f"Not run: {missing}.", file=sys.stderr)
         print("The results table keeps its empty row until a run happens.", file=sys.stderr)
         return 1
