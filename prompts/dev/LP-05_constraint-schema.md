@@ -29,6 +29,9 @@ and tests
   fixed: `Infinity`/`NaN` limits, and a `type` or a `reason` given as a list, which are unhashable and
   raised `TypeError` instead of being refused. The test fixture that reads the route out of the document
   was also wrong at first (see `documentation/failures.md`).
+- **Rule that moved under the task:** #20 merged while this branch was open and replaced step 7 of
+  `/task`, so the row this task had added to `documentation/ai_usage.md` was dropped and this Outcome is
+  the only record of the AI help (see `documentation/failures.md`).
 - **Verified:** 90 tests pass. Every guard was mutation-tested — removing the unknown-item check, the
   unknown-stop check, the whole-centimetre check, the extra-field check, the unknown-top-level-key check,
   the contradiction pass or the `isinstance` guard each makes at least one test fail.

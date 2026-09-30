@@ -70,6 +70,25 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 
 ---
 
+## 2026-09-30 — The branch followed a rule that `main` had already replaced
+
+- What happened: `LP-05` added a row to `documentation/ai_usage.md`, as step 7 of `/task` asked when the
+  branch was created. While the branch was open, #20 merged the opposite rule: AI help is recorded in the
+  "Outcome" of `prompts/dev/<ID>_<slug>.md`, and a Pull Request never adds a row to that table. GitHub
+  marked #21 as conflicting, and the conflict was on exactly the row the new rule forbids.
+- Why: the branch was working from the rules as they stood when it started, and nothing tells a working
+  copy that the rules moved. The conflict was the only signal — and it appeared at push time, not while
+  the row was being written.
+- What we tried: dropped our row and kept `main`'s, since the AI help for this task is already recorded in
+  `prompts/dev/LP-05_constraint-schema.md`, then merged `main` into the branch and re-ran the tests.
+- What we learned: this is the second conflict on this table (see the entry above), which is what #20 set
+  out to end — so the rule works, it just arrived mid-branch. The habit to keep is merging `main` into a
+  branch before writing documentation, not only before pushing: rules live in the repository, and a long
+  branch reads an old copy of them.
+- Related branch / PR: `feature/constraint-schema`, #21, rule from #20.
+
+---
+
 ## 2026-09-30 — The route parser read the same stop twice
 
 - What happened: `tests/test_constraints.py` builds a `Manifest` from the document's own route so that
