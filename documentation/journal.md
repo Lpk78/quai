@@ -43,3 +43,19 @@ We plan to *measure* this with an experiment (LLM-only placement vs solver), whi
 
 - 2026-09-23 — Léo-Paul created the private repository `Lpk78/quai`, pushed the scaffold in three commits and invited Sam.
 - From now on, every change goes through a branch and a reviewed Pull Request.
+
+## Session 5 — change of direction: no automatic review bot
+
+- 2026-09-28 — We dropped the idea of an automatic first-pass review from a GitHub Action
+  (`claude-review.yml`). It was described in `CLAUDE.md` before it was ever built, and we chose not to
+  build it.
+- **Why:** a bot comment posted on every PR adds noise without adding judgement, and it invited the
+  reviewer to skim the bot's summary instead of reading the diff. The course asks each of us to be able
+  to explain any PR we approved, so the reading has to stay with the reviewer.
+- **What replaces it:** `/review` now does the checking work locally — it checks out the branch, runs the
+  tests and goes through `CONTRIBUTING.md` point by point — then drafts a review that the reviewer reads,
+  edits and validates before it is posted from their account. Nothing is posted, approved or merged
+  without their explicit answer.
+- **Kept from the old design:** the rotation (one reviewer per PR), the Observation / Concern / Suggestion
+  format, and the rule that the author never merges their own PR.
+- Related branch / PR: `docs/team-automation`, PR #4.
