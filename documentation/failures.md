@@ -57,7 +57,7 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - What we tried: took both sides rather than choosing one, since the two branches document real and
   different uses of AI. Ordered the rows by date (`2026-09-28`, then the ongoing `From 2026-09-28` line,
   then `2026-09-30`), removed the three markers, checked with
-  `grep -rn "<<<<<<<\|>>>>>>>" .` (only the two mentions inside CONTRIBUTING.md §6 remain, which is
+  `grep -rn "<<<<<<<\|>>>>>>>" .` (only the two mentions inside CONTRIBUTING.md §5 remain, which is
   expected), ran `python3 -m unittest discover tests` — 19 tests pass now that `tests/` arrived with #3 —
   and committed the merge.
 - What we learned: a conflict in a log file is almost always "keep both", not "pick one"; the only real
