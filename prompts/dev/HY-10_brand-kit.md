@@ -27,6 +27,15 @@ Also decided with the author: the 2.52 MB master brand board is kept at full siz
 
 ## Outcome
 
-- **PR:**
-- **What the AI produced:**
-- **What was changed by hand:**
+- **PR:** https://github.com/Lpk78/quai/pull/28
+- **What the AI produced:** the `assets/brand/` layout and the copy set, `documentation/design.md`,
+  `tests/test_brand.py` (23 tests computing every contrast ratio the document claims), the
+  `failures.md` write-up and the README section. It measured the palette rather than trusting it:
+  the two accessibility fixes in the task were confirmed numerically (white on orange 2.36:1, navy on
+  orange 6.79:1, `#FF8A00` as text 2.19:1, `#C2410C` 4.79:1), and four further AA failures were found
+  that the task had not asked about — `success`, `warning`, `error` and the stop-2 green as body text.
+  It also found that both supplied wordmark SVGs asked for Arial rather than the brand display font.
+- **What was changed by hand:** nothing in the output. Two decisions were taken by the author before
+  any code was written: the web-app third of the task was split off to #18 because `web/` does not
+  exist yet, and the 2.52 MB master brand board was kept at full size. Each test was checked to fail
+  when the rule it guards is reversed.
