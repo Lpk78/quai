@@ -76,6 +76,11 @@ named `<ID>_<slug>.md` with the ID prefix of its author (`LP-`, `SA-`, `HY-`):
 `prompts/dev/SA-04_fastapi-server.md`. They are written by `/task`, which refuses to start without an ID,
 and record the author, the date, the branch, the exact prompt and the outcome.
 
+That outcome is also where AI help is recorded: what the assistant produced and what we changed by hand,
+one entry per task, in the file of that task. A Pull Request never adds a row to
+`documentation/ai_usage.md`; the table is filled once, at the end of the project, from the `prompts/dev/`
+files. So the same story is not written twice, and two branches cannot conflict on the same table.
+
 For both kinds:
 
 - A new version is a new file. Old versions are never overwritten.

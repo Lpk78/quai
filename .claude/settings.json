@@ -33,8 +33,6 @@
       "Bash(gh issue create *)",
       "Bash(gh issue comment *)",
       "Bash(gh api user *)",
-      "Bash(gh api repos/*/pulls/*/comments *)",
-      "Bash(gh api repos/*/pulls/*/comments/*/replies *)",
       "Bash(python *)",
       "Bash(python3 *)",
       "Bash(npm run *)",
@@ -42,6 +40,8 @@
       "Bash(mkdir *)"
     ],
     "ask": [
+      "Bash(gh api repos/*/pulls/*/comments *)",
+      "Bash(gh api repos/*/pulls/*/comments/*/replies *)",
       "Bash(pip install *)",
       "Bash(npm install *)",
       "Bash(npm install)",
