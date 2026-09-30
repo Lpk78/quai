@@ -180,3 +180,27 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   against the API that exists, not the one it was written for. And the honest response to losing a
   knob that hid variability is to measure the variability, not to find another knob.
 - Related branch / PR: `feature/prompt-evaluation`, #22.
+
+---
+## 2026-09-30 — A validated contract that refused a normal sentence
+
+- What happened: the constraint schema refused `{"load_last": B9}` together with `{"load_last": B7}`
+  as a contradiction — "B9 and B7 cannot both be loaded last at S3". "Load the toolbox and the paint
+  cans last" is an ordinary thing for an operator to say, and because `parse()` refuses the whole
+  output and never repairs it, the request was lost entirely, with no other way for the model to
+  express it. The review of #21 caught it.
+- Why: the check was written from the words of the constraint rather than from a sentence someone
+  would say. "Loaded last" reads as a single position, one item per stop, and that reading was turned
+  into a validation rule without asking what the operator would be refused by it. Every test written
+  for the check confirmed the same wrong reading, so 90 green tests said nothing about it.
+- What we tried: `load_last` now names a group. The items carrying it at a stop are the last group
+  there and the solver orders them among themselves; the contract table, the *Route and unloading
+  order* rules and T26 say so, and the test that used to demand a refusal now demands acceptance. The
+  same review round found the opposite hole — `not_stackable` with `max_weight_on 20` on one item
+  passed validation, which the solver would have had to settle silently — so that is refused now.
+- What we learned: a rule that refuses is as much a design decision as a rule that accepts, and it
+  costs an operator something. Before adding one, write the sentence it refuses and read it out loud.
+  It was also cheap to fix only because no score had been recorded yet: the results table was empty,
+  so changing the contract cost nothing. A week later it would have meant re-running every
+  evaluation.
+- Related branch / PR: `feature/constraint-schema`, #21.
