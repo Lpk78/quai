@@ -152,3 +152,25 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   so changing the contract cost nothing. A week later it would have meant re-running every
   evaluation.
 - Related branch / PR: `feature/constraint-schema`, #21.
+
+---
+## 2026-09-30 — A stack limit the solver only ever enforced upwards
+
+- What happened: the solver checked `max_weight_on` by asking, of the box it was about to place, which
+  boxes it would come to rest on and whether its weight still fitted under their limits. That is only
+  right while boxes go in from the bottom up. A box placed later can slide into a gap *under* one already
+  loaded — first fit tries the lowest corner first, so it does exactly that — and becomes a new support
+  for it. The load already sitting above was never counted against it. 117 tests were green; a sweep over
+  200 generated loads with routes and limits produced 2 plans that broke a limit.
+- Why: the check was written as a delta — "what does this box add?" — because that is how the cap on the
+  whole load works, and the same shape was reused without asking whether placing a box can change what
+  rests on a box that is already placed. It can.
+- What we tried: `checks.stack_problems()` is now the one definition of the rule. The independent checks
+  ask it of the finished plan and the solver asks it of the plan a candidate placement would produce, so
+  the solver cannot pack by a looser reading than the checks judge by. The smallest case is
+  `test_a_box_cannot_slide_under_a_load_it_may_not_carry`, and the sweep that found it is now a test.
+- What we learned: two things. A greedy packer does not fill bottom-up, so nothing about a plan may be
+  treated as settled while boxes are still going in. And a hand-written suite only proves what its author
+  already thought of — every one of the 117 tests was written by someone who believed the check was
+  right, and the bug came out of loads nobody designed.
+- Related branch / PR: `feature/solver-v2`, #17.
