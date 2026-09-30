@@ -24,7 +24,7 @@ starting with row 2.
 
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
-| 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | In review (#14) |
+| 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | Done (#14) |
 | 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | To do |
 | 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
 | 10 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
