@@ -17,7 +17,8 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
 
 Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` wrote the v1 solver,
-`SamDana-maker` reviewed it in #3, and owns the solver from there on — maintenance and extensions, starting with row 2.
+`SamDana-maker` reviewed it in #3, and owns the solver from there on — maintenance and extensions,
+starting with row 2.
 
 ## Phase 2 — The AI layer
 
