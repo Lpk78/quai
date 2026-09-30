@@ -17,7 +17,7 @@ PR or issue.
 
 ## Outcome
 
-- **PR:** PR_URL_PLACEHOLDER (reviewer: `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/25 (reviewer: `SamDana-maker`)
 - **What the AI produced:** the six backfilled records in `prompts/dev/` — `LP-01`, `LP-02`, `LP-03`,
   `LP-04b`, `LP-04c`, `LP-04d` — and the `failures.md` entry on the prompt that could not be recovered. It
   read every session file under
