@@ -111,8 +111,23 @@ without overlap, and a 3D view of the result. No scanning, no LLM yet.
 ├── outputs/               ← generated results (ignored by Git, folder kept)
 ├── notebooks/             ← exploration only
 ├── assets/                ← images, 3D models, demo material
-└── documentation/         ← journal, prompt evaluation, failures, AI usage, roadmap
+│   └── brand/             ← logo, app icon, design tokens, visual references
+└── documentation/         ← journal, design system, prompt evaluation, failures, AI usage, roadmap
 ```
+
+## Design
+
+The visual identity lives in `assets/brand/` and the rules for using it in
+`documentation/design.md`: colours, typography, logo, illustration style and interface rules.
+
+`assets/brand/tokens.json` is the machine-readable source for colours and fonts. The PNGs in
+`assets/brand/reference/` are renderings for mood and layout, not specifications — never take a
+colour out of them by eyedropper.
+
+Two rules are worth knowing before writing any interface code, because the supplied mockups break
+both: **text on orange is navy `#102238`, never white**, and **small orange text is `#C2410C`**,
+not the primary `#FF8A00`. `tests/test_brand.py` enforces these and every other contrast ratio
+the design document claims.
 
 ## AI Usage
 
