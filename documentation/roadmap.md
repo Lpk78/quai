@@ -33,13 +33,15 @@ points at this row.
 
 ## Later — not yet opened as issues
 
-| Branch | Deliverable | Status |
-|---|---|---|
-| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | To do |
-| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | To do |
-| `feature/dimension-scan` | Phone photo + scale marker → box dimensions | Bonus |
-| `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | Bonus |
-| `feature/delivery-order` | Ordered list of stops → loading sequence | Bonus |
+| Branch | Deliverable | Owner | Status |
+|---|---|---|---|
+| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
+| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
+| `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
+| `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
+| `feature/delivery-order` | Ordered list of stops → loading sequence | — | Bonus |
+
+A dash means nobody has claimed it yet, not that it has no natural owner.
 
 ## Known limitations of the v1 solver
 
