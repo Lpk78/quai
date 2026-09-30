@@ -2,6 +2,9 @@
 
 The course asks us to show how AI was used, not only that it was used. One line per notable use.
 
+Since LP-15, AI help is recorded per task in the "Outcome" section of `prompts/dev/<ID>_<slug>.md`, and
+this table is filled from those files rather than by each Pull Request. The rows below predate that rule.
+
 | Date | Who | Tool | What for | What we kept / changed |
 |---|---|---|---|---|
 | Sept. 2026 | Léo-Paul | Claude | Generating and challenging project ideas | Chose QUAI; kept the rule "the LLM never computes placement" |
