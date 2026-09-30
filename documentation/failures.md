@@ -130,3 +130,31 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `feature/constraint-schema`, #10.
 
 ---
+
+## 2026-09-30 — Two readings of the rubric document were wrong the first time
+
+- What happened: `quai.rubric` reads the 25 test sentences and the route out of
+  `documentation/prompt_evaluation.md`. Two of its parsers were wrong on the first run, and both
+  failed quietly rather than raising. `cases()` returned **1 case instead of 25**: the regex reads
+  the fenced JSON block with `re.DOTALL`, and the group for the sentence was `(.+)`, so the dot
+  crossed newlines and the first match swallowed everything from T01 to the last quotation mark in
+  the section. `stop_names()` returned `{('S1', 'Rouen'): None, ...}` instead of
+  `{'S1': 'Rouen', ...}`, because `dict(dict.fromkeys(pairs))` builds keys out of the pairs
+  themselves — `dict.fromkeys` was copied from the route parser, where the values being dropped is
+  the point.
+- Why: both are parsers whose wrong answer still has the right type. A list of one case is a list;
+  a dict keyed by tuples is a dict. Nothing downstream would have raised: an evaluation run would
+  simply have scored one sentence out of 25, and would have told the model the stops were named
+  `None`.
+- What we tried: matched the sentence with `[^\n]+` instead of `.+` so that DOTALL cannot reach past
+  the line, and built the stop names with an explicit `setdefault` loop with a comment on why the
+  first mention wins. Then wrote `tests/test_rubric.py` to pin what the readings must be, not only
+  their shape: all 25 ids in order, no newline and no fence inside a sentence, one sentence compared
+  word for word against the document, and every stop name checked against the route line.
+- What we learned: a count is the cheapest assertion there is, and it catches the whole class. The
+  LP-05 failure in this file was also a document parser returning something plausible (`S3` twice);
+  the lesson repeated, so the rule now is that every reader of the document is pinned by a test that
+  states the expected number of things and one exact value, never just the type.
+- Related branch / PR: `feature/prompt-evaluation`, #11.
+
+---
