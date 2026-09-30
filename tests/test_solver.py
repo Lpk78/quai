@@ -80,6 +80,30 @@ class TestBox(unittest.TestCase):
         self.assertEqual(Box("ok", 10, 20, 30, 1.5).volume, 6000)
 
 
+class TestContainer(unittest.TestCase):
+    def test_zero_dimension_is_refused(self):
+        """A zero side used to be accepted and raise ZeroDivisionError later, in fill_rate."""
+        for sides in ((0, 200, 200), (200, 0, 200), (200, 200, 0)):
+            with self.subTest(sides), self.assertRaises(ValueError):
+                Container(*sides)
+
+    def test_negative_dimension_is_refused(self):
+        with self.assertRaises(ValueError):
+            Container(-400, 200, 200)
+
+    def test_negative_max_weight_is_refused(self):
+        with self.assertRaises(ValueError):
+            Container(100, 100, 100, max_weight=-1)
+
+    def test_error_names_the_field_and_the_value(self):
+        with self.assertRaisesRegex(ValueError, "length must be greater than 0, got 0"):
+            Container(0, 200, 200)
+
+    def test_valid_container_is_still_accepted(self):
+        self.assertEqual(Container(100, 40, 100).volume, 400_000)
+        self.assertEqual(Container(100, 40, 100, max_weight=0).max_weight, 0)
+
+
 class TestSolver(unittest.TestCase):
     def test_exact_fit_uses_all_space(self):
         plan = solve(cubes(8), CONTAINER)

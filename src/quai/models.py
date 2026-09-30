@@ -41,6 +41,14 @@ class Container:
     height: int
     max_weight: float = float("inf")
 
+    def __post_init__(self) -> None:
+        for name in ("length", "width", "height"):
+            value = getattr(self, name)
+            if value <= 0:
+                raise ValueError(f"container: {name} must be greater than 0, got {value}")
+        if self.max_weight < 0:
+            raise ValueError(f"container: max_weight cannot be negative, got {self.max_weight}")
+
     @property
     def volume(self) -> int:
         return self.length * self.width * self.height
