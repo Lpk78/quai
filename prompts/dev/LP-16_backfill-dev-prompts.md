@@ -36,6 +36,7 @@ PR or issue.
 - **Verified:** every prompt is quoted from the session history, not from memory. Every commit hash, PR
   number, issue number and timestamp in the six files was checked against `git log`, `gh pr view` and
   `gh issue view` — one claim was wrong on the first pass (that PR #3 closed #5; it never carried a
-  `Closes`, and #5 was closed by hand 33 minutes after the merge) and was corrected in `9cad3cd`.
+  `Closes`, and #5 was closed by hand at `2026-09-30T09:44:19Z`, after #3 merged at
+  `2026-09-30T08:11:08Z`) and was corrected in `9cad3cd`.
   `python -m unittest discover tests` → 30 tests, OK. No code changed.
 
