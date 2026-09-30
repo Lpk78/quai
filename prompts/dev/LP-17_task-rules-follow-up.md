@@ -16,4 +16,11 @@ the end from those files (LP-15). Update CLAUDE.md, CONTRIBUTING.md and the task
 
 ## Outcome
 
-<!-- Filled at the end of the task: PR link, what the AI produced, what was changed by hand. -->
+- **PR**: https://github.com/Lpk78/quai/pull/20 (reviewer: `SamDana-maker`)
+- Claude Code made the five edits and wrote the `CONTRIBUTING.md` §6 paragraph, the `journal.md` entry and
+  the PR body, in five commits: the prompt file, the template path, the permission move, the AI-usage rule
+  across `CLAUDE.md` / `CONTRIBUTING.md` / the `task` skill / `ai_usage.md`, and the journal.
+- Changed by hand: nothing so far. Two points were raised for the reviewer rather than decided alone —
+  that moving the `gh api` comment permissions to `ask` undoes `4a1c077` from #4 and brings back a prompt
+  per reply in `/fix-review`, and that the existing `ai_usage.md` rows were kept rather than regenerated.
+- Tests: `python3 -m unittest discover tests` → 19 tests, OK, after each commit. No code changed.
