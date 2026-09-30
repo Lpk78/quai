@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps, weight_above  # noqa: E402
+from quai.constraints import Manifest, parse  # noqa: E402
 from quai.models import Box, Container, Placement  # noqa: E402
 from quai.solver import solve  # noqa: E402
 
@@ -15,6 +16,17 @@ CONTAINER = Container(100, 100, 100, max_weight=500)
 
 def cubes(n: int, size: int = 50, weight: float = 10) -> list[Box]:
     return [Box(f"c{i}", size, size, size, weight) for i in range(n)]
+
+
+def constraint_set(boxes: list[Box], stops, *constraints):
+    """A validated set for these boxes, built the only way the solver ever gets one."""
+    payload = {"constraints": list(constraints), "unresolved": []}
+    return parse(payload, Manifest.from_boxes(boxes, stops))
+
+
+def slabs(*weights: float) -> list[Box]:
+    """Boxes that fill the floor of CONTAINER, so the only room left is on top of each other."""
+    return [Box(chr(ord("a") + i), 100, 100, 20, w) for i, w in enumerate(weights)]
 
 
 class TestChecks(unittest.TestCase):
@@ -152,6 +164,57 @@ class TestSolver(unittest.TestCase):
     def test_same_input_gives_same_plan(self):
         boxes = [Box(f"b{i}", 10 + i * 7 % 40, 20 + i * 3 % 30, 15 + i % 25) for i in range(30)]
         self.assertEqual(solve(boxes, CONTAINER).placements, solve(boxes, CONTAINER).placements)
+
+    def test_stack_limit_keeps_a_box_off(self):
+        """Nothing may be stacked on `a` beyond 10 kg, and there is nowhere else for b and c."""
+        boxes = slabs(5, 20, 20)
+        limited = constraint_set(boxes, ("S1",),
+                                 {"type": "max_weight_on", "item": "a", "limit_kg": 10})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual([p.box.id for p in plan.placements], ["a"])
+        self.assertEqual([b.id for b in plan.unplaced], ["b", "c"])
+
+    def test_the_same_load_stacks_without_the_limit(self):
+        """The three boxes do fit: it is the limit that keeps two of them out above."""
+        plan = solve(slabs(5, 20, 20), CONTAINER)
+        self.assertEqual([p.box.id for p in plan.placements], ["a", "b", "c"])
+
+    def test_the_limit_counts_the_whole_stack_not_the_box_resting_on_it(self):
+        """c rests on b, not on a, but its 10 kg still bear on a: 15 + 10 is over a's 20 kg."""
+        boxes = slabs(5, 15, 10)
+        limited = constraint_set(boxes, ("S1",),
+                                 {"type": "max_weight_on", "item": "a", "limit_kg": 20})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual([p.box.id for p in plan.placements], ["a", "b"])
+        self.assertEqual([b.id for b in plan.unplaced], ["c"])
+
+    def test_a_stack_exactly_at_the_limit_is_still_loaded(self):
+        boxes = slabs(5, 15, 10)
+        limited = constraint_set(boxes, ("S1",),
+                                 {"type": "max_weight_on", "item": "a", "limit_kg": 25})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual([p.box.id for p in plan.placements], ["a", "b", "c"])
+
+    def test_the_plan_passes_the_independent_stack_check(self):
+        boxes = slabs(5, 15, 10)
+        limits = {"a": 20}
+        limited = constraint_set(boxes, ("S1",),
+                                 {"type": "max_weight_on", "item": "a", "limit_kg": 20})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual(find_problems(plan.placements, CONTAINER, max_weight_on=limits), [])
+
+    def test_stated_total_weight_lowers_the_vehicle_limit(self):
+        boxes = cubes(8, weight=100)
+        limited = constraint_set(boxes, ("S1",), {"type": "max_total_weight", "limit_kg": 250})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual(plan.total_weight, 200)
+
+    def test_stated_total_weight_cannot_raise_the_vehicle_limit(self):
+        """900 kg is what the operator allows; the vehicle still carries 500."""
+        boxes = cubes(8, weight=100)
+        generous = constraint_set(boxes, ("S1",), {"type": "max_total_weight", "limit_kg": 900})
+        plan = solve(boxes, CONTAINER, generous)
+        self.assertEqual(plan.total_weight, 500)
 
     def test_random_loads_are_always_valid(self):
         import random
