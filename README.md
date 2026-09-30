@@ -28,9 +28,9 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 
 | Name | GitHub | Main area |
 |---|---|---|
-| Léo-Paul Kerrinckx | @Lpk78 | _to fill_ |
-| _to fill_ | @SamDana-maker | _to fill_ |
-| _to fill_ | @MORHI11 | _to fill_ |
+| Léo-Paul Kerrinckx | @Lpk78 | AI layer: prompts, evaluation, constraint translation |
+| _to fill_ | @SamDana-maker | Server: solver, FastAPI, Supabase database, routes |
+| _to fill_ | @MORHI11 | Interface: mobile app, 3D view, operator mode, landing page |
 
 ## Tools
 
