@@ -24,10 +24,6 @@ import pathlib
 import time
 from dataclasses import dataclass
 
-# The model is named by `LLM_MODEL` in `.env` and nowhere else. There is deliberately no default:
-# a score belongs to the model that produced it, and a harness that quietly picks one of its own
-# would record a row saying a model that never ran. A missing `LLM_MODEL` stops the run instead.
-
 # The ceiling on one reply. Every output the contract allows is a few hundred tokens, so this is
 # headroom rather than a limit — and `read_reply` refuses a reply that hit it anyway, so the
 # number decides how often a sentence is lost, never how a sentence is scored.
@@ -39,6 +35,10 @@ TEMPERATURE = 0.0
 
 # The name the Anthropic SDK reads by default, so the key is configured in one place and one way.
 KEY_VARIABLE = "ANTHROPIC_API_KEY"
+
+# The model is named here and nowhere else. There is deliberately no default: a score belongs to
+# the model that produced it, and a harness that quietly picks one of its own would record a row
+# naming a model that never ran. A missing `LLM_MODEL` stops the run instead.
 MODEL_VARIABLE = "LLM_MODEL"
 
 # Waiting is worth it when the answer is "not now": a rate limit, an overloaded server, a dropped
