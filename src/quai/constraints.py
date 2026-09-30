@@ -58,7 +58,8 @@ LIMIT_FIELDS: frozenset[str] = frozenset(["limit_cm", "limit_kg"])
 
 @dataclass(frozen=True)
 class Manifest:
-    """What the sentence may refer to: the ids of the items in the load, and the stops in route order."""
+    """What the sentence may refer to: the ids of the items in the load, and the stops in
+    route order."""
     items: tuple[str, ...]
     stops: tuple[str, ...]
 
@@ -189,7 +190,8 @@ def _constraint_problems(constraint, manifest: Manifest, where: str) -> list[str
     problems = [f"{where}: {kind} needs {field!r}" for field in sorted(expected - given)]
     problems += [f"{where}: {kind} does not take {field!r}" for field in sorted(given - expected)]
     if "item" in expected & given and constraint["item"] not in manifest.items:
-        # An item nobody loaded is an `unknown_item` for the operator to confirm, never a constraint.
+        # An item nobody loaded is an `unknown_item` for the operator to confirm, never a
+        # constraint bound to the nearest box.
         problems.append(f"{where}: {constraint['item']!r} is not in the manifest")
     if "stop" in expected & given and constraint["stop"] not in manifest.stops:
         problems.append(f"{where}: {constraint['stop']!r} is not a stop on the route")
@@ -223,7 +225,8 @@ def _unresolved_problems(entry, where: str) -> list[str]:
         problems.append(f"{where}: unknown reason {entry['reason']!r}")
     if "text" in given and not _is_quoted_text(entry["text"]):
         problems.append(f"{where}: text must quote the part of the sentence at fault")
-    if "question" in given and entry["question"] is not None and not _is_quoted_text(entry["question"]):
+    question = entry.get("question", None)
+    if "question" in given and question is not None and not _is_quoted_text(question):
         problems.append(f"{where}: question must be a question to ask the operator, or null")
     return problems
 

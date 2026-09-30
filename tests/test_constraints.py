@@ -97,7 +97,8 @@ class TestReadingAConstraintSet(unittest.TestCase):
         self.assertEqual(self.set.unload_stop("B1"), "S1")
 
     def test_an_item_with_no_unload_at_comes_off_at_the_last_stop(self):
-        """A missing `unload_at` means the item travels the whole route, not that data is missing."""
+        """A missing `unload_at` means the item travels the whole route, not that data is
+        missing."""
         self.assertEqual(self.set.unload_stop("B2"), "S3")
 
     def test_the_unloading_plan_covers_the_whole_manifest(self):
@@ -245,7 +246,8 @@ class TestRejectedConstraint(unittest.TestCase):
                             "at_bottom does not take 'x'")
 
     def test_an_item_outside_the_manifest_is_rejected(self):
-        """The piano of T18 is an `unknown_item` to confirm, never a constraint on the nearest box."""
+        """The piano of T18 is an `unknown_item` to confirm, not a constraint on the nearest
+        box."""
         self.assertRejected({"type": "not_stackable", "item": "PIANO"},
                             "'PIANO' is not in the manifest")
 
