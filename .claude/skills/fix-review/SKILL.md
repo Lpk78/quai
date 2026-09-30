@@ -10,4 +10,7 @@ PR: $ARGUMENTS (if empty, use the PR of the current branch: `gh pr view`)
 2. List them for the user: Blocking first, then Optional, with what you plan to do for each. Wait for the user's go-ahead if you disagree with a comment.
 3. Stay on the same branch. Fix each point in its own small commit with a clear English message.
 4. Run the tests, then `git push`. The PR updates by itself; never open a new PR for review fixes.
-5. Reply to each comment with `gh pr comment` saying what changed, or why it was not changed.
+5. Reply **under each comment, in its own thread**, saying what changed or why it was not changed:
+   `gh api repos/{owner}/{repo}/pulls/<n>/comments/<comment id>/replies -f body="…"`.
+   The comment IDs come from the `gh api` call in step 1. Use `gh pr comment` only for a summary of
+   the whole round, never as the answer to a line comment.
