@@ -74,6 +74,21 @@ class TestReadingTheReply(unittest.TestCase):
             llm.read_reply(Reply([], stop_reason="refusal"))
         self.assertIn("declined", str(caught.exception))
 
+    def test_a_truncated_reply_is_lost_and_never_scored(self):
+        """A reply cut off at MAX_TOKENS is a fragment: scoring it would fail C1 on the prompt."""
+        cut = Reply([Block('{"constraints": [{"type": "unloa')], stop_reason="max_tokens")
+        with self.assertRaises(llm.CallFailed) as lost:
+            llm.read_reply(cut)
+        self.assertIn("cut off", str(lost.exception))
+
+    def test_a_truncated_reply_is_caught_even_with_no_text_at_all(self):
+        """Cut off before the first text block, the sentence is still lost, not a run that failed."""
+        with self.assertRaises(llm.CallFailed):
+            llm.read_reply(Reply([], stop_reason="max_tokens"))
+
+    def test_the_ceiling_leaves_room_for_any_output_the_contract_allows(self):
+        self.assertGreaterEqual(llm.MAX_TOKENS, 8192)
+
     def test_a_reply_without_text_is_an_error(self):
         with self.assertRaises(llm.CallFailed):
             llm.read_reply(Reply([Block("", "thinking")]))

@@ -25,7 +25,11 @@ from dataclasses import dataclass
 # The model is named by `LLM_MODEL` in `.env` and nowhere else. There is deliberately no default:
 # a score belongs to the model that produced it, and a harness that quietly picks one of its own
 # would record a row saying a model that never ran. A missing `LLM_MODEL` stops the run instead.
-MAX_TOKENS = 8192
+
+# The ceiling on one reply. Every output the contract allows is a few hundred tokens, so this is
+# headroom rather than a limit — and `read_reply` refuses a reply that hit it anyway, so the
+# number decides how often a sentence is lost, never how a sentence is scored.
+MAX_TOKENS = 16384
 
 # The name the Anthropic SDK reads by default, so the key is configured in one place and one way.
 KEY_VARIABLE = "ANTHROPIC_API_KEY"
@@ -177,13 +181,25 @@ def _wait(error, delay: float, ceiling: float) -> float:
 
 
 def read_reply(reply) -> str:
-    """The text of a reply — after checking that there is one.
+    """The text of a reply — after checking that there is a whole one.
 
-    A refusal is a successful response carrying nothing, so the stop reason is read before the
-    content. Scoring it as invalid JSON would blame the prompt for a decision of the classifier.
+    Two stop reasons are read before the content, because both produce a response that looks
+    successful and is not an answer:
+
+    - `refusal`: the classifier declined. Scoring it as invalid JSON would blame the prompt for a
+      decision that was never the prompt's to make.
+    - `max_tokens`: the reply was cut off at `MAX_TOKENS`. The text that came back is a prefix, so
+      it fails to parse and would score C1 No — the prompt blamed for the harness's ceiling.
+
+    Either way the sentence is lost, not failed: `CallFailed` records it as not run and it is
+    scored on no criterion.
     """
-    if getattr(reply, "stop_reason", None) == "refusal":
+    stop = getattr(reply, "stop_reason", None)
+    if stop == "refusal":
         raise CallFailed("the model declined to answer this sentence")
+    if stop == "max_tokens":
+        raise CallFailed(f"the reply was cut off at MAX_TOKENS ({MAX_TOKENS}), so what came back "
+                         "is a fragment and is not scored")
     return text_of(reply)
 
 
