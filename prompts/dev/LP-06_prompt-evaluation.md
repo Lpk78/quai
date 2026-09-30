@@ -21,7 +21,7 @@ from PR #21, not merged yet) and open its PR against main, noting in the PR body
   after it, and `documentation/roadmap.md` records the same.
 - **What the AI produced:** `src/quai/rubric.py` (the document reader), `src/quai/evaluation.py`
   (the seven criteria as checks, plus `Run` and the results row), `src/quai/llm.py` (one call per
-  sentence, key from `.env`), `src/evaluate_prompt.py` (the command), 63 new tests across
+  sentence, key from `.env`), `src/evaluate_prompt.py` (the command), 73 new tests across
   `tests/test_rubric.py`, `tests/test_evaluation.py`, `tests/test_llm.py` and
   `tests/test_evaluate_prompt.py`, the *Running an evaluation* section of
   `documentation/prompt_evaluation.md`, the README command, and the `anthropic` line in
