@@ -30,7 +30,8 @@ if it changed, the scores would stop being comparable.
 | `B9` | toolbox | 60 × 30 × 30 | 22 |
 | `B10` | garden table | 150 × 90 × 75 | 40 |
 
-Stops on the route: `S1` Rouen, `S2` Le Havre, `S3` Caen.
+Stops on the route: `S1` Rouen, then `S2` Le Havre, then `S3` Caen — in that order, `S3` last.
+The route is supplied to the model with the manifest; see *Route and unloading order* below.
 
 ## Output contract
 
@@ -51,9 +52,9 @@ Both keys are always present, even when empty. A sentence that yields nothing us
 | `on_top` | `item` | Must be in the top layer |
 | `keep_upright` | `item` | May not be laid on its side |
 | `unload_at` | `item`, `stop` | Comes off at this stop |
-| `load_last` | `item` | Loaded last, so it comes out first |
+| `load_last` | `item` | Loaded last among the items for its stop, so it comes out first there |
 | `max_stack_height` | `item`, `limit_cm` | Height of whatever is stacked on it, in cm |
-| `max_weight_on` | `item`, `limit_kg` | Weight this item can carry, in kg |
+| `max_weight_on` | `item`, `limit_kg` | Total weight of everything stacked above this item, in kg |
 | `max_total_weight` | `limit_kg` | Weight limit for the whole load, in kg |
 
 Every length is in centimetres and every weight in kilograms, whatever unit the operator used.
@@ -68,6 +69,27 @@ An `unresolved` entry is `{ "text": <the part of the sentence at fault>, "reason
 | `contradiction` | The sentence asks for two things that cannot both hold |
 | `out_of_scope` | It is not a loading constraint, or it asks for placement |
 | `injection_attempt` | It tries to give the model new instructions |
+
+### Route and unloading order
+
+Four definitions that #10 (the validated schema) and SA-05 (the solver extension) both start from, so
+the same words mean the same thing on either side.
+
+- **`max_weight_on` covers the whole stack above the item**, not only the boxes resting directly on it.
+  A 10 kg box on a 15 kg box on the toolbox counts as 25 kg against the toolbox's limit. The two readings
+  give different plans, so the contract picks one.
+- **The route is an input, never an output.** The stops are supplied with the manifest as an ordered
+  list — here `S1`, `S2`, `S3`, in that order. The model neither produces nor reorders it; it may only
+  refer to a stop by its id inside an `unload_at` constraint.
+- **An item with no `unload_at` comes off at the last stop** (`S3` here). A missing `unload_at` is not
+  missing information: it means the item travels the whole route.
+- **The stop order always wins over `load_last`.** Items are loaded so that the earliest stop comes out
+  first, which means the last stop is loaded first. `load_last` only orders items *within the same stop*:
+  a `load_last` item unloaded at `S1` and a `load_last` item unloaded at `S3` never compete, because
+  everything for `S1` is loaded after everything for `S3` regardless.
+
+None of this changes what the model may emit. The order is the solver's to compute; the output still
+carries no position and no global loading sequence (C7).
 
 ## Rubric
 
