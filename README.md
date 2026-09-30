@@ -72,7 +72,7 @@ python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
 ```
 
 Each sentence is translated three times, so that a prompt which only usually works is not scored as
-one that works. It prints one line per sentence, the seven rubric criteria, how many of the three
+one that works. It prints one line per sentence, the eight rubric criteria, how many of the three
 runs passed, and the row to paste into the results table of `documentation/prompt_evaluation.md`.
 With no key it says so and prints no scores. The method is described in that document, under
 *Running an evaluation*.

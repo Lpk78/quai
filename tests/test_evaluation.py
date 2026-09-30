@@ -1,4 +1,4 @@
-"""Check that the rubric's seven criteria catch what they say they catch.
+"""Check that the rubric's eight criteria catch what they say they catch.
 
 Every test here is a wrong output written by hand, and the assertion is that the criterion the
 document points at is the one that says No. The traps come from the document itself: the box of
@@ -34,7 +34,7 @@ class TestTheRubricItself(unittest.TestCase):
     def test_the_criteria_are_the_ones_the_document_declares(self):
         self.assertEqual(tuple(evaluation.CHECKS), rubric.criteria(TEXT))
 
-    def test_every_expected_output_scores_seven_yes_and_matches(self):
+    def test_every_expected_output_scores_eight_yes_and_matches(self):
         """The document's own answers must be perfect, or no version can be scored against them."""
         for case in rubric.cases(TEXT):
             with self.subTest(case.id):
@@ -214,6 +214,41 @@ class TestC7NoPlacement(unittest.TestCase):
         self.assertIn("C7", scored.failed_criteria())
 
 
+class TestC8NothingMissing(unittest.TestCase):
+    def test_translating_nothing_of_a_clear_sentence_fails_c8(self):
+        scored = score("T01", {"constraints": [], "unresolved": [
+            {"text": "the washing machine", "reason": "ambiguous", "question": "Which one?"}]})
+        self.assertIn("C8", scored.failed_criteria())
+
+    def test_translating_half_a_sentence_fails_c8(self):
+        """T26 asks for two items last; one of them is not the sentence."""
+        scored = score("T26", {"constraints": [{"type": "load_last", "item": "B9"}],
+                               "unresolved": []})
+        self.assertEqual(scored.failed_criteria(), ("C8",))
+        self.assertTrue(any("B7" in note for note in scored.notes))
+
+    def test_a_constraint_weakened_into_a_different_one_fails_c8(self):
+        """`max_weight_on 20` answered as `not_stackable`: not what the operator said, and the
+        constraint they did say is gone. C3 sees the invention, C8 sees the loss."""
+        scored = score("T09", {"constraints": [{"type": "not_stackable", "item": "B2"}],
+                               "unresolved": []})
+        self.assertIn("C8", scored.failed_criteria())
+        self.assertIn("C3", scored.failed_criteria())
+
+    def test_an_extra_constraint_alone_does_not_fail_c8(self):
+        """C8 only looks for what is missing; the invention is C3's business."""
+        scored = score("T03", {"constraints": [{"type": "on_top", "item": "B5"},
+                                               {"type": "not_stackable", "item": "B5"}],
+                               "unresolved": []})
+        self.assertIn("C3", scored.failed_criteria())
+        self.assertNotIn("C8", scored.failed_criteria())
+
+    def test_a_sentence_with_nothing_to_translate_is_yes(self):
+        """T24 expects no constraint at all, so nothing can be missing from it."""
+        scored = score("T24", expected("T24"))
+        self.assertNotIn("C8", scored.failed_criteria())
+
+
 class TestMatch(unittest.TestCase):
     def test_wording_of_the_question_is_not_compared(self):
         """The rubric asks that doubt be reported, not that it be worded the document's way."""
@@ -228,15 +263,24 @@ class TestMatch(unittest.TestCase):
                                "unresolved": expected("T20")["unresolved"]})
         self.assertTrue(scored.match)
 
-    def test_dropping_a_stated_constraint_answers_yes_everywhere_but_does_not_match(self):
-        """The one gap the seven criteria leave, and the reason `match` is recorded per case."""
+    def test_dropping_a_stated_constraint_fails_only_c8_and_does_not_match(self):
+        """T20 answered with the `unknown_item` alone: half the sentence translated, half lost.
+        This is the gap C3 cannot see and the reason C8 exists."""
         scored = score("T20", {"constraints": [], "unresolved": expected("T20")["unresolved"]})
-        self.assertTrue(scored.passed)
+        self.assertEqual(scored.failed_criteria(), ("C8",))
+        self.assertFalse(scored.passed)
+        self.assertFalse(scored.match)
+        self.assertTrue(any("keep_upright" in note for note in scored.notes))
+
+    def test_a_sentence_with_two_faults_answered_with_one_still_matches_nothing(self):
+        """What `match` adds over the criteria now that C8 is there: the unresolved count."""
+        scored = score("T17", {"constraints": [],
+                               "unresolved": expected("T17")["unresolved"][:1]})
         self.assertFalse(scored.match)
 
 
 class TestCasesThatCouldNotRun(unittest.TestCase):
-    def test_an_error_scores_nothing_rather_than_seven_no(self):
+    def test_an_error_scores_nothing_rather_than_eight_no(self):
         """A criterion that was never observed is not a criterion that failed."""
         scored = score_case(expected("T01"), None, MANIFEST, "T01", error="rate limited")
         self.assertFalse(scored.ran)
@@ -286,26 +330,26 @@ class TestRunningTheWholeRubric(unittest.TestCase):
         return model, evaluation.Run(version="v0_test", model="test-model", cases=scored,
                                      expected_cases=len(self.cases), runs=runs)
 
-    def test_a_version_that_answers_the_document_scores_twenty_five(self):
-        """The harness end to end: 25 sentences asked in order, 25 usable translations."""
+    def test_a_version_that_answers_the_document_scores_twenty_six(self):
+        """The harness end to end: 26 sentences asked in order, 26 usable translations."""
         model, run = self.run_with({case.sentence: case.expected for case in self.cases})
         self.assertEqual(model.asked, [case.sentence for case in self.cases])
         self.assertTrue(run.complete)
-        self.assertEqual(run.total(), 25)
-        self.assertEqual(run.matched(), 25)
-        self.assertEqual(run.per_criterion(), {name: 25 for name in evaluation.CHECKS})
+        self.assertEqual(run.total(), 26)
+        self.assertEqual(run.matched(), 26)
+        self.assertEqual(run.per_criterion(), {name: 26 for name in evaluation.CHECKS})
 
     def test_the_results_row_reports_what_was_counted(self):
         _, run = self.run_with({case.sentence: case.expected for case in self.cases})
         row = run.results_row("2026-09-30", notes="offline check")
         self.assertEqual(
             row,
-            "| v0_test | 25 | 25 | 25 | 25 | 25 | 25 | 25 | 25 | test-model | n/a | 2026-09-30 "
-            "| offline check |")
+            "| v0_test | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | 26 | test-model | n/a "
+            "| 2026-09-30 | offline check |")
 
     def test_the_row_says_how_it_was_run_when_no_note_is_given(self):
         _, run = self.run_with({case.sentence: case.expected for case in self.cases}, runs=3)
-        self.assertIn("3 runs per sentence; same answer every time on 25/25",
+        self.assertIn("3 runs per sentence; same answer every time on 26/26",
                       run.results_row("2026-09-30"))
 
     def test_one_bad_sentence_moves_one_criterion_and_the_total(self):
@@ -315,9 +359,9 @@ class TestRunningTheWholeRubric(unittest.TestCase):
                             {"type": "not_stackable", "item": "B5"}],
             "unresolved": []}
         _, run = self.run_with(answers)
-        self.assertEqual(run.total(), 24)
-        self.assertEqual(run.per_criterion()["C3"], 24)
-        self.assertEqual(run.per_criterion()["C1"], 25)
+        self.assertEqual(run.total(), 25)
+        self.assertEqual(run.per_criterion()["C3"], 25)
+        self.assertEqual(run.per_criterion()["C1"], 26)
 
     def test_a_failed_call_does_not_stop_the_other_sentences(self):
         from quai.llm import CallFailed
@@ -325,9 +369,9 @@ class TestRunningTheWholeRubric(unittest.TestCase):
         answers = {case.sentence: case.expected for case in self.cases}
         answers[CASES["T10"].sentence] = CallFailed("rate limited")
         _, run = self.run_with(answers)
-        self.assertEqual(len(run.cases), 25)
+        self.assertEqual(len(run.cases), 26)
         self.assertEqual([c.case_id for c in run.could_not_run()], ["T10"])
-        self.assertEqual(run.total(), 24)
+        self.assertEqual(run.total(), 25)
 
     def test_a_rejected_request_stops_the_whole_run(self):
         """`FatalCall` is not caught: the next 74 calls would be rejected the same way."""
@@ -364,7 +408,8 @@ class TestRunningTheWholeRubric(unittest.TestCase):
                                           "unresolved": []}
         _, run = self.run_with(answers)
         table = run.case_table()
-        self.assertIn("| Case | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Runs | Same | Match | Note |",
+        self.assertIn("| Case | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Runs | Same "
+                      "| Match | Note |",
                       table)
         self.assertIn("NO", table.splitlines()[2 + 12])  # T13 is the thirteenth row
         for case in self.cases:
@@ -387,9 +432,9 @@ class TestRunningEachSentenceSeveralTimes(unittest.TestCase):
 
     def test_every_sentence_is_asked_once_per_run(self):
         model, run = self.run_with(self.good)
-        self.assertEqual(len(model.asked), 75)
+        self.assertEqual(len(model.asked), 78)
         self.assertEqual(model.asked.count(self.cases[0].sentence), 3)
-        self.assertEqual([len(c.attempts) for c in run.cases], [3] * 25)
+        self.assertEqual([len(c.attempts) for c in run.cases], [3] * 26)
 
     def test_a_sentence_answered_well_every_time_passes_and_is_marked_identical(self):
         _, run = self.run_with(self.good)
@@ -397,8 +442,8 @@ class TestRunningEachSentenceSeveralTimes(unittest.TestCase):
         self.assertTrue(first.passed)
         self.assertEqual(first.passes, 3)
         self.assertTrue(first.identical)
-        self.assertEqual(run.identical(), 25)
-        self.assertEqual(run.total(), 25)
+        self.assertEqual(run.identical(), 26)
+        self.assertEqual(run.total(), 26)
 
     def test_a_criterion_is_yes_only_when_every_run_says_yes(self):
         """Two runs out of three is not a prompt that works."""
@@ -413,8 +458,8 @@ class TestRunningEachSentenceSeveralTimes(unittest.TestCase):
         self.assertFalse(wobbly.verdicts["C3"])
         self.assertFalse(wobbly.passed)
         self.assertEqual(wobbly.passes, 2)
-        self.assertEqual(run.per_criterion()["C3"], 24)
-        self.assertEqual(run.total(), 24)
+        self.assertEqual(run.per_criterion()["C3"], 25)
+        self.assertEqual(run.total(), 25)
 
     def test_the_count_of_runs_that_passed_is_visible_per_sentence(self):
         answers = dict(self.good)
@@ -439,7 +484,7 @@ class TestRunningEachSentenceSeveralTimes(unittest.TestCase):
         _, run = self.run_with(answers)
         wandering = next(c for c in run.cases if c.case_id == "T13")
         self.assertFalse(wandering.identical)
-        self.assertEqual(run.identical(), 24)
+        self.assertEqual(run.identical(), 25)
 
     def test_the_same_answer_worded_differently_still_counts_as_the_same(self):
         answers = dict(self.good)

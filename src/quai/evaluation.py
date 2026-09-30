@@ -1,12 +1,12 @@
 """Score a translated constraint against the rubric of `documentation/prompt_evaluation.md`.
 
-The rubric is seven criteria, each Yes or No for each of the 25 sentences, and a Total that counts
-the sentences where all seven are Yes. This module is the executable copy of that table, the way
+The rubric is eight criteria, each Yes or No for each of the 26 sentences, and a Total that counts
+the sentences where all eight are Yes. This module is the executable copy of that table, the way
 `quai.constraints` is the executable copy of the output contract:
 
 - C1 is `quai.constraints.parse()` itself. The schema already refuses everything the contract does
   not declare, so "valid JSON matching the contract" is exactly "this output reaches the solver".
-- the other six are comparisons with the expected output of the same sentence. They have to be:
+- the other seven are comparisons with the expected output of the same sentence. They have to be:
   whether a constraint was invented, or doubt manufactured, is only answerable against what the
   operator actually said, and the document is where that is written down.
 
@@ -66,7 +66,7 @@ def score_case(expected: dict, output: str | None, manifest: Manifest,
     """Judge one model output against the expected output of the same sentence.
 
     `output` is the raw text the model returned. `error` reports that no output was obtained — a
-    refusal or a failed call — and produces a `Scored` with no verdicts rather than seven No's:
+    refusal or a failed call — and produces a `Scored` with no verdicts rather than eight No's:
     a criterion that was never observed is not a criterion that failed.
     """
     if error is not None or output is None:
@@ -89,9 +89,9 @@ def score_case(expected: dict, output: str | None, manifest: Manifest,
 def matches(expected: dict, actual: dict) -> bool:
     """Whether the translation is the expected one: same constraints, same reasons reported.
 
-    This is what #11 asks to record per case, and it is stricter than the seven criteria in one
-    way that matters: a version that silently drops a constraint the operator did say can still
-    answer Yes to all seven, and will not match here.
+    This is what #11 asks to record per case. C3 and C8 together now say the same thing about the
+    `constraints` list, so what `match` adds over the criteria is the count of `unresolved` entries:
+    a sentence with two faults answered with one of them matches nothing here.
     """
     return (_constraint_set(expected) == _constraint_set(actual)
             and _reason_counts(expected) == _reason_counts(actual))
@@ -195,6 +195,18 @@ def _c7_no_placement(expected, actual, manifest):
     return not why, tuple(dict.fromkeys(why))
 
 
+def _c8_nothing_missing(expected, actual, manifest):
+    """Every constraint the operator did say is in the output.
+
+    The other half of C3, and the direction C3 cannot see: C3 subtracts the expected set from the
+    given one and so only ever catches an invention. A version that translates half of T20 and
+    drops "keep the washing machine upright" answers Yes to C1-C7 and No only here.
+    """
+    missing = _constraint_set(expected) - _constraint_set(actual)
+    return not missing, tuple(f"constraint the operator did say is missing: {dict(c)}"
+                              for c in sorted(missing))
+
+
 # In the order of the rubric table. `tests/test_evaluation.py` fails if these stop being the
 # criteria the document declares.
 CHECKS = {
@@ -205,6 +217,7 @@ CHECKS = {
     "C5": _c5_doubt_is_reported,
     "C6": _c6_speech_is_data,
     "C7": _c7_no_placement,
+    "C8": _c8_nothing_missing,
 }
 
 
@@ -303,7 +316,7 @@ class CaseRuns:
 
     @property
     def passes(self) -> int:
-        """How many runs answered all seven criteria — the `2/3` in the table."""
+        """How many runs answered all eight criteria — the `2/3` in the table."""
         return sum(1 for a in self.attempts if a.passed)
 
     @property
@@ -365,7 +378,7 @@ class Run:
         return {name: sum(1 for c in self.cases if c.verdicts.get(name)) for name in CHECKS}
 
     def total(self) -> int:
-        """The only number that says the translation was usable: all seven Yes, on every run."""
+        """The only number that says the translation was usable: all eight Yes, on every run."""
         return sum(1 for c in self.cases if c.passed)
 
     def matched(self) -> int:

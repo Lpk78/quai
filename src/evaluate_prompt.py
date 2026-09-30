@@ -5,8 +5,8 @@ Run from the repository root:
     python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
 
 The inputs, the reference manifest and the rubric all come from
-`documentation/prompt_evaluation.md`, so every version is scored on the same 25 sentences with the
-same seven criteria. The key comes from `.env`. With no key the script says so and prints no
+`documentation/prompt_evaluation.md`, so every version is scored on the same 26 sentences with the
+same eight criteria. The key comes from `.env`. With no key the script says so and prints no
 scores: a row in the results table means a run that actually happened.
 
 `--cases T01,T25` runs a subset while working on a prompt. Such a run is marked partial and gets no
@@ -30,7 +30,7 @@ def parse_args(argv=None):
     parser.add_argument("prompt", type=pathlib.Path,
                         help="the prompt version to score, e.g. prompts/<family>/v1_zero_shot.md")
     parser.add_argument("--cases", default="",
-                        help="comma-separated case ids to run instead of all 25 (partial run)")
+                        help="comma-separated case ids to run instead of all 26 (partial run)")
     parser.add_argument("--runs", type=int, default=evaluation.RUNS,
                         help=f"calls per sentence, to measure how much the output varies "
                              f"(default {evaluation.RUNS})")
@@ -102,7 +102,7 @@ def main(argv=None) -> int:
             print(f"  {case.case_id}: could not be run ({case.error})")
             return
         answered = f"{case.passes}/{len(case.attempts)} runs"
-        state = "all seven" if case.passed else "NO on " + ", ".join(case.failed_criteria())
+        state = "all eight" if case.passed else "NO on " + ", ".join(case.failed_criteria())
         wandered = "" if case.identical else ", and the runs disagreed"
         print(f"  {case.case_id}: {state} ({answered}{wandered})")
 
@@ -120,7 +120,7 @@ def main(argv=None) -> int:
     print(f"\n{run.case_table()}\n")
     counts = run.per_criterion()
     print("  ".join(f"{name} {counts[name]}/{len(scored)}" for name in evaluation.CHECKS))
-    print(f"Total (all seven yes on every run): {run.total()}/{len(scored)}")
+    print(f"Total (all eight yes on every run): {run.total()}/{len(scored)}")
     print(f"Same answer on every run: {run.identical()}/{len(scored)}      "
           f"Matched the expected output: {run.matched()}/{len(scored)}")
 

@@ -319,7 +319,7 @@ way to say this.
 
 ## Running an evaluation
 
-`src/evaluate_prompt.py` scores one prompt version on the 25 sentences above, against the seven
+`src/evaluate_prompt.py` scores one prompt version on the 26 sentences above, against the eight
 criteria above, and prints the row for the results table:
 
 ```bash
@@ -346,24 +346,25 @@ How a version is run — fixed for every version, so that the scores stay compar
 - **Three calls per sentence.** The same question asked twice does not always get the same answer,
   so each sentence is translated three times and a criterion is Yes for that sentence only when all
   three runs say Yes. A prompt that only usually works is not a prompt that works. The per-sentence
-  table shows how many of the three runs answered all seven criteria (`2/3`) and whether the three
+  table shows how many of the three runs answered all eight criteria (`2/3`) and whether the three
   translations were the same, so the difference between "always" and "twice out of three" stays
   visible instead of being averaged away.
 - **A rate limit or a server error is waited out**, with an exponential backoff of four attempts,
   honouring `retry-after` when the API sends one. A rejected request or a bad key (400, 401) stops
-  the whole evaluation at once: it would say the same thing on all 75 calls. A sentence lost after
+  the whole evaluation at once: it would say the same thing on all 78 calls. A sentence lost after
   the last attempt is recorded as such and scored on no criterion, because a criterion that was
-  never observed is not a criterion that failed. A run that did not reach all 25 sentences leaves
+  never observed is not a criterion that failed. A run that did not reach all 26 sentences leaves
   its row empty and says why.
 - **Every reply is kept** in `outputs/evaluations/` (ignored by Git) — all three per sentence — so
   that a score can be re-read later without calling the model again.
 
-Beside the seven criteria, the script reports per sentence whether the output **matched** the
+Beside the eight criteria, the script reports per sentence whether the output **matched** the
 expected one: the same constraints, and the same reasons reported. The wording of `text` and
 `question` is not compared — the rubric asks that doubt be reported, not that it be worded the way
 this document words it. The match count is not part of the rubric and is not recorded in the table.
-It covers the one gap the seven criteria leave: a version that silently drops a constraint the
-operator did say can still answer Yes to all seven.
+C3 and C8 together say all the rubric has to say about the `constraints` list, so what `match` adds
+is the count of `unresolved` entries: a sentence with two faults answered with one of them is Yes on
+every criterion and still does not match.
 
 **On the temperature column.** It records what was actually used, and with the current Claude models
 that is nothing: they reject `temperature` with a 400, so the script sends no sampling parameter and

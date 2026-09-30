@@ -77,9 +77,9 @@ class TestManifestAndRoute(unittest.TestCase):
 
 
 class TestCriteria(unittest.TestCase):
-    def test_the_criteria_are_the_seven_of_the_rubric(self):
+    def test_the_criteria_are_the_eight_of_the_rubric(self):
         self.assertEqual(rubric.criteria(rubric.read_doc()),
-                         ("C1", "C2", "C3", "C4", "C5", "C6", "C7"))
+                         ("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"))
 
 
 if __name__ == "__main__":
