@@ -19,6 +19,7 @@ Three decisions that belong to the rubric rather than to the API:
 """
 import os
 import pathlib
+import time
 from dataclasses import dataclass
 
 # Claude Opus 5, the model the project uses unless `.env` names another one. Thinking is on by
@@ -32,6 +33,16 @@ MAX_TOKENS = 8192
 KEY_VARIABLE = "ANTHROPIC_API_KEY"
 MODEL_VARIABLE = "LLM_MODEL"
 
+# Waiting is worth it when the answer is "not now": a rate limit, an overloaded server, a dropped
+# connection. It is never worth it when the answer is "not like that" — a malformed request or a
+# bad key will say the same thing on the fourth attempt as on the first, 25 times over.
+RETRY_STATUSES = frozenset([408, 409, 429])
+FATAL_STATUSES = frozenset([400, 401, 403, 404])
+
+ATTEMPTS = 4          # one try and three retries
+BASE_DELAY = 1.0      # seconds, doubling each time
+MAX_DELAY = 30.0
+
 ENV_FILE = pathlib.Path(__file__).resolve().parents[2] / ".env"
 
 
@@ -40,7 +51,19 @@ class MissingKey(RuntimeError):
 
 
 class CallFailed(RuntimeError):
-    """One sentence could not be translated: a refusal, a rate limit, a network error."""
+    """One sentence could not be translated: a refusal, a rate limit, a network error.
+
+    The sentence is recorded as not run and the evaluation carries on, so that one bad minute does
+    not throw away the sentences that did answer.
+    """
+
+
+class FatalCall(RuntimeError):
+    """The run cannot work at all: a rejected request or a bad key.
+
+    Retrying would repeat the same error 75 times and asking the next sentence would too, so this
+    one stops the evaluation instead of being recorded against a sentence.
+    """
 
 
 def load_env(path: pathlib.Path = ENV_FILE) -> None:
@@ -83,26 +106,64 @@ class Translator:
     model: str = DEFAULT_MODEL
     max_tokens: int = MAX_TOKENS
     temperature: None = None
+    attempts: int = ATTEMPTS
+    base_delay: float = BASE_DELAY
+    max_delay: float = MAX_DELAY
     _client: object = None
+    _sleep: object = time.sleep
 
     def translate(self, prompt: str, sentence: str, manifest: str) -> str:
-        """Return the raw text of the reply, or raise `CallFailed` with a short reason."""
+        """Return the raw text of the reply.
+
+        Retries a rate limit or a server error with an exponential backoff, honouring `retry-after`
+        when the API sends one. Raises `CallFailed` when the sentence is lost, `FatalCall` when the
+        run itself cannot work.
+        """
         import anthropic  # imported here so the package, and the tests, work without it installed
 
-        try:
-            reply = self._client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                system=prompt,
-                messages=[{"role": "user", "content": user_message(sentence, manifest)}],
-            )
-        except anthropic.RateLimitError as error:
-            raise CallFailed(f"rate limited: {error}") from error
-        except anthropic.APIStatusError as error:
-            raise CallFailed(f"the API refused the request ({error.status_code})") from error
-        except anthropic.APIConnectionError as error:
-            raise CallFailed(f"the API could not be reached: {error}") from error
-        return read_reply(reply)
+        delay = self.base_delay
+        for attempt in range(1, self.attempts + 1):
+            last = attempt == self.attempts
+            try:
+                reply = self._client.messages.create(
+                    model=self.model,
+                    max_tokens=self.max_tokens,
+                    system=prompt,
+                    messages=[{"role": "user", "content": user_message(sentence, manifest)}],
+                )
+            except anthropic.APIStatusError as error:
+                status = getattr(error, "status_code", None)
+                if status in FATAL_STATUSES:
+                    raise FatalCall(f"the API rejected the request ({status}): {error}") from error
+                if not _worth_retrying(status):
+                    raise CallFailed(f"the API refused the request ({status})") from error
+                if last:
+                    raise CallFailed(f"still failing after {self.attempts} attempts "
+                                     f"({status})") from error
+                self._sleep(_wait(error, delay, self.max_delay))
+            except anthropic.APIConnectionError as error:
+                if last:
+                    raise CallFailed(f"the API could not be reached after {self.attempts} "
+                                     f"attempts: {error}") from error
+                self._sleep(delay)
+            else:
+                return read_reply(reply)
+            delay = min(delay * 2, self.max_delay)
+        raise CallFailed("the call was never made")  # unreachable: the loop returns or raises
+
+
+def _worth_retrying(status) -> bool:
+    return isinstance(status, int) and (status in RETRY_STATUSES or status >= 500)
+
+
+def _wait(error, delay: float, ceiling: float) -> float:
+    """The backoff, unless the API said how long to wait — then its answer wins."""
+    headers = getattr(getattr(error, "response", None), "headers", None) or {}
+    try:
+        asked = float(headers.get("retry-after", ""))
+    except (TypeError, ValueError):
+        return delay
+    return min(asked, ceiling) if asked > 0 else delay
 
 
 def read_reply(reply) -> str:
@@ -138,4 +199,6 @@ def from_env(model: str | None = None) -> Translator:
         raise MissingKey("the anthropic package is not installed: pip install -r requirements.txt"
                          ) from error
     name = model or os.environ.get(MODEL_VARIABLE, "").strip() or DEFAULT_MODEL
-    return Translator(model=name, _client=anthropic.Anthropic(api_key=key))
+    # max_retries=0: the backoff above is the only one, so a wait is ours to see and to test.
+    return Translator(model=name,
+                      _client=anthropic.Anthropic(api_key=key, max_retries=0))

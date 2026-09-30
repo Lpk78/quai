@@ -116,40 +116,168 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(llm.Translator().model, llm.DEFAULT_MODEL)
 
 
+class Response:
+    """Enough of an HTTP response for the SDK's error classes: a status and some headers."""
+
+    def __init__(self, status, headers=None):
+        self.status_code = status
+        self.headers = headers or {}
+        self.request = None
+
+
+class Calls:
+    """Replays a list of outcomes, one per attempt, and remembers what it was sent."""
+
+    def __init__(self, outcomes):
+        self.outcomes = list(outcomes)
+        self.sent = []
+
+    def create(self, **kwargs):
+        self.sent.append(kwargs)
+        outcome = self.outcomes[min(len(self.sent), len(self.outcomes)) - 1]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
+class CallHarness:
+    """Builds a translator over a scripted list of outcomes, with the waiting recorded."""
+
+    def translator(self, outcomes, **settings):
+        if not isinstance(outcomes, list):
+            outcomes = [outcomes]
+        calls = Calls(outcomes)
+        client = type("Client", (), {"messages": calls})()
+        self.waits = []
+        return llm.Translator(_client=client, _sleep=self.waits.append, **settings), calls
+
+    def status_error(self, status, headers=None, message="no"):
+        import anthropic
+
+        return anthropic.APIStatusError(message, response=Response(status, headers), body=None)
+
+
 @unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")
-class TestTheCall(unittest.TestCase):
-    def translator(self, outcome):
-        class Messages:
-            def create(self, **kwargs):
-                self.kwargs = kwargs
-                if isinstance(outcome, Exception):
-                    raise outcome
-                return outcome
-
-        class Client:
-            def __init__(self):
-                self.messages = Messages()
-
-        client = Client()
-        return llm.Translator(_client=client), client
-
+class TestTheCall(CallHarness, unittest.TestCase):
     def test_the_prompt_version_is_the_system_prompt(self):
-        translator, client = self.translator(Reply([Block('{"constraints": []}')]))
+        translator, calls = self.translator(Reply([Block('{"constraints": []}')]))
         translator.translate("THE PROMPT", "The sofa comes off at Le Havre.", "<manifest>")
-        sent = client.messages.kwargs
+        sent = calls.sent[0]
         self.assertEqual(sent["system"], "THE PROMPT")
         self.assertEqual(sent["messages"][0]["role"], "user")
         self.assertIn("The sofa comes off at Le Havre.", sent["messages"][0]["content"])
-        self.assertNotIn("temperature", sent)
 
-    def test_a_rate_limit_is_reported_as_a_failed_case(self):
-        import anthropic
+    def test_no_sampling_parameter_reaches_the_api(self):
+        """The current models reject `temperature`; sending 0 would 400 every sentence."""
+        translator, calls = self.translator(Reply([Block("{}")]))
+        translator.translate("p", "s", "m")
+        for name in ("temperature", "top_p", "top_k"):
+            with self.subTest(name):
+                self.assertNotIn(name, calls.sent[0])
 
-        error = anthropic.RateLimitError("slow down", response=mock.Mock(status_code=429),
-                                        body=None)
-        translator, _ = self.translator(error)
+
+@unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")
+class TestRetrying(CallHarness, unittest.TestCase):
+    def test_a_rate_limit_is_waited_out_and_the_sentence_still_answers(self):
+        reply = Reply([Block('{"constraints": [], "unresolved": []}')])
+        translator, calls = self.translator([self.status_error(429), reply])
+        self.assertEqual(translator.translate("p", "s", "m"),
+                         '{"constraints": [], "unresolved": []}')
+        self.assertEqual(len(calls.sent), 2)
+        self.assertEqual(self.waits, [1.0])
+
+    def test_a_server_error_is_retried_too(self):
+        reply = Reply([Block("{}")])
+        translator, calls = self.translator([self.status_error(503), reply])
+        translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 2)
+
+    def test_the_wait_doubles_and_stops_at_the_ceiling(self):
+        translator, calls = self.translator([self.status_error(429)] * 6,
+                                            attempts=6, base_delay=1.0, max_delay=4.0)
         with self.assertRaises(llm.CallFailed):
             translator.translate("p", "s", "m")
+        self.assertEqual(self.waits, [1.0, 2.0, 4.0, 4.0, 4.0])
+        self.assertEqual(len(calls.sent), 6)
+
+    def test_the_api_saying_how_long_to_wait_wins_over_the_backoff(self):
+        reply = Reply([Block("{}")])
+        translator, _ = self.translator([self.status_error(429, {"retry-after": "7"}), reply])
+        translator.translate("p", "s", "m")
+        self.assertEqual(self.waits, [7.0])
+
+    def test_a_nonsense_retry_after_falls_back_to_the_backoff(self):
+        reply = Reply([Block("{}")])
+        translator, _ = self.translator([self.status_error(429, {"retry-after": "soon"}), reply])
+        translator.translate("p", "s", "m")
+        self.assertEqual(self.waits, [1.0])
+
+    def test_a_retry_after_beyond_the_ceiling_is_capped(self):
+        reply = Reply([Block("{}")])
+        translator, _ = self.translator([self.status_error(429, {"retry-after": "600"}), reply],
+                                        max_delay=30.0)
+        translator.translate("p", "s", "m")
+        self.assertEqual(self.waits, [30.0])
+
+    def test_giving_up_loses_the_sentence_and_not_the_run(self):
+        """After the last attempt it is a `CallFailed`: recorded, and the next sentence is asked."""
+        translator, calls = self.translator([self.status_error(429)] * 4)
+        with self.assertRaises(llm.CallFailed):
+            translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 4)
+
+    def test_a_dropped_connection_is_retried(self):
+        import anthropic
+
+        reply = Reply([Block("{}")])
+        dropped = anthropic.APIConnectionError(message="down", request=None)
+        translator, calls = self.translator([dropped, reply])
+        translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 2)
+
+
+@unittest.skipUnless(HAS_SDK, "the anthropic package is not installed on this machine")
+class TestFailingFast(CallHarness, unittest.TestCase):
+    def test_a_rejected_request_stops_the_run_at_once(self):
+        """A 400 says "not like that": the next 74 calls would say the same thing."""
+        translator, calls = self.translator([self.status_error(400)] * 4)
+        with self.assertRaises(llm.FatalCall):
+            translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 1)
+        self.assertEqual(self.waits, [])
+
+    def test_a_bad_key_stops_the_run_at_once(self):
+        translator, calls = self.translator([self.status_error(401)] * 4)
+        with self.assertRaises(llm.FatalCall):
+            translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 1)
+
+    def test_a_fatal_error_is_not_a_lost_sentence(self):
+        """`FatalCall` must not be a `CallFailed`, or the runner would record it and carry on."""
+        self.assertFalse(issubclass(llm.FatalCall, llm.CallFailed))
+
+    def test_an_unexpected_status_is_not_retried_forever(self):
+        translator, calls = self.translator([self.status_error(418)] * 4)
+        with self.assertRaises(llm.CallFailed):
+            translator.translate("p", "s", "m")
+        self.assertEqual(len(calls.sent), 1)
+
+
+class TestWhatIsWorthRetrying(unittest.TestCase):
+    """The decision itself, which needs no SDK to check."""
+
+    def test_rate_limits_and_server_errors_are_worth_waiting_for(self):
+        for status in (408, 409, 429, 500, 502, 503, 529):
+            with self.subTest(status):
+                self.assertTrue(llm._worth_retrying(status))
+
+    def test_a_bad_request_or_a_bad_key_is_not(self):
+        for status in (400, 401, 403, 404, 418, None):
+            with self.subTest(status):
+                self.assertFalse(llm._worth_retrying(status))
+
+    def test_the_fatal_and_retried_statuses_never_overlap(self):
+        self.assertFalse(llm.RETRY_STATUSES & llm.FATAL_STATUSES)
 
 
 if __name__ == "__main__":
