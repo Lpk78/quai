@@ -24,7 +24,7 @@ Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` 
 | 5 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | In review (#14) |
 | 6 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | To do |
 | 7 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
-| 8 | #12 | `prompt/v1-zero-shot` | First constraint-translation prompt + real scores | `Lpk78` | `SamDana-maker` | To do |
+| 8 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
 
 ## Later — not yet opened as issues
 
