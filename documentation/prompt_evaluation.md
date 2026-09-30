@@ -35,8 +35,19 @@ The route is supplied to the model with the manifest; see *Route and unloading o
 
 ## Output contract
 
-This is the shape the expected JSON below targets. Issue #10 turns it into a validated schema in `src/`;
-until then this table is the contract, and the two must be kept in step.
+This is the shape the expected JSON below targets. `src/quai/constraints.py` is the executable copy of
+this table, and the two must be kept in step: `tests/test_constraints.py` reads the tables below and
+fails if the module and the document disagree.
+
+**Unvalidated model output never reaches the solver.** `quai.constraints.parse()` is the only door: it
+takes the JSON text the model returned, checks it with `find_problems()` and either returns a
+`ConstraintSet` or raises `ConstraintError` listing everything that is wrong. Anything the tables below
+do not declare is refused rather than ignored — an undeclared constraint type, a field the type does not
+carry, an item that is not in the manifest, a stop that is not on the route, a length that is not a whole
+number of centimetres, and any extra top-level key, which is where a plan or a coordinate would arrive.
+Two constraints that cannot both hold (`at_bottom` and `on_top` on one item, two stops for one item, two
+items loaded last at the same stop) are refused too: that is a `contradiction` for the operator to settle,
+not something to hand to the solver.
 
 ```json
 { "constraints": [], "unresolved": [] }
