@@ -17,7 +17,7 @@ from quai.constraints import Manifest
 
 DOC = pathlib.Path(__file__).resolve().parents[2] / "documentation" / "prompt_evaluation.md"
 
-EXPECTED_SENTENCES = 25
+EXPECTED_SENTENCES = 26
 
 
 @dataclass(frozen=True)

@@ -122,7 +122,7 @@ def with_unresolved(entry):
 
 
 class TestTheDocumentsOwnExamplesPass(unittest.TestCase):
-    """The 25 expected outputs are what prompt versions are scored against. If the schema rejected
+    """The 26 expected outputs are what prompt versions are scored against. If the schema rejected
     one of them, the rubric and the code would be asking for different things."""
 
     def setUp(self):
@@ -180,6 +180,13 @@ class TestAcceptedOutput(unittest.TestCase):
     def test_fractional_kilograms_are_accepted(self):
         """Weights are not whole numbers in general; only centimetres are."""
         payload = with_constraint({"type": "max_weight_on", "item": "B1", "limit_kg": 12.5})
+        self.assertEqual(find_problems(payload, MANIFEST), [])
+
+    def test_several_items_may_be_loaded_last_at_the_same_stop(self):
+        """T26: "load the toolbox and the paint cans last" is one request, not a contradiction.
+        The items form the last group at that stop; the solver orders them inside it."""
+        payload = {"constraints": [{"type": "load_last", "item": "B1"},
+                                   {"type": "load_last", "item": "B2"}], "unresolved": []}
         self.assertEqual(find_problems(payload, MANIFEST), [])
 
     def test_the_same_constraint_stated_twice_is_not_a_conflict(self):
@@ -341,6 +348,21 @@ class TestRejectedContradiction(unittest.TestCase):
                              {"type": "on_top", "item": "B3"}],
                             "B3 cannot be both at_bottom and on_top")
 
+    def test_nothing_on_top_and_a_stack_limit_for_the_same_item_are_rejected(self):
+        """"Nothing on it" and "up to 20 kg on it" cannot both be the rule; the solver would have
+        to pick silently."""
+        for limit in ({"type": "max_weight_on", "item": "B3", "limit_kg": 20},
+                      {"type": "max_stack_height", "item": "B3", "limit_cm": 40}):
+            with self.subTest(limit["type"]):
+                self.assertRejected([{"type": "not_stackable", "item": "B3"}, limit],
+                                    f"B3 cannot be both not_stackable and given a {limit['type']}")
+
+    def test_a_stack_limit_on_another_item_is_not_a_conflict(self):
+        payload = {"constraints": [{"type": "not_stackable", "item": "B3"},
+                                   {"type": "max_weight_on", "item": "B1", "limit_kg": 20}],
+                   "unresolved": []}
+        self.assertEqual(find_problems(payload, MANIFEST), [])
+
     def test_two_stops_for_the_same_item_is_rejected(self):
         self.assertRejected([{"type": "unload_at", "item": "B1", "stop": "S1"},
                              {"type": "unload_at", "item": "B1", "stop": "S2"}],
@@ -350,18 +372,6 @@ class TestRejectedContradiction(unittest.TestCase):
         self.assertRejected([{"type": "max_total_weight", "limit_kg": 1500},
                              {"type": "max_total_weight", "limit_kg": 1200}],
                             "max_total_weight for the whole load is given twice")
-
-    def test_two_items_loaded_last_at_the_same_stop_are_rejected(self):
-        self.assertRejected([{"type": "load_last", "item": "B1"},
-                             {"type": "load_last", "item": "B2"}],
-                            "cannot both be loaded last at S3")
-
-    def test_the_default_stop_is_used_when_looking_for_that_clash(self):
-        """B1 is explicitly on the last stop, B2 gets there by the default rule: same clash."""
-        self.assertRejected([{"type": "unload_at", "item": "B1", "stop": "S3"},
-                             {"type": "load_last", "item": "B1"},
-                             {"type": "load_last", "item": "B2"}],
-                            "cannot both be loaded last at S3")
 
     def test_loading_last_at_two_different_stops_is_accepted(self):
         """The stop order already separates them, so they never compete."""

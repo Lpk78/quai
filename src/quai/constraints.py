@@ -17,7 +17,9 @@ and the solver mean the same thing by them:
   may only name one of them.
 - An item with no `unload_at` comes off at the last stop. That is not missing information: it means
   the item travels the whole route (`ConstraintSet.unload_stop`).
-- The stop order always wins over `load_last`, which only orders items within one stop.
+- The stop order always wins over `load_last`, which only orders items within one stop. Several
+  items may be loaded last at the same stop: they form the last group there, and the solver orders
+  them among themselves.
 """
 import json
 import math
@@ -176,7 +178,7 @@ def find_problems(payload, manifest: Manifest) -> list[str]:
         problems.append("nothing was translated and nothing was reported as unresolved")
     if not problems:
         # Only worth asking once every constraint is known to be well formed.
-        problems += _conflict_problems(lists["constraints"], manifest)
+        problems += _conflict_problems(lists["constraints"])
     return problems
 
 
@@ -238,12 +240,14 @@ def _is_quoted_text(value) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def _conflict_problems(constraints, manifest: Manifest) -> list[str]:
+def _conflict_problems(constraints) -> list[str]:
     """Contradictions the model should have reported as `contradiction` instead of emitting."""
     problems = []
-    flags = {kind: set(c["item"] for c in constraints if c["type"] == kind)
-             for kind in ("at_bottom", "on_top")}
-    for item in sorted(flags["at_bottom"] & flags["on_top"]):
+
+    def items_of(kind: str) -> set[str]:
+        return set(c["item"] for c in constraints if c["type"] == kind)
+
+    for item in sorted(items_of("at_bottom") & items_of("on_top")):
         problems.append(f"{item} cannot be both at_bottom and on_top")
     for kind, field in (("unload_at", "stop"), ("max_stack_height", "limit_cm"),
                         ("max_weight_on", "limit_kg"), ("max_total_weight", "limit_kg")):
@@ -256,15 +260,12 @@ def _conflict_problems(constraints, manifest: Manifest) -> list[str]:
                 problems.append(f"{kind} for {item or 'the whole load'} is given twice, "
                                 f"as {stated[item]} and as {c[field]}")
             stated.setdefault(item, c[field])
-    # Two items cannot both be loaded last at the same stop. Which stop that is comes from the
-    # default rule, so an item with no `unload_at` competes with the items of the last stop.
-    known = ConstraintSet(manifest, tuple(constraints))
-    last: dict[str, str] = {}
-    for c in constraints:
-        if c["type"] != "load_last":
-            continue
-        stop = known.unload_stop(c["item"])
-        if stop in last and last[stop] != c["item"]:
-            problems.append(f"{last[stop]} and {c['item']} cannot both be loaded last at {stop}")
-        last.setdefault(stop, c["item"])
+    # "Nothing on it" and "up to 20 kg on it" cannot both be the rule, the same way `at_bottom` and
+    # `on_top` cannot: a limit says what may be stacked, `not_stackable` says nothing may be.
+    for kind in ("max_stack_height", "max_weight_on"):
+        for item in sorted(items_of("not_stackable") & items_of(kind)):
+            problems.append(f"{item} cannot be both not_stackable and given a {kind}")
+    # Several `load_last` items at one stop are not a clash: "load the toolbox and the paint cans
+    # last" is one request, and refusing it would lose the whole sentence. They form the last group
+    # at that stop and the solver orders them among themselves.
     return problems
