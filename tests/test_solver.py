@@ -57,6 +57,24 @@ class TestChecks(unittest.TestCase):
         self.assertIn("fridge is placed 2 times", find_problems(twice, CONTAINER))
 
 
+class TestBox(unittest.TestCase):
+    def test_zero_dimension_is_refused(self):
+        """A zero side used to reach support_ratio and raise ZeroDivisionError."""
+        with self.assertRaises(ValueError):
+            Box("z", 0, 10, 10)
+
+    def test_negative_dimension_is_refused(self):
+        with self.assertRaises(ValueError):
+            Box("n", -5, 10, 10)
+
+    def test_negative_weight_is_refused(self):
+        with self.assertRaises(ValueError):
+            Box("w", 10, 10, 10, -1.0)
+
+    def test_valid_box_is_still_accepted(self):
+        self.assertEqual(Box("ok", 10, 20, 30, 1.5).volume, 6000)
+
+
 class TestSolver(unittest.TestCase):
     def test_exact_fit_uses_all_space(self):
         plan = solve(cubes(8), CONTAINER)

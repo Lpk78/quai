@@ -16,6 +16,14 @@ class Box:
     height: int
     weight: float = 0.0
 
+    def __post_init__(self) -> None:
+        for name in ("length", "width", "height"):
+            value = getattr(self, name)
+            if value <= 0:
+                raise ValueError(f"box {self.id}: {name} must be greater than 0, got {value}")
+        if self.weight < 0:
+            raise ValueError(f"box {self.id}: weight cannot be negative, got {self.weight}")
+
     @property
     def volume(self) -> int:
         return self.length * self.width * self.height
