@@ -240,7 +240,7 @@ class TestSolver(unittest.TestCase):
                                        max_weight_on={"victim": 10}), [])
 
     def test_the_gap_is_filled_when_nothing_limits_the_box(self):
-        """The same load without the limit: `victim` does fit in the gap, and ends up under `top`."""
+        """The same load without the limit: `victim` fits in the gap, and ends up under `top`."""
         boxes = [Box("tall", 80, 100, 50, 10), Box("top", 100, 100, 20, 30),
                  Box("victim", 20, 100, 50, 5)]
         plan = solve(boxes, CONTAINER)
@@ -312,7 +312,7 @@ class TestLoadingOrder(unittest.TestCase):
         self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["m", "n"])
 
     def test_several_items_loaded_last_at_one_stop_form_the_last_group(self):
-        """p and q are the last group at S1: r goes in before both, and the solver orders the two."""
+        """p and q are the last group at S1: r goes in before both, and the solver orders them."""
         boxes = [crate("p", 40), crate("q", 30), crate("r", 20)]
         route = constraint_set(boxes, ("S1",),
                                {"type": "load_last", "item": "p"},

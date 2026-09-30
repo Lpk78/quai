@@ -41,7 +41,7 @@ def support_ratio(p: Placement, others: list[Placement]) -> float:
 
 
 def resting_on(p: Placement, placements: list[Placement]) -> list[Placement]:
-    """The placements `p` sits on directly: their top face is its base and the footprints overlap."""
+    """The placements `p` sits on directly: their top face is its base, footprints overlapping."""
     return [o for o in placements
             if o is not p and o.z2 == p.z
             and min(p.x2, o.x2) > max(p.x, o.x)
