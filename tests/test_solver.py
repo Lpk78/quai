@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps  # noqa: E402
 from quai.models import Box, Container, Placement  # noqa: E402
 from quai.solver import solve  # noqa: E402
@@ -49,6 +50,10 @@ class TestChecks(unittest.TestCase):
         desk = Box("desk", 80, 40, 40)
         problems = find_problems([Placement(desk, 0, 0, 0, 40, 80, 40)], CONTAINER)
         self.assertEqual(problems, [])
+
+    def test_minimum_support_is_defined_once(self):
+        """The solver and the checks must agree on what counts as supported enough."""
+        self.assertIs(solver_module.MIN_SUPPORT, checks.MIN_SUPPORT)
 
     def test_box_placed_twice_is_reported(self):
         fridge = Box("fridge", 30, 30, 30)

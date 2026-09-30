@@ -8,6 +8,10 @@ from itertools import combinations
 
 from .models import Container, Placement
 
+# The one definition of "supported enough". The solver imports it so that the solver and
+# these checks can never disagree about what counts as a valid plan.
+MIN_SUPPORT = 0.75
+
 
 def overlaps(a: Placement, b: Placement) -> bool:
     """True if two boxes share some volume (touching faces is allowed)."""
@@ -37,7 +41,7 @@ def support_ratio(p: Placement, others: list[Placement]) -> float:
 
 
 def find_problems(placements: list[Placement], container: Container,
-                  min_support: float = 0.75) -> list[str]:
+                  min_support: float = MIN_SUPPORT) -> list[str]:
     """List every physical problem in a plan. An empty list means the plan is valid."""
     problems = []
     for p in placements:

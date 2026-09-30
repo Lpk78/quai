@@ -10,10 +10,8 @@
 Same input, same plan, every time. A box that fits nowhere is reported as unplaced,
 never forced in.
 """
-from .checks import is_inside, overlaps, support_ratio
+from .checks import MIN_SUPPORT, is_inside, overlaps, support_ratio
 from .models import Box, Container, Placement, Plan
-
-MIN_SUPPORT = 0.75
 
 
 def solve(boxes: list[Box], container: Container) -> Plan:
