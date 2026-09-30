@@ -3,6 +3,7 @@
 These checks do not trust the solver. They are also what we will use to score
 plans proposed by an LLM alone (experiment/llm-only-placement).
 """
+from collections import Counter
 from itertools import combinations
 
 from .models import Container, Placement
@@ -40,10 +41,18 @@ def find_problems(placements: list[Placement], container: Container,
     """List every physical problem in a plan. An empty list means the plan is valid."""
     problems = []
     for p in placements:
+        if (p.dx, p.dy, p.dz) not in p.box.orientations():
+            problems.append(f"{p.box.id} is not one of its upright rotations")
+            # The remaining geometry says nothing once the dimensions are wrong, and a
+            # zero-width placement would divide by zero in support_ratio.
+            continue
         if not is_inside(p, container):
             problems.append(f"{p.box.id} is outside the container")
         if support_ratio(p, placements) < min_support:
             problems.append(f"{p.box.id} is not supported enough")
+    for box_id, count in Counter(p.box.id for p in placements).items():
+        if count > 1:
+            problems.append(f"{box_id} is placed {count} times")
     for a, b in combinations(placements, 2):
         if overlaps(a, b):
             problems.append(f"{a.box.id} overlaps {b.box.id}")
