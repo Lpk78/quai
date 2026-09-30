@@ -69,3 +69,28 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `docs/team-automation`, #4, conflict with #3.
 
 ---
+
+## 2026-09-30 — The prompt that produced the solver is unrecoverable
+
+- What happened: `LP-16` backfilled `prompts/dev/` with the six development prompts given before the
+  `/task` skill existed, recovering each one from this machine's Claude Code session history. Five came
+  back verbatim. The sixth, `LP-02` — the solver behind #3 — did not. The solver commits `134abd3` to
+  `6a1e0be` are dated 2026-09-28T13:09:05Z and #3 was opened at 13:09:10Z, but the oldest prompt kept
+  anywhere on this machine for this repository is 13:36:57Z, about 28 minutes later. The only recorded
+  solver prompt, "Commit the solver already written…", ran at 13:40:44Z, found the five commits already
+  pushed and produced nothing.
+- Why: the rule that every development prompt is saved in `prompts/dev/` was written *by* #4, and the
+  solver was written before it. Session history is not an archive: it only holds what was typed into
+  Claude Code, on the machine where it was typed, and the solver was not written that way.
+- What we tried: searched every session file under
+  `~/.claude/projects/-Users-leo-paulkerrinckx-Desktop-data-project/`, the other project directory, and all
+  384 entries of `~/.claude/history.jsonl`. Confirmed the gap from two directions — the earliest recorded
+  prompt is 28 minutes after the PR was opened, and the recorded prompt's own wording, "already written",
+  says the code came from elsewhere. Then recorded `prompts/dev/LP-02_solver.md` as incomplete, stating
+  what is missing and how that was established, rather than inventing a prompt that would have looked
+  right.
+- What we learned: a prompt that is not saved when it is given is usually lost, so the `/task` rule earns
+  its place — it is cheaper to write the file up front than to reconstruct it two days later. Where a
+  record cannot be honest it should be visibly empty: the Git history is graded on authenticity, and one
+  file saying "this was not recovered, here is the proof" is worth more than six that all look complete.
+- Related branch / PR: `docs/backfill-dev-prompts`, `LP-16`; the unrecoverable prompt belongs to #3.
