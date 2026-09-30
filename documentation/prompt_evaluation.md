@@ -120,7 +120,7 @@ nothing is scored by impression: a criterion is Yes for a sentence or it is not.
 | C5 | Doubt is reported, not manufactured | Ambiguity, contradiction and missing units are raised when present — and not raised when the sentence is clear |
 | C6 | Speech is data | Instructions embedded in the operator's words are recorded, never obeyed |
 | C7 | No placement | The output contains no coordinate, no position and no loading order the solver should decide |
-| C8 | Nothing missing | Every constraint the operator did say is there, and anything left out is reported as `unresolved` rather than dropped in silence |
+| C8 | Nothing missing | Every constraint the operator did say is in the output; a version that translates part of a sentence and silently drops the rest answers No |
 
 C5 runs both ways on purpose. A version that answers "ambiguous" to everything would otherwise score well
 on the hard sentences while being useless on T01–T09.
