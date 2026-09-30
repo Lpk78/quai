@@ -28,6 +28,10 @@ from quai.constraints import LIMIT_FIELDS, Manifest
 
 # Where a plan, a position or a loading sequence would arrive. The schema already refuses unknown
 # fields; this list is what makes C7 able to say so even when the output is malformed in other ways.
+# Each sentence is asked this many times: the same question twice does not always get the same
+# answer, and a prompt that only usually works is not a prompt that works.
+RUNS = 3
+
 PLACEMENT_KEYS: frozenset[str] = frozenset([
     "x", "y", "z", "position", "positions", "coordinate", "coordinates", "placement", "placements",
     "plan", "layout", "slot", "order", "sequence", "loading_order", "rotation", "rotated",
@@ -269,6 +273,71 @@ def _hashable(value):
     return value
 
 
+
+@dataclass(frozen=True)
+class CaseRuns:
+    """One sentence, translated several times.
+
+    A model asked the same question twice does not always answer the same way, and a prompt that
+    only usually works is not a prompt that works. So a criterion is Yes for a sentence when it is
+    Yes on **every** run, and the number of runs that did pass is reported beside it, so that the
+    difference between "always" and "two times out of three" is visible rather than averaged away.
+    """
+    case_id: str
+    attempts: tuple[Scored, ...]
+
+    @property
+    def ran(self) -> bool:
+        return bool(self.attempts) and all(a.ran for a in self.attempts)
+
+    @property
+    def verdicts(self) -> dict[str, bool]:
+        """Yes only where every run said Yes."""
+        if not self.ran:
+            return {}
+        return {name: all(a.verdicts.get(name) for a in self.attempts) for name in CHECKS}
+
+    @property
+    def passed(self) -> bool:
+        return self.ran and all(a.passed for a in self.attempts)
+
+    @property
+    def passes(self) -> int:
+        """How many runs answered all seven criteria — the `2/3` in the table."""
+        return sum(1 for a in self.attempts if a.passed)
+
+    @property
+    def match(self) -> bool:
+        return self.ran and all(a.match for a in self.attempts)
+
+    @property
+    def identical(self) -> bool:
+        """Whether every run produced the same translation, wording of questions aside."""
+        if not self.ran:
+            return False
+        first = self.attempts[0]
+        return all(_same_translation(first.output, a.output) for a in self.attempts[1:])
+
+    @property
+    def error(self) -> str | None:
+        return next((a.error for a in self.attempts if a.error), None)
+
+    def failed_criteria(self) -> tuple[str, ...]:
+        return tuple(name for name, ok in sorted(self.verdicts.items()) if not ok)
+
+    def notes(self) -> tuple[str, ...]:
+        """What the runs objected to, each reason once however many runs raised it."""
+        return tuple(dict.fromkeys(note for a in self.attempts for note in a.notes))
+
+
+def _same_translation(one: str | None, other: str | None) -> bool:
+    if one is None or other is None:
+        return one == other
+    first, second = _decode(one)[0], _decode(other)[0]
+    return (_constraint_set(first) == _constraint_set(second)
+            and _reason_counts(first) == _reason_counts(second))
+
+
 @dataclass(frozen=True)
 class Run:
     """One prompt version, run over the test inputs. What goes in the results table comes from here.
@@ -279,71 +348,87 @@ class Run:
     """
     version: str
     model: str
-    scored: tuple[Scored, ...]
+    cases: tuple[CaseRuns, ...]
     expected_cases: int
+    runs: int = RUNS
     temperature: str = "n/a"
 
     @property
     def complete(self) -> bool:
-        return len(self.scored) == self.expected_cases and all(s.ran for s in self.scored)
+        return len(self.cases) == self.expected_cases and all(c.ran for c in self.cases)
 
-    def could_not_run(self) -> tuple[Scored, ...]:
-        return tuple(s for s in self.scored if not s.ran)
+    def could_not_run(self) -> tuple[CaseRuns, ...]:
+        return tuple(c for c in self.cases if not c.ran)
 
     def per_criterion(self) -> dict[str, int]:
-        """How many sentences answered Yes to each criterion."""
-        return {name: sum(1 for s in self.scored if s.verdicts.get(name)) for name in CHECKS}
+        """How many sentences answered Yes on every run."""
+        return {name: sum(1 for c in self.cases if c.verdicts.get(name)) for name in CHECKS}
 
     def total(self) -> int:
-        """The only number that says the translation was usable: all seven Yes."""
-        return sum(1 for s in self.scored if s.passed)
+        """The only number that says the translation was usable: all seven Yes, on every run."""
+        return sum(1 for c in self.cases if c.passed)
 
     def matched(self) -> int:
-        return sum(1 for s in self.scored if s.match)
+        return sum(1 for c in self.cases if c.match)
 
-    def results_row(self, date: str, notes: str = "") -> str:
+    def identical(self) -> int:
+        """How many sentences the version answered the same way every time."""
+        return sum(1 for c in self.cases if c.identical)
+
+    def note(self) -> str:
+        """The factual note for the Notes cell: how it was run, and how much it wandered."""
+        return (f"{self.runs} runs per sentence; same answer every time on "
+                f"{self.identical()}/{len(self.cases)}")
+
+    def results_row(self, date: str, notes: str | None = None) -> str:
         """The row for the Results table of `documentation/prompt_evaluation.md`."""
         if not self.complete:
             raise ValueError(f"{len(self.could_not_run())} sentences could not be run, "
                              "so this run has no score to record")
         counts = self.per_criterion()
         cells = [self.version] + [str(counts[name]) for name in CHECKS]
-        cells += [str(self.total()), self.model, self.temperature, date, notes]
+        cells += [str(self.total()), self.model, self.temperature, date,
+                  self.note() if notes is None else notes]
         return "| " + " | ".join(cells) + " |"
 
     def case_table(self) -> str:
-        """Per case, what each criterion said — the detail behind the row."""
-        header = "| Case | " + " | ".join(CHECKS) + " | Match | Note |"
-        lines = [header, "|" + "---|" * (len(CHECKS) + 3)]
-        for s in self.scored:
-            if not s.ran:
-                lines.append(f"| {s.case_id} | " + "— | " * len(CHECKS)
-                             + f"— | could not be run: {s.error} |")
+        """Per sentence: what each criterion said, and how many runs got there."""
+        header = "| Case | " + " | ".join(CHECKS) + " | Runs | Same | Match | Note |"
+        lines = [header, "|" + "---|" * (len(CHECKS) + 5)]
+        for case in self.cases:
+            if not case.ran:
+                lines.append(f"| {case.case_id} | " + "— | " * (len(CHECKS) + 3)
+                             + f"could not be run: {case.error} |")
                 continue
-            marks = " | ".join("yes" if s.verdicts.get(n) else "NO" for n in CHECKS)
-            note = "; ".join(s.notes)[:120] if s.notes else ""
-            lines.append(f"| {s.case_id} | {marks} | "
-                         f"{'yes' if s.match else 'NO'} | {note} |")
+            marks = " | ".join("yes" if case.verdicts.get(n) else "NO" for n in CHECKS)
+            note = "; ".join(case.notes())[:120] if case.notes() else ""
+            lines.append(f"| {case.case_id} | {marks} | {case.passes}/{len(case.attempts)} | "
+                         f"{'yes' if case.identical else 'NO'} | "
+                         f"{'yes' if case.match else 'NO'} | {note} |")
         return "\n".join(lines)
 
 
 def run(translate, prompt: str, cases, manifest: Manifest, manifest_text: str,
-        on_case=None) -> tuple[Scored, ...]:
-    """Score `prompt` on every case, one call per sentence, in document order.
+        runs: int = RUNS, on_case=None) -> tuple[CaseRuns, ...]:
+    """Score `prompt` on every case, `runs` calls per sentence, in document order.
 
-    `translate(prompt, sentence, manifest_text) -> str` is whatever talks to the model; a
+    `translate(prompt, sentence, manifest_text) -> str` is whatever talks to the model. A
     `quai.llm.CallFailed` from it is recorded against that sentence and does not stop the run, so
-    one rate limit does not throw away the sentences that did answer.
+    one rate limit does not throw away the sentences that did answer. A `quai.llm.FatalCall` is not
+    caught: a rejected request or a bad key would say the same thing on all 75 calls.
     """
     from quai.llm import CallFailed
 
     scored = []
     for case in cases:
-        try:
-            output, error = translate(prompt, case.sentence, manifest_text), None
-        except CallFailed as failure:
-            output, error = None, str(failure)
-        result = score_case(case.expected, output, manifest, case.id, error)
+        attempts = []
+        for _ in range(runs):
+            try:
+                output, error = translate(prompt, case.sentence, manifest_text), None
+            except CallFailed as failure:
+                output, error = None, str(failure)
+            attempts.append(score_case(case.expected, output, manifest, case.id, error))
+        result = CaseRuns(case.id, tuple(attempts))
         scored.append(result)
         if on_case is not None:
             on_case(result)

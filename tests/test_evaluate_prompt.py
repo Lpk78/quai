@@ -57,11 +57,16 @@ class TestRefusingToPrintAScore(unittest.TestCase):
 
 
 class TestTheTranscript(unittest.TestCase):
+    def a_run(self, runs=2):
+        answer = '{"constraints": [], "unresolved": []}'
+        attempt = evaluation.Scored("T01", {name: True for name in evaluation.CHECKS},
+                                    (), True, answer)
+        case = evaluation.CaseRuns("T01", (attempt,) * runs)
+        return evaluation.Run("v0_test", "test-model", (case,), expected_cases=1, runs=runs), answer
+
     def test_every_reply_is_kept_with_the_verdicts(self):
         """A score must be re-readable later without calling the model again."""
-        scored = (evaluation.Scored("T01", {name: True for name in evaluation.CHECKS},
-                                   (), True, '{"constraints": [], "unresolved": []}'),)
-        run = evaluation.Run("v0_test", "test-model", scored, expected_cases=1)
+        run, answer = self.a_run()
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         path = evaluate_prompt.write_transcript(run, Path(folder.name))
@@ -71,7 +76,20 @@ class TestTheTranscript(unittest.TestCase):
         self.assertEqual(kept["temperature"], "n/a")
         self.assertTrue(kept["complete"])
         self.assertEqual(kept["cases"][0]["id"], "T01")
-        self.assertEqual(kept["cases"][0]["output"], '{"constraints": [], "unresolved": []}')
+        self.assertEqual(kept["cases"][0]["attempts"][0]["output"], answer)
+
+    def test_every_run_of_every_sentence_is_kept(self):
+        """Three runs mean three replies to keep, not one: the variability is the point."""
+        run, answer = self.a_run(runs=3)
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        kept = json.loads(evaluate_prompt.write_transcript(run, Path(folder.name))
+                          .read_text(encoding="utf-8"))
+        self.assertEqual(kept["runs_per_sentence"], 3)
+        self.assertEqual(len(kept["cases"][0]["attempts"]), 3)
+        self.assertEqual(kept["cases"][0]["passes"], 3)
+        self.assertTrue(kept["cases"][0]["identical"])
+        self.assertEqual([a["output"] for a in kept["cases"][0]["attempts"]], [answer] * 3)
 
 
 if __name__ == "__main__":

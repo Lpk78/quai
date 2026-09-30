@@ -31,6 +31,9 @@ def parse_args(argv=None):
                         help="the prompt version to score, e.g. prompts/<family>/v1_zero_shot.md")
     parser.add_argument("--cases", default="",
                         help="comma-separated case ids to run instead of all 25 (partial run)")
+    parser.add_argument("--runs", type=int, default=evaluation.RUNS,
+                        help=f"calls per sentence, to measure how much the output varies "
+                             f"(default {evaluation.RUNS})")
     parser.add_argument("--model", default=None,
                         help="override the model from .env, recorded in the results row")
     parser.add_argument("--no-transcript", action="store_true",
@@ -59,10 +62,16 @@ def write_transcript(run: evaluation.Run, folder: pathlib.Path) -> pathlib.Path:
         "model": run.model,
         "temperature": run.temperature,
         "date": datetime.date.today().isoformat(),
+        "runs_per_sentence": run.runs,
         "complete": run.complete,
-        "cases": [{"id": s.case_id, "verdicts": s.verdicts, "match": s.match,
-                   "notes": list(s.notes), "error": s.error, "output": s.output}
-                  for s in run.scored],
+        "cases": [{"id": case.case_id,
+                   "verdicts": case.verdicts,
+                   "passes": case.passes,
+                   "identical": case.identical,
+                   "match": case.match,
+                   "attempts": [{"verdicts": a.verdicts, "match": a.match, "notes": list(a.notes),
+                                 "error": a.error, "output": a.output} for a in case.attempts]}
+                  for case in run.cases],
     }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
 
@@ -85,24 +94,34 @@ def main(argv=None) -> int:
         return 1
 
     version = args.prompt.stem
-    print(f"Scoring {version} on {len(cases)} of {len(rubric.cases(text))} sentences "
-          f"with {translator.model}\n")
+    print(f"Scoring {version} on {len(cases)} of {len(rubric.cases(text))} sentences, "
+          f"{args.runs} runs each, with {translator.model}\n")
 
-    def report(scored):
-        state = "could not be run" if not scored.ran else ("all seven" if scored.passed
-                                                          else "NO on " + ", ".join(
-                                                              scored.failed_criteria()))
-        print(f"  {scored.case_id}: {state}")
+    def report(case):
+        if not case.ran:
+            print(f"  {case.case_id}: could not be run ({case.error})")
+            return
+        answered = f"{case.passes}/{len(case.attempts)} runs"
+        state = "all seven" if case.passed else "NO on " + ", ".join(case.failed_criteria())
+        wandered = "" if case.identical else ", and the runs disagreed"
+        print(f"  {case.case_id}: {state} ({answered}{wandered})")
 
-    scored = evaluation.run(translator.translate, args.prompt.read_text(encoding="utf-8"),
-                            cases, manifest, manifest_text, on_case=report)
-    run = evaluation.Run(version=version, model=translator.model, scored=scored,
-                         expected_cases=len(rubric.cases(text)))
+    try:
+        scored = evaluation.run(translator.translate, args.prompt.read_text(encoding="utf-8"),
+                                cases, manifest, manifest_text, runs=args.runs, on_case=report)
+    except llm.FatalCall as fatal:
+        print(f"\nStopped: {fatal}", file=sys.stderr)
+        print("Nothing is scored from a run that could not be made.", file=sys.stderr)
+        return 1
+
+    run = evaluation.Run(version=version, model=translator.model, cases=scored,
+                         expected_cases=len(rubric.cases(text)), runs=args.runs)
 
     print(f"\n{run.case_table()}\n")
     counts = run.per_criterion()
     print("  ".join(f"{name} {counts[name]}/{len(scored)}" for name in evaluation.CHECKS))
-    print(f"Total (all seven yes): {run.total()}/{len(scored)}      "
+    print(f"Total (all seven yes on every run): {run.total()}/{len(scored)}")
+    print(f"Same answer on every run: {run.identical()}/{len(scored)}      "
           f"Matched the expected output: {run.matched()}/{len(scored)}")
 
     if not args.no_transcript:

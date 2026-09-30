@@ -255,7 +255,11 @@ if __name__ == "__main__":
 
 
 class Replaying:
-    """A stand-in for the model: answers each sentence with whatever it was handed."""
+    """A stand-in for the model: answers each sentence with whatever it was handed.
+
+    A sentence may be given a list, one entry per run, so that a version which wanders between
+    runs can be scored in a test.
+    """
 
     def __init__(self, answers):
         self.answers = answers
@@ -264,6 +268,8 @@ class Replaying:
     def translate(self, prompt, sentence, manifest):
         self.asked.append(sentence)
         answer = self.answers[sentence]
+        if isinstance(answer, list):
+            answer = answer[min(self.asked.count(sentence), len(answer)) - 1]
         if isinstance(answer, Exception):
             raise answer
         return answer if isinstance(answer, str) else json.dumps(answer)
@@ -273,11 +279,12 @@ class TestRunningTheWholeRubric(unittest.TestCase):
     def setUp(self):
         self.cases = rubric.cases(TEXT)
 
-    def run_with(self, answers):
+    def run_with(self, answers, runs=1):
         model = Replaying(answers)
-        scored = evaluation.run(model.translate, "THE PROMPT", self.cases, MANIFEST, "<manifest>")
-        return model, evaluation.Run(version="v0_test", model="test-model", scored=scored,
-                                     expected_cases=len(self.cases))
+        scored = evaluation.run(model.translate, "THE PROMPT", self.cases, MANIFEST, "<manifest>",
+                                runs=runs)
+        return model, evaluation.Run(version="v0_test", model="test-model", cases=scored,
+                                     expected_cases=len(self.cases), runs=runs)
 
     def test_a_version_that_answers_the_document_scores_twenty_five(self):
         """The harness end to end: 25 sentences asked in order, 25 usable translations."""
@@ -296,6 +303,11 @@ class TestRunningTheWholeRubric(unittest.TestCase):
             "| v0_test | 25 | 25 | 25 | 25 | 25 | 25 | 25 | 25 | test-model | n/a | 2026-09-30 "
             "| offline check |")
 
+    def test_the_row_says_how_it_was_run_when_no_note_is_given(self):
+        _, run = self.run_with({case.sentence: case.expected for case in self.cases}, runs=3)
+        self.assertIn("3 runs per sentence; same answer every time on 25/25",
+                      run.results_row("2026-09-30"))
+
     def test_one_bad_sentence_moves_one_criterion_and_the_total(self):
         answers = {case.sentence: case.expected for case in self.cases}
         answers[CASES["T03"].sentence] = {
@@ -313,9 +325,18 @@ class TestRunningTheWholeRubric(unittest.TestCase):
         answers = {case.sentence: case.expected for case in self.cases}
         answers[CASES["T10"].sentence] = CallFailed("rate limited")
         _, run = self.run_with(answers)
-        self.assertEqual(len(run.scored), 25)
-        self.assertEqual([s.case_id for s in run.could_not_run()], ["T10"])
+        self.assertEqual(len(run.cases), 25)
+        self.assertEqual([c.case_id for c in run.could_not_run()], ["T10"])
         self.assertEqual(run.total(), 24)
+
+    def test_a_rejected_request_stops_the_whole_run(self):
+        """`FatalCall` is not caught: the next 74 calls would be rejected the same way."""
+        from quai.llm import FatalCall
+
+        answers = {case.sentence: case.expected for case in self.cases}
+        answers[CASES["T02"].sentence] = FatalCall("the API rejected the request (400)")
+        with self.assertRaises(FatalCall):
+            self.run_with(answers)
 
     def test_a_run_that_did_not_finish_has_no_score_to_record(self):
         """The document's rule, enforced: a run that could not happen leaves its row empty."""
@@ -330,7 +351,8 @@ class TestRunningTheWholeRubric(unittest.TestCase):
 
     def test_a_subset_of_the_sentences_is_never_a_score(self):
         model = Replaying({self.cases[0].sentence: self.cases[0].expected})
-        scored = evaluation.run(model.translate, "p", self.cases[:1], MANIFEST, "<manifest>")
+        scored = evaluation.run(model.translate, "p", self.cases[:1], MANIFEST, "<manifest>",
+                                runs=1)
         run = evaluation.Run("v0_test", "test-model", scored, expected_cases=len(self.cases))
         self.assertFalse(run.complete)
         with self.assertRaises(ValueError):
@@ -342,8 +364,103 @@ class TestRunningTheWholeRubric(unittest.TestCase):
                                           "unresolved": []}
         _, run = self.run_with(answers)
         table = run.case_table()
-        self.assertIn("| Case | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Match | Note |", table)
+        self.assertIn("| Case | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Runs | Same | Match | Note |",
+                      table)
         self.assertIn("NO", table.splitlines()[2 + 12])  # T13 is the thirteenth row
         for case in self.cases:
             with self.subTest(case.id):
                 self.assertIn(f"| {case.id} |", table)
+
+
+class TestRunningEachSentenceSeveralTimes(unittest.TestCase):
+    """The same question asked three times does not always get the same answer."""
+
+    def setUp(self):
+        self.cases = rubric.cases(TEXT)
+        self.good = {case.sentence: case.expected for case in self.cases}
+
+    def run_with(self, answers, runs=3):
+        model = Replaying(answers)
+        scored = evaluation.run(model.translate, "p", self.cases, MANIFEST, "<manifest>", runs=runs)
+        return model, evaluation.Run("v0_test", "test-model", scored,
+                                     expected_cases=len(self.cases), runs=runs)
+
+    def test_every_sentence_is_asked_once_per_run(self):
+        model, run = self.run_with(self.good)
+        self.assertEqual(len(model.asked), 75)
+        self.assertEqual(model.asked.count(self.cases[0].sentence), 3)
+        self.assertEqual([len(c.attempts) for c in run.cases], [3] * 25)
+
+    def test_a_sentence_answered_well_every_time_passes_and_is_marked_identical(self):
+        _, run = self.run_with(self.good)
+        first = run.cases[0]
+        self.assertTrue(first.passed)
+        self.assertEqual(first.passes, 3)
+        self.assertTrue(first.identical)
+        self.assertEqual(run.identical(), 25)
+        self.assertEqual(run.total(), 25)
+
+    def test_a_criterion_is_yes_only_when_every_run_says_yes(self):
+        """Two runs out of three is not a prompt that works."""
+        answers = dict(self.good)
+        answers[CASES["T03"].sentence] = [
+            CASES["T03"].expected,
+            {"constraints": [{"type": "on_top", "item": "B5"},
+                             {"type": "not_stackable", "item": "B5"}], "unresolved": []},
+            CASES["T03"].expected]
+        _, run = self.run_with(answers)
+        wobbly = next(c for c in run.cases if c.case_id == "T03")
+        self.assertFalse(wobbly.verdicts["C3"])
+        self.assertFalse(wobbly.passed)
+        self.assertEqual(wobbly.passes, 2)
+        self.assertEqual(run.per_criterion()["C3"], 24)
+        self.assertEqual(run.total(), 24)
+
+    def test_the_count_of_runs_that_passed_is_visible_per_sentence(self):
+        answers = dict(self.good)
+        answers[CASES["T13"].sentence] = [
+            CASES["T13"].expected,
+            {"constraints": [{"type": "on_top", "item": "B5"}], "unresolved": []},
+            {"constraints": [{"type": "on_top", "item": "B5"}], "unresolved": []}]
+        _, run = self.run_with(answers)
+        row = next(line for line in run.case_table().splitlines() if line.startswith("| T13 |"))
+        self.assertIn("| 1/3 |", row)
+        self.assertIn("| NO |", row)
+
+    def test_a_version_that_wanders_is_reported_as_wandering(self):
+        """Same verdicts each run, different translation: the table shows what the score hides."""
+        answers = dict(self.good)
+        answers[CASES["T13"].sentence] = [
+            CASES["T13"].expected,
+            {"constraints": [], "unresolved": [
+                {"text": "the fragile stuff", "reason": "ambiguous", "question": "Which ones?"}]},
+            {"constraints": [], "unresolved": [
+                {"text": "fragile", "reason": "unknown_item", "question": "Which item?"}]}]
+        _, run = self.run_with(answers)
+        wandering = next(c for c in run.cases if c.case_id == "T13")
+        self.assertFalse(wandering.identical)
+        self.assertEqual(run.identical(), 24)
+
+    def test_the_same_answer_worded_differently_still_counts_as_the_same(self):
+        answers = dict(self.good)
+        answers[CASES["T13"].sentence] = [
+            CASES["T13"].expected,
+            {"constraints": [], "unresolved": [
+                {"text": "the fragile stuff", "reason": "ambiguous",
+                 "question": "Which boxes count as fragile?"}]},
+            CASES["T13"].expected]
+        _, run = self.run_with(answers)
+        self.assertTrue(next(c for c in run.cases if c.case_id == "T13").identical)
+
+    def test_one_lost_run_loses_the_sentence(self):
+        from quai.llm import CallFailed
+
+        answers = dict(self.good)
+        answers[CASES["T10"].sentence] = [CASES["T10"].expected, CallFailed("rate limited"),
+                                          CASES["T10"].expected]
+        _, run = self.run_with(answers)
+        lost = next(c for c in run.cases if c.case_id == "T10")
+        self.assertFalse(lost.ran)
+        self.assertEqual(lost.verdicts, {})
+        self.assertFalse(run.complete)
+        self.assertEqual(lost.error, "rate limited")
