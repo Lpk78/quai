@@ -9,16 +9,19 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
-| 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `SamDana-maker` | `MORHI11` | In review (#3) |
+| 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
 | 2 | #6 | `feature/api-server` | FastAPI exposing the solver and the translation, key server-side | `SamDana-maker` | `MORHI11` | To do |
 | 3 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
 | 4 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
+
+Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` wrote the v1 solver,
+`SamDana-maker` reviewed it in #3, and owns the solver from there on — maintenance and extensions.
 
 ## Phase 2 — The AI layer
 
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
-| 5 | #9 | `docs/test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | To do |
+| 5 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | In review (#14) |
 | 6 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | To do |
 | 7 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
 | 8 | #12 | `prompt/v1-zero-shot` | First constraint-translation prompt + real scores | `Lpk78` | `SamDana-maker` | To do |
