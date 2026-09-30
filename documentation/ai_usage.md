@@ -2,7 +2,17 @@
 
 The course asks us to show how AI was used, not only that it was used. One line per notable use.
 
+Since LP-15, AI help is recorded per task in the "Outcome" section of `prompts/dev/<ID>_<slug>.md`, and
+this table is filled from those files rather than by each Pull Request. The rows below predate that rule.
+
 | Date | Who | Tool | What for | What we kept / changed |
 |---|---|---|---|---|
 | Sept. 2026 | Léo-Paul | Claude | Generating and challenging project ideas | Chose QUAI; kept the rule "the LLM never computes placement" |
 | Sept. 2026 | Léo-Paul | Claude | Setting up the repository structure and team rules from the course material | Reviewed; team details still to fill |
+| 2026-09-28 | Léo-Paul | Claude Code | Writing the team skills, the permission file and the tests workflow | Kept all four skills and the workflow; Claude found that the workflow goes red on `main` and we documented it instead of hiding it |
+| 2026-09-28 | Léo-Paul | Claude Code (`LP-04`) | Writing the 25 constraint-translation test sentences and the rubric | Kept the sentences, the manifest and the seven criteria; added C6 and C7 after noticing the draft rubric scored nothing for the injection case or the no-placement rule |
+| From 2026-09-28 | All three of us | Claude Code (`/review`) | Drafting PR reviews | The draft is read, edited and validated by the human reviewer before it is posted from their account; nobody approves a PR they have not read |
+| 2026-09-30 | Léo-Paul | Claude Code | Answering Sam's review on PR #3: dimension and duplicate checks, box validation, single support constant, tests | All four fixes kept; each reported defect was reproduced first and each new test was checked to fail without its fix |
+| 2026-09-30 | Léo-Paul | Claude Code | Answering Sam's review on PR #4: merging `main`, resolving the `ai_usage.md` conflict, aligning CONTRIBUTING.md §6, the three optional points | All kept; the conflict resolution kept both sides of this very table and is written up in `failures.md` |
+| 2026-09-30 | Léo-Paul | Claude Code | Answering Sam's review on PR #14: merging `main`, writing the route and stack-limit decisions into the contract, fixing the contract-table parser | All kept; the parser fix came with a test that was checked to fail against the old regex |
+| 2026-09-30 | Léo-Paul | Claude Code | Answering Sam's review on PR #13: restoring the constraint-translation row, the prompt family layout, roadmap ownership, and opening SA-05 and HY-01 | All kept; the row numbering was redone so the references in #10 and #12 point at real rows |
