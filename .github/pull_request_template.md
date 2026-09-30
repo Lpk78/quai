@@ -13,7 +13,7 @@
 ## Checklist
 
 - [ ] Branch created from an up-to-date `main`
-- [ ] `python3 src/main.py` still runs
+- [ ] `python src/main.py` (or `python3`) still runs
 - [ ] No secret, no `.env`, no conflict marker in the diff
 - [ ] If a prompt changed: new file in `prompts/`, scores recorded in `documentation/prompt_evaluation.md`
 - [ ] If something failed along the way: entry added to `documentation/failures.md`

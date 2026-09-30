@@ -8,7 +8,7 @@ Pull Request to review: #$ARGUMENTS
 
 The human running this session is the reviewer. You prepare the review; they decide.
 
-1. `gh pr view $ARGUMENTS`, `gh pr diff $ARGUMENTS` and `gh pr checks $ARGUMENTS`. Check out the branch with `gh pr checkout $ARGUMENTS` and run the tests (`python3 -m unittest discover tests`, plus `npm test` if the web app changed).
+1. `gh pr view $ARGUMENTS`, `gh pr diff $ARGUMENTS` and `gh pr checks $ARGUMENTS`. Check out the branch with `gh pr checkout $ARGUMENTS` and run the tests (`python -m unittest discover tests`, or `python3` if `python` is missing on your machine, plus `npm test` if the web app changed).
 2. Check the PR against CONTRIBUTING.md: branch name, commit messages, PR template (Goal / What changed / Please check), tests, no secret or `.env`, no conflict marker, prompts added as new files with real scores, repository text in English, the LLM never computes placement.
 3. Explain the PR to the reviewer, in the language they write in, in at most six lines: what it does, why, test results, anything that should block it.
 4. Draft the review exactly as the reviewer would write it themselves: first person ("I ran the tests…", "I'd suggest…"), natural and concise, in English. It contains:
