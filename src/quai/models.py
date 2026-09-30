@@ -41,6 +41,14 @@ class Container:
     height: int
     max_weight: float = float("inf")
 
+    def __post_init__(self) -> None:
+        for name in ("length", "width", "height"):
+            value = getattr(self, name)
+            if value <= 0:
+                raise ValueError(f"container: {name} must be greater than 0, got {value}")
+        if self.max_weight < 0:
+            raise ValueError(f"container: max_weight cannot be negative, got {self.max_weight}")
+
     @property
     def volume(self) -> int:
         return self.length * self.width * self.height
@@ -78,6 +86,9 @@ class Plan:
 
     @property
     def fill_rate(self) -> float:
+        # Container refuses a zero side, but a plan must not crash if one gets through anyway.
+        if self.container.volume <= 0:
+            return 0.0
         used = sum(p.dx * p.dy * p.dz for p in self.placements)
         return used / self.container.volume
 
