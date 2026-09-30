@@ -252,3 +252,98 @@ class TestCasesThatCouldNotRun(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Replaying:
+    """A stand-in for the model: answers each sentence with whatever it was handed."""
+
+    def __init__(self, answers):
+        self.answers = answers
+        self.asked = []
+
+    def translate(self, prompt, sentence, manifest):
+        self.asked.append(sentence)
+        answer = self.answers[sentence]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer if isinstance(answer, str) else json.dumps(answer)
+
+
+class TestRunningTheWholeRubric(unittest.TestCase):
+    def setUp(self):
+        self.cases = rubric.cases(TEXT)
+
+    def run_with(self, answers):
+        model = Replaying(answers)
+        scored = evaluation.run(model.translate, "THE PROMPT", self.cases, MANIFEST, "<manifest>")
+        return model, evaluation.Run(version="v0_test", model="test-model", scored=scored,
+                                     expected_cases=len(self.cases))
+
+    def test_a_version_that_answers_the_document_scores_twenty_five(self):
+        """The harness end to end: 25 sentences asked in order, 25 usable translations."""
+        model, run = self.run_with({case.sentence: case.expected for case in self.cases})
+        self.assertEqual(model.asked, [case.sentence for case in self.cases])
+        self.assertTrue(run.complete)
+        self.assertEqual(run.total(), 25)
+        self.assertEqual(run.matched(), 25)
+        self.assertEqual(run.per_criterion(), {name: 25 for name in evaluation.CHECKS})
+
+    def test_the_results_row_reports_what_was_counted(self):
+        _, run = self.run_with({case.sentence: case.expected for case in self.cases})
+        row = run.results_row("2026-09-30", notes="offline check")
+        self.assertEqual(
+            row,
+            "| v0_test | 25 | 25 | 25 | 25 | 25 | 25 | 25 | 25 | test-model | n/a | 2026-09-30 "
+            "| offline check |")
+
+    def test_one_bad_sentence_moves_one_criterion_and_the_total(self):
+        answers = {case.sentence: case.expected for case in self.cases}
+        answers[CASES["T03"].sentence] = {
+            "constraints": [{"type": "on_top", "item": "B5"},
+                            {"type": "not_stackable", "item": "B5"}],
+            "unresolved": []}
+        _, run = self.run_with(answers)
+        self.assertEqual(run.total(), 24)
+        self.assertEqual(run.per_criterion()["C3"], 24)
+        self.assertEqual(run.per_criterion()["C1"], 25)
+
+    def test_a_failed_call_does_not_stop_the_other_sentences(self):
+        from quai.llm import CallFailed
+
+        answers = {case.sentence: case.expected for case in self.cases}
+        answers[CASES["T10"].sentence] = CallFailed("rate limited")
+        _, run = self.run_with(answers)
+        self.assertEqual(len(run.scored), 25)
+        self.assertEqual([s.case_id for s in run.could_not_run()], ["T10"])
+        self.assertEqual(run.total(), 24)
+
+    def test_a_run_that_did_not_finish_has_no_score_to_record(self):
+        """The document's rule, enforced: a run that could not happen leaves its row empty."""
+        from quai.llm import CallFailed
+
+        answers = {case.sentence: case.expected for case in self.cases}
+        answers[CASES["T10"].sentence] = CallFailed("rate limited")
+        _, run = self.run_with(answers)
+        self.assertFalse(run.complete)
+        with self.assertRaises(ValueError):
+            run.results_row("2026-09-30")
+
+    def test_a_subset_of_the_sentences_is_never_a_score(self):
+        model = Replaying({self.cases[0].sentence: self.cases[0].expected})
+        scored = evaluation.run(model.translate, "p", self.cases[:1], MANIFEST, "<manifest>")
+        run = evaluation.Run("v0_test", "test-model", scored, expected_cases=len(self.cases))
+        self.assertFalse(run.complete)
+        with self.assertRaises(ValueError):
+            run.results_row("2026-09-30")
+
+    def test_the_case_table_shows_which_criterion_said_no(self):
+        answers = {case.sentence: case.expected for case in self.cases}
+        answers[CASES["T13"].sentence] = {"constraints": [{"type": "on_top", "item": "B5"}],
+                                          "unresolved": []}
+        _, run = self.run_with(answers)
+        table = run.case_table()
+        self.assertIn("| Case | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Match | Note |", table)
+        self.assertIn("NO", table.splitlines()[2 + 12])  # T13 is the thirteenth row
+        for case in self.cases:
+            with self.subTest(case.id):
+                self.assertIn(f"| {case.id} |", table)

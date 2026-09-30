@@ -267,3 +267,84 @@ def _hashable(value):
     if isinstance(value, list):
         return tuple(_hashable(v) for v in value)
     return value
+
+
+@dataclass(frozen=True)
+class Run:
+    """One prompt version, run over the test inputs. What goes in the results table comes from here.
+
+    A run that did not reach every sentence is not a score. `complete` is false then, and
+    `results_row` refuses to produce a row: the document says an evaluation that could not run
+    leaves its row empty and says why, and this is where that rule is enforced rather than trusted.
+    """
+    version: str
+    model: str
+    scored: tuple[Scored, ...]
+    expected_cases: int
+    temperature: str = "n/a"
+
+    @property
+    def complete(self) -> bool:
+        return len(self.scored) == self.expected_cases and all(s.ran for s in self.scored)
+
+    def could_not_run(self) -> tuple[Scored, ...]:
+        return tuple(s for s in self.scored if not s.ran)
+
+    def per_criterion(self) -> dict[str, int]:
+        """How many sentences answered Yes to each criterion."""
+        return {name: sum(1 for s in self.scored if s.verdicts.get(name)) for name in CHECKS}
+
+    def total(self) -> int:
+        """The only number that says the translation was usable: all seven Yes."""
+        return sum(1 for s in self.scored if s.passed)
+
+    def matched(self) -> int:
+        return sum(1 for s in self.scored if s.match)
+
+    def results_row(self, date: str, notes: str = "") -> str:
+        """The row for the Results table of `documentation/prompt_evaluation.md`."""
+        if not self.complete:
+            raise ValueError(f"{len(self.could_not_run())} sentences could not be run, "
+                             "so this run has no score to record")
+        counts = self.per_criterion()
+        cells = [self.version] + [str(counts[name]) for name in CHECKS]
+        cells += [str(self.total()), self.model, self.temperature, date, notes]
+        return "| " + " | ".join(cells) + " |"
+
+    def case_table(self) -> str:
+        """Per case, what each criterion said — the detail behind the row."""
+        header = "| Case | " + " | ".join(CHECKS) + " | Match | Note |"
+        lines = [header, "|" + "---|" * (len(CHECKS) + 3)]
+        for s in self.scored:
+            if not s.ran:
+                lines.append(f"| {s.case_id} | " + "— | " * len(CHECKS)
+                             + f"— | could not be run: {s.error} |")
+                continue
+            marks = " | ".join("yes" if s.verdicts.get(n) else "NO" for n in CHECKS)
+            note = "; ".join(s.notes)[:120] if s.notes else ""
+            lines.append(f"| {s.case_id} | {marks} | "
+                         f"{'yes' if s.match else 'NO'} | {note} |")
+        return "\n".join(lines)
+
+
+def run(translate, prompt: str, cases, manifest: Manifest, manifest_text: str,
+        on_case=None) -> tuple[Scored, ...]:
+    """Score `prompt` on every case, one call per sentence, in document order.
+
+    `translate(prompt, sentence, manifest_text) -> str` is whatever talks to the model; a
+    `quai.llm.CallFailed` from it is recorded against that sentence and does not stop the run, so
+    one rate limit does not throw away the sentences that did answer.
+    """
+    from quai.llm import CallFailed
+
+    scored = []
+    for case in cases:
+        try:
+            output, error = translate(prompt, case.sentence, manifest_text), None
+        except CallFailed as failure:
+            output, error = None, str(failure)
+        result = score_case(case.expected, output, manifest, case.id, error)
+        scored.append(result)
+        if on_case is not None:
+            on_case(result)
+    return tuple(scored)
