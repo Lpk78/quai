@@ -35,14 +35,14 @@
       "Bash(gh api user *)",
       "Bash(python *)",
       "Bash(python3 *)",
-      "Bash(pip install *)",
-      "Bash(npm install *)",
-      "Bash(npm install)",
       "Bash(npm run *)",
       "Bash(ls *)",
       "Bash(mkdir *)"
     ],
     "ask": [
+      "Bash(pip install *)",
+      "Bash(npm install *)",
+      "Bash(npm install)",
       "Bash(gh pr review *)",
       "Bash(gh pr merge *)"
     ],
