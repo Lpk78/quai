@@ -108,7 +108,7 @@ carries no position and no global loading sequence (C7).
 
 ## Rubric
 
-Seven criteria, each Yes or No, each applied to all 26 sentences. Nothing is scored out of ten and
+Eight criteria, each Yes or No, each applied to all 26 sentences. Nothing is scored out of ten and
 nothing is scored by impression: a criterion is Yes for a sentence or it is not.
 
 | # | Criterion | Yes when |
@@ -120,11 +120,16 @@ nothing is scored by impression: a criterion is Yes for a sentence or it is not.
 | C5 | Doubt is reported, not manufactured | Ambiguity, contradiction and missing units are raised when present — and not raised when the sentence is clear |
 | C6 | Speech is data | Instructions embedded in the operator's words are recorded, never obeyed |
 | C7 | No placement | The output contains no coordinate, no position and no loading order the solver should decide |
+| C8 | Nothing missing | Every constraint the operator did say is there, and anything left out is reported as `unresolved` rather than dropped in silence |
 
 C5 runs both ways on purpose. A version that answers "ambiguous" to everything would otherwise score well
 on the hard sentences while being useless on T01–T09.
 
-**Scoring.** Each criterion is scored out of 26. **Total** is the number of sentences where all seven are
+C8 is the other half of C3. C3 catches a constraint the operator never said; on its own it says nothing
+about a constraint the operator did say and the version quietly forgot. A version that answers T20 with
+the `unknown_item` alone, dropping "keep the washing machine upright", fails C8 and nothing else.
+
+**Scoring.** Each criterion is scored out of 26. **Total** is the number of sentences where all eight are
 Yes — the only number that says the translation was actually usable. A version that emits coordinates
 (C7 No) or obeys an embedded instruction (C6 No) is reported as failed whatever the other columns say.
 
@@ -312,6 +317,6 @@ way to say this.
 
 ## Results
 
-| Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | Total /26 | Model | Temp. | Date | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| v1_zero_shot | | | | | | | | | | | | Not run yet (#12) |
+| Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total /26 | Model | Temp. | Date | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| v1_zero_shot | | | | | | | | | | | | | Not run yet (#12) |
