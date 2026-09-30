@@ -152,3 +152,35 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   so changing the contract cost nothing. A week later it would have meant re-running every
   evaluation.
 - Related branch / PR: `feature/constraint-schema`, #21.
+
+---
+## 2026-10-01 — A brand kit whose own mockups failed accessibility
+
+- What happened: the approved design pack arrived with the primary action buttons drawn as white text
+  on safety orange `#FF8A00` — the "Get started" and "Loaded, next" buttons visible in
+  `assets/brand/reference/mobile-ui.png`. That combination measures 2.36:1, which fails WCAG AA at
+  every size, including large display text. The same pack's palette invites `#FF8A00` to be used as a
+  text colour on the `#F7F6F3` background, which is 2.19:1. Checking the rest of the palette the same
+  way found four more: `success`, `warning`, `error` and the stop-2 green all fail AA as body text on
+  our background, between 1.99:1 and 3.49:1.
+- Why: the pack was designed as images. Orange on white looks confident in a rendering at full size on
+  a laptop, and nothing in the process measured it. Nobody was careless — the failure mode is that a
+  visual identity is approved by looking at it, and contrast is the one property that looking at it on
+  a good screen cannot tell you.
+- What we tried: text on orange is navy `#102238` (6.79:1), orange text is `#C2410C` (4.79:1), and the
+  status and stop colours are documented as fills that carry an icon or a badge, never body text.
+  `documentation/design.md` states each rule with its measured ratio and says explicitly that where the
+  mockups disagree with it, the mockups lose. `tests/test_brand.py` computes the ratios from
+  `assets/brand/tokens.json` and fails if any of them stops holding — including a test that white on
+  orange still *fails*, so the rule cannot be quietly reverted by someone who reads the mockup instead
+  of the document.
+- We also found that the two supplied wordmark SVGs asked for Arial, which is neither the brand display
+  font nor installed everywhere. They now name Plus Jakarta Sans with a fallback stack, but the
+  wordmark is still live `<text>` and should be converted to outlines before the logo is used publicly.
+  That needs a vector editor; it is written down in `design.md` rather than left to be rediscovered.
+- What we learned: a design system is a set of claims, and claims can be tested. Colours are numbers,
+  and contrast is arithmetic — so the accessibility section of a design document belongs in the test
+  suite exactly like the constraint contract does. The reference renderings are now explicitly
+  non-normative: sampling a pixel out of `colour-palette.png` gives `#FB830C` where the token says
+  `#FF8A00`, so anyone eyedropping a mockup is already working from the wrong colour.
+- Related branch / PR: `docs/brand-kit`, `HY-10`.
