@@ -38,7 +38,8 @@ of max_total_weight and Container.max_weight; with tests
   could distinguish from its absence, and the guarantee is a test instead. And the branch was created as
   `feature/solver-weight-and-stop-order` before noticing the roadmap had already declared
   `feature/solver-v2`; it was renamed rather than letting the plan and the repository drift.
-- **Verified:** 117 tests pass. Each rule was mutation-tested — loading the first stop first, loading the
+- **Verified:** 134 tests pass on the branch (117 before `main` was merged in, bringing the server
+  and container-validation tests with it; 26 of the 117 are new here). Each rule was mutation-tested — loading the first stop first, loading the
   last group first, dropping the `min()` on the two weight caps, and reverting the stack check to the
   candidate-only version each make at least one test fail. 400 generated loads with routes, last groups
   and stack limits produce no plan the independent check rejects.
