@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from quai import checks, solver as solver_module  # noqa: E402
-from quai.checks import find_problems, overlaps  # noqa: E402
+from quai.checks import find_problems, overlaps, weight_above  # noqa: E402
 from quai.models import Box, Container, Placement  # noqa: E402
 from quai.solver import solve  # noqa: E402
 
@@ -60,6 +60,49 @@ class TestChecks(unittest.TestCase):
         twice = [Placement(fridge, 0, 0, 0, 30, 30, 30),
                  Placement(fridge, 30, 0, 0, 30, 30, 30)]
         self.assertIn("fridge is placed 2 times", find_problems(twice, CONTAINER))
+
+
+def stack(*weights: float) -> list[Placement]:
+    """One column of 50 x 50 x 20 boxes, `s0` on the floor and each next one on the previous."""
+    return [Placement(Box(f"s{i}", 50, 50, 20, w), 0, 0, i * 20, 50, 50, 20)
+            for i, w in enumerate(weights)]
+
+
+class TestStackWeight(unittest.TestCase):
+    """`max_weight_on` covers the whole stack above an item, not only what rests on it directly
+    (contract, *Route and unloading order*)."""
+
+    def test_weight_above_counts_the_whole_column(self):
+        column = stack(5, 15, 10)
+        self.assertEqual(weight_above(column[0], column), 25)
+
+    def test_weight_above_stops_at_the_box_itself(self):
+        column = stack(5, 15, 10)
+        self.assertEqual(weight_above(column[2], column), 0)
+
+    def test_a_neighbour_is_not_above(self):
+        column = stack(5, 15)
+        beside = Placement(Box("beside", 50, 50, 20, 40), 50, 0, 0, 50, 50, 20)
+        self.assertEqual(weight_above(column[0], column + [beside]), 15)
+
+    def test_stack_over_the_limit_is_reported(self):
+        column = stack(5, 15, 10)
+        problems = find_problems(column, CONTAINER, max_weight_on={"s0": 20})
+        self.assertIn("s0 carries 25 kg, more than its 20 kg limit", problems)
+
+    def test_direct_neighbour_alone_would_stay_under_the_limit(self):
+        """The 15 kg resting directly on s0 is within 20 kg: only the whole stack breaks it."""
+        column = stack(5, 15, 10)
+        self.assertEqual(find_problems(column[:2], CONTAINER, max_weight_on={"s0": 20}), [])
+
+    def test_a_stack_exactly_at_the_limit_is_accepted(self):
+        column = stack(5, 15, 10)
+        self.assertEqual(find_problems(column, CONTAINER, max_weight_on={"s0": 25}), [])
+
+    def test_a_box_with_no_limit_is_not_checked(self):
+        """s0 carries 25 kg, but the operator only gave a limit for s1, which carries 10 kg."""
+        column = stack(5, 15, 10)
+        self.assertEqual(find_problems(column, CONTAINER, max_weight_on={"s1": 20}), [])
 
 
 class TestBox(unittest.TestCase):
