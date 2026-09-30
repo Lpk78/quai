@@ -42,7 +42,7 @@ from row 3. #10 points at this row.
 | `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
-| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Now part of #17 |
+| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done in #17 |
 
 A dash means nobody has claimed it yet, not that it has no natural owner.
 
@@ -54,11 +54,12 @@ than forgotten.
 
 | Limitation | What happens today | Why it matters |
 |---|---|---|
-| Stacking ignores weight and fragility | Boxes are ordered by volume only, so a heavy box may sit on a light or fragile one | A washing machine on cartons is a broken load even when the geometry checks out |
+| Stacking only knows the weight it was told about | The solver enforces a `max_weight_on` over the whole stack (#17), but a box nobody gave a limit for still carries anything that fits | A washing machine on cartons is a broken load even when the geometry checks out, and the operator has to say so for the solver to know |
 | First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load) |
 
-Weight-aware stacking is now issue #17 (`feature/solver-v2`, row 2). The greedy first-fit stays open,
-for after phase 1 works end to end.
+Weight-aware stacking was issue #17 (`feature/solver-v2`, row 2): a stated limit is now enforced, and
+what is left of that row is fragility the operator never states. The greedy first-fit stays open, for
+after phase 1 works end to end.
 
 ## Course checkpoints
 
