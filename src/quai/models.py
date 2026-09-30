@@ -86,6 +86,9 @@ class Plan:
 
     @property
     def fill_rate(self) -> float:
+        # Container refuses a zero side, but a plan must not crash if one gets through anyway.
+        if self.container.volume <= 0:
+            return 0.0
         used = sum(p.dx * p.dy * p.dz for p in self.placements)
         return used / self.container.volume
 

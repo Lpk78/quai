@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps  # noqa: E402
-from quai.models import Box, Container, Placement  # noqa: E402
+from quai.models import Box, Container, Placement, Plan  # noqa: E402
 from quai.solver import solve  # noqa: E402
 
 CONTAINER = Container(100, 100, 100, max_weight=500)
@@ -102,6 +102,19 @@ class TestContainer(unittest.TestCase):
     def test_valid_container_is_still_accepted(self):
         self.assertEqual(Container(100, 40, 100).volume, 400_000)
         self.assertEqual(Container(100, 40, 100, max_weight=0).max_weight, 0)
+
+
+class TestPlan(unittest.TestCase):
+    def test_fill_rate_of_a_zero_volume_container_is_zero(self):
+        # Container refuses this at construction; force it past validation to test the guard.
+        container = Container(100, 100, 100)
+        object.__setattr__(container, "length", 0)
+        self.assertEqual(Plan(container, [], []).fill_rate, 0.0)
+
+    def test_fill_rate_is_unchanged_for_a_normal_plan(self):
+        box = Box("half", 50, 100, 100)
+        plan = Plan(CONTAINER, [Placement(box, 0, 0, 0, 50, 100, 100)], [])
+        self.assertEqual(plan.fill_rate, 0.5)
 
 
 class TestSolver(unittest.TestCase):
