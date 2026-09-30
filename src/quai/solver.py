@@ -1,6 +1,7 @@
 """Deterministic 3D placement heuristic (first fit on candidate points).
 
-1. Sort boxes from largest to smallest volume.
+1. Put the boxes in loading order: the last stop of the route first, and inside a stop the items
+   the operator asked to load last; largest to smallest volume breaks the ties.
 2. Keep a list of candidate corners, starting with the back-left floor corner.
 3. For each box, try every candidate corner and every allowed rotation, and keep the
    first position (lowest, then furthest back, then leftmost) that is inside the
@@ -28,7 +29,7 @@ def solve(boxes: list[Box], container: Container,
     cap = weight_cap(container, constraints)
     limits = stack_limits(constraints)
 
-    for box in sorted(boxes, key=lambda b: (-b.volume, b.id)):
+    for box in loading_order(boxes, constraints):
         if weight + box.weight > cap:
             unplaced.append(box)
             continue
@@ -59,6 +60,33 @@ def solve(boxes: list[Box], container: Container,
                         (chosen.x, chosen.y, chosen.z2)})
 
     return Plan(container, placements, unplaced)
+
+
+def loading_order(boxes: list[Box], constraints: ConstraintSet | None) -> list[Box]:
+    """The boxes in the order they are loaded.
+
+    The route decides first. The earliest stop has to come out first, so it is loaded last and the
+    last stop is loaded first; an item with no `unload_at` travels the whole route and so is loaded
+    with the last stop. Inside one stop, the items the operator asked to load last come last.
+    Whatever is still tied is loaded from largest to smallest volume, then by id, so the same input
+    always gives the same plan.
+    """
+    if constraints is None:
+        return sorted(boxes, key=lambda b: (-b.volume, b.id))
+    unknown = sorted(b.id for b in boxes if b.id not in constraints.manifest.items)
+    if unknown:
+        # The constraints were validated against a manifest; a box outside it was never checked,
+        # and guessing a stop for it would invent the one thing the route is not allowed to invent.
+        raise ValueError("these boxes are not in the manifest the constraints were validated "
+                         f"against: {', '.join(unknown)}")
+    stops = constraints.manifest.stops
+    unloading = constraints.unloading_plan()
+    # `load_last` only orders items within their own stop, so it sits below the stop in the key and
+    # can never move a box past one for another stop. A stop whose items all carry it is a stop
+    # where they all share this rank: the tie-breaks decide, exactly as if none of them carried it.
+    last_group = set(constraints.items_with("load_last"))
+    return sorted(boxes, key=lambda b: (-stops.index(unloading[b.id]), b.id in last_group,
+                                        -b.volume, b.id))
 
 
 def weight_cap(container: Container, constraints: ConstraintSet | None) -> float:

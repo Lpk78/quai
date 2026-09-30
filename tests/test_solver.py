@@ -29,6 +29,12 @@ def slabs(*weights: float) -> list[Box]:
     return [Box(chr(ord("a") + i), 100, 100, 20, w) for i, w in enumerate(weights)]
 
 
+def crate(box_id: str, height: int) -> Box:
+    """A box filling the floor of CONTAINER; its height is its volume, so the largest-first
+    tie-break is easy to tell apart from the order the route asks for."""
+    return Box(box_id, 100, 100, height, 5)
+
+
 class TestChecks(unittest.TestCase):
     def test_overlap_detected(self):
         box = Box("a", 10, 10, 10)
@@ -224,6 +230,79 @@ class TestSolver(unittest.TestCase):
                          rng.randint(1, 30)) for i in range(25)]
             plan = solve(boxes, CONTAINER)
             self.assertEqual(find_problems(plan.placements, CONTAINER), [])
+
+
+class TestLoadingOrder(unittest.TestCase):
+    """The route drives the loading sequence: the last stop is loaded first, and `load_last` only
+    orders items inside one stop (contract, *Route and unloading order*)."""
+
+    def test_the_last_stop_is_loaded_first(self):
+        boxes = [crate("a", 40), crate("b", 30), crate("c", 20)]
+        route = constraint_set(boxes, ("S1", "S2", "S3"),
+                               {"type": "unload_at", "item": "a", "stop": "S1"},
+                               {"type": "unload_at", "item": "b", "stop": "S2"},
+                               {"type": "unload_at", "item": "c", "stop": "S3"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["c", "b", "a"])
+
+    def test_without_a_route_the_biggest_still_goes_in_first(self):
+        """The same three boxes, so it is the route that reverses them, not their size."""
+        boxes = [crate("a", 40), crate("b", 30), crate("c", 20)]
+        self.assertEqual(solve(boxes, CONTAINER).loading_order, ["a", "b", "c"])
+
+    def test_an_item_with_no_stop_travels_to_the_last_one(self):
+        """`t` has no `unload_at`, so it comes off at `S3` and is loaded before anything for S1."""
+        boxes = [crate("t", 30), crate("u", 40)]
+        route = constraint_set(boxes, ("S1", "S2", "S3"),
+                               {"type": "unload_at", "item": "u", "stop": "S1"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["t", "u"])
+
+    def test_load_last_orders_items_inside_a_stop(self):
+        boxes = [crate("p", 40), crate("q", 30)]
+        route = constraint_set(boxes, ("S1",), {"type": "load_last", "item": "p"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["q", "p"])
+
+    def test_the_stop_order_wins_when_the_two_disagree(self):
+        """`m` is loaded last at `S3`, but everything for `S1` is loaded after the whole of `S3`."""
+        boxes = [crate("m", 20), crate("n", 40)]
+        route = constraint_set(boxes, ("S1", "S2"),
+                               {"type": "load_last", "item": "m"},
+                               {"type": "unload_at", "item": "n", "stop": "S1"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["m", "n"])
+
+    def test_several_items_loaded_last_at_one_stop_form_the_last_group(self):
+        """p and q are the last group at S1: r goes in before both, and the solver orders the two."""
+        boxes = [crate("p", 40), crate("q", 30), crate("r", 20)]
+        route = constraint_set(boxes, ("S1",),
+                               {"type": "load_last", "item": "p"},
+                               {"type": "load_last", "item": "q"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["r", "p", "q"])
+
+    def test_a_last_group_covering_the_whole_stop_orders_nothing(self):
+        """Every item at S1 is loaded last, which says nothing: the order must not be inverted."""
+        boxes = [crate("p", 40), crate("q", 30)]
+        route = constraint_set(boxes, ("S1",),
+                               {"type": "load_last", "item": "p"},
+                               {"type": "load_last", "item": "q"})
+        plan = solve(boxes, CONTAINER, route)
+        self.assertEqual(plan.loading_order, solve(boxes, CONTAINER).loading_order)
+        self.assertEqual(plan.loading_order, ["p", "q"])
+
+    def test_a_whole_last_group_still_loses_to_the_stop_order(self):
+        """The no-op is inside the stop only: S2 is still loaded before S1."""
+        boxes = [crate("p", 40), crate("q", 30), crate("z", 20)]
+        route = constraint_set(boxes, ("S1", "S2"),
+                               {"type": "unload_at", "item": "p", "stop": "S1"},
+                               {"type": "unload_at", "item": "q", "stop": "S1"},
+                               {"type": "load_last", "item": "p"},
+                               {"type": "load_last", "item": "q"})
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["z", "p", "q"])
+
+    def test_a_box_outside_the_manifest_is_refused(self):
+        """The constraints were validated against a manifest; a box outside it has no stop."""
+        boxes = [crate("a", 40)]
+        route = constraint_set(boxes, ("S1",), {"type": "load_last", "item": "a"})
+        with self.assertRaises(ValueError):
+            solve(boxes + [crate("stowaway", 20)], CONTAINER, route)
 
 
 if __name__ == "__main__":
