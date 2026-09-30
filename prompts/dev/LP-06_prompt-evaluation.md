@@ -13,6 +13,37 @@ from PR #21, not merged yet) and open its PR against main, noting in the PR body
 #21 and must be merged after it.
 ```
 
+### Second prompt, same task, after the PR was opened
+
+```
+LP-06 #12 Add src/evaluate_prompt.py: it runs one prompt file from prompts/constraint-translation/
+on every test sentence of documentation/prompt_evaluation.md through the Claude API, reading the key
+from the ANTHROPIC_API_KEY variable and the model from LLM_MODEL in .env (update .env.example with
+both names, without any value), temperature 0; it retries with exponential backoff on 429 and 5xx
+and fails fast on 400 and 401; it runs each sentence 3 times to measure how much the output varies,
+validates each output with src/quai/constraints.py, scores it against the rubric C1-C7
+automatically, prints a results table and saves the raw outputs in outputs/. Use a mocked API in the
+tests so they run without a key.
+```
+
+Then, mid-task:
+
+```
+Also add an entry to documentation/failures.md: the course material uses temperature 0 for
+repeatable outputs, but current Claude models reject the temperature parameter with a 400; we
+measure output variability with 3 runs per sentence instead, and record temperature as n/a.
+
+For the results table, a sentence counts as passed only if all 3 runs pass all seven criteria; also
+show, per sentence, how many of the 3 runs passed, so the variability is visible.
+```
+
+That second prompt described `src/evaluate_prompt.py` as a new file and named issue #12, but the
+script already existed in this PR and #12 is the first prompt version (roadmap row 10, created by
+`/prompt-version`). Rather than start a second LP-06 on a second branch from `main` — which would
+have duplicated a file under review and guaranteed a conflict — the work was checked with the author
+first and added here. Three things in it were genuinely new: the retry policy, the three runs, and
+the key rename.
+
 ## Outcome
 
 - **PR:** https://github.com/Lpk78/quai/pull/22
@@ -51,3 +82,31 @@ from PR #21, not merged yet) and open its PR against main, noting in the PR body
   installs `requirements.txt`). Neutralising any one of the seven checks makes between 2 and 5 tests
   fail. The rubric's own 25 expected outputs score all seven Yes and match — a necessary property,
   since they are what every version is compared against.
+
+## Outcome of the second round
+
+- **What the AI produced:** the retry policy in `src/quai/llm.py` (exponential backoff over four
+  attempts on 408/409/429 and 5xx, honouring `retry-after`; `FatalCall` on 400/401/403/404, which the
+  runner does not catch), `CaseRuns` and the three-runs-per-sentence logic in `src/quai/evaluation.py`
+  with the `Runs` and `Same` columns, the `--runs` option and the fuller transcript in
+  `src/evaluate_prompt.py`, the `ANTHROPIC_API_KEY` rename across the package, `.env.example`, the
+  README and the tests, 25 more tests, and the two documentation entries.
+- **What was changed by hand:** four things were decided rather than typed. `temperature 0` was
+  dropped instead of sent, because the current models reject it with a 400 and the script is also
+  meant to fail fast on a 400 — sent as asked it would have failed on its first call, 75 times over;
+  this was checked with the author before writing anything. The task named issue #12 and a new file,
+  both wrong — #12 is the prompt version and the file already existed in this PR — so the work landed
+  on this branch instead of duplicating a file under review. `FatalCall` was deliberately made *not*
+  a subclass of `CallFailed`, so the runner cannot record a bad key against one sentence and carry on
+  through the other 24. And the SDK client is built with `max_retries=0`, so the backoff written here
+  is the only one and can actually be observed in a test.
+- **Judgement call for the reviewer:** a criterion is Yes for a sentence only when all three runs say
+  Yes. The alternatives were best-of-three (flattering) and majority (hides a third of the failures).
+  It changes what a rubric column means, so it has to be settled before v1 is measured; raised in the
+  PR.
+- **Not run:** still no scores. There is no prompt version to run yet (#12), and none was invented.
+- **Verified:** 188 tests pass. `anthropic` was installed in a local `.venv` so that the 14 tests
+  needing it — the retry, backoff and fail-fast tests — actually ran here rather than being left to
+  the CI. No test makes a network call: the API is a stand-in replaying scripted 429s, 503s, 400s and
+  dropped connections, and the backoff is checked by recording the waits instead of sleeping.
+
