@@ -12,7 +12,7 @@ import unittest
 
 DOC = pathlib.Path(__file__).resolve().parent.parent / "documentation" / "prompt_evaluation.md"
 
-EXPECTED_SENTENCES = 25
+EXPECTED_SENTENCES = 26
 
 
 def read_doc():
