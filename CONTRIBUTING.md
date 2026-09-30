@@ -64,7 +64,20 @@ grep -rn "<<<<<<<\|>>>>>>>" .
 
 ## 6. Prompts
 
-- Every prompt lives in `prompts/`, as its own file: `v1_zero_shot.md`, `v2_few_shot.md`, …
+Two kinds of prompt, two places. `prompts/README.md` is the full description; this is the rule.
+
+**Product prompts** — what QUAI sends to Claude at runtime — live in `prompts/<family>/`, one folder per
+family, one file per version: `prompts/constraint-translation/v1_zero_shot.md`,
+`prompts/llm-only-placement/v1_zero_shot.md`, … Each family has one owner, so version numbers never
+collide. New versions are created with `/prompt-version`.
+
+**Development prompts** — every task we give to Claude Code — live in `prompts/dev/`, one file per task,
+named `<ID>_<slug>.md` with the ID prefix of its author (`LP-`, `SA-`, `HY-`):
+`prompts/dev/SA-04_fastapi-server.md`. They are written by `/task`, which refuses to start without an ID,
+and record the author, the date, the branch, the exact prompt and the outcome.
+
+For both kinds:
+
 - A new version is a new file. Old versions are never overwritten.
 - Each version states: what changed, why, which failure it targets.
 - Every version is tested on **the same test inputs** with **the same rubric**
