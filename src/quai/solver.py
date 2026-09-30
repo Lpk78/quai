@@ -15,7 +15,7 @@ What the operator asked for reaches the solver only as a `ConstraintSet` built b
 `quai.constraints.parse`: the solver never reads raw model output, and it reads a validated set
 through its accessors rather than by digging into the constraint dictionaries.
 """
-from .checks import MIN_SUPPORT, is_inside, overlaps, stack_below, support_ratio, weight_above
+from .checks import MIN_SUPPORT, is_inside, overlaps, stack_problems, support_ratio
 from .constraints import ConstraintSet
 from .models import Box, Container, Placement, Plan
 
@@ -108,15 +108,11 @@ def stack_limits(constraints: ConstraintSet | None) -> dict[str, float]:
 
 def overloads(candidate: Placement, placements: list[Placement],
               limits: dict[str, float]) -> bool:
-    """True if putting `candidate` here would push a box under it past its stack limit.
+    """True if the plan this candidate would make puts a box over its stack limit.
 
-    The limit covers the whole stack above a box, so the candidate counts against every box it
-    bears on, however many layers down.
+    The question is asked of the whole resulting plan, not of the candidate alone: the limit covers
+    everything above a box, and a box placed later can come to rest under one already loaded and
+    take its weight. `stack_problems` is the same rule the independent checks judge the finished
+    plan by, so the solver cannot pack by a looser one.
     """
-    if not limits:
-        return False
-    for under in stack_below(candidate, placements):
-        limit = limits.get(under.box.id)
-        if limit is not None and weight_above(under, placements) + candidate.box.weight > limit:
-            return True
-    return False
+    return bool(limits) and bool(stack_problems(placements + [candidate], limits))

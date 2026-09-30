@@ -222,6 +222,30 @@ class TestSolver(unittest.TestCase):
         plan = solve(boxes, CONTAINER, generous)
         self.assertEqual(plan.total_weight, 500)
 
+    def test_a_box_cannot_slide_under_a_load_it_may_not_carry(self):
+        """`top` overhangs `tall`, and `victim` is the only box that fits in the gap under it.
+
+        Going there would make `victim` a support for `top` after `top` was already placed, so the
+        30 kg land on a box that may take 10. The limit has to be read on the plan the placement
+        would produce, not on what sits above the box at the moment it is placed.
+        """
+        boxes = [Box("tall", 80, 100, 50, 10), Box("top", 100, 100, 20, 30),
+                 Box("victim", 20, 100, 50, 5)]
+        limited = constraint_set(boxes, ("S1",),
+                                 {"type": "max_weight_on", "item": "victim", "limit_kg": 10})
+        plan = solve(boxes, CONTAINER, limited)
+        self.assertEqual(plan.loading_order, ["tall", "top"])
+        self.assertEqual([b.id for b in plan.unplaced], ["victim"])
+        self.assertEqual(find_problems(plan.placements, CONTAINER,
+                                       max_weight_on={"victim": 10}), [])
+
+    def test_the_gap_is_filled_when_nothing_limits_the_box(self):
+        """The same load without the limit: `victim` does fit in the gap, and ends up under `top`."""
+        boxes = [Box("tall", 80, 100, 50, 10), Box("top", 100, 100, 20, 30),
+                 Box("victim", 20, 100, 50, 5)]
+        plan = solve(boxes, CONTAINER)
+        self.assertEqual(plan.loading_order, ["tall", "top", "victim"])
+
     def test_random_loads_are_always_valid(self):
         import random
         rng = random.Random(42)
@@ -230,6 +254,24 @@ class TestSolver(unittest.TestCase):
                          rng.randint(1, 30)) for i in range(25)]
             plan = solve(boxes, CONTAINER)
             self.assertEqual(find_problems(plan.placements, CONTAINER), [])
+
+    def test_random_constrained_loads_are_always_valid(self):
+        """The same sweep with a route, last groups and stack limits: the plans still hold up
+        under the independent check, which is how the slide-under case above was found."""
+        import random
+        rng = random.Random(7)
+        stops = ("S1", "S2", "S3")
+        for _ in range(50):
+            boxes = [Box(f"b{i}", rng.randint(5, 60), rng.randint(5, 60), rng.randint(5, 60),
+                         rng.randint(1, 30)) for i in range(25)]
+            stated = [{"type": "unload_at", "item": b.id, "stop": rng.choice(stops)} for b in boxes]
+            stated += [{"type": "load_last", "item": b.id} for b in boxes if rng.random() < 0.3]
+            stated += [{"type": "max_weight_on", "item": b.id, "limit_kg": rng.randint(1, 60)}
+                       for b in boxes if rng.random() < 0.3]
+            route = constraint_set(boxes, stops, *stated)
+            limits = {c["item"]: c["limit_kg"] for c in route.of_type("max_weight_on")}
+            plan = solve(boxes, CONTAINER, route)
+            self.assertEqual(find_problems(plan.placements, CONTAINER, max_weight_on=limits), [])
 
 
 class TestLoadingOrder(unittest.TestCase):

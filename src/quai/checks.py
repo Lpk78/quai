@@ -73,6 +73,26 @@ def weight_above(p: Placement, placements: list[Placement]) -> float:
                if any(under is p for under in stack_below(o, placements)))
 
 
+def stack_problems(placements: list[Placement],
+                   max_weight_on: dict[str, float] | None) -> list[str]:
+    """Every box carrying more than the limit the operator gave it.
+
+    The solver calls this on the plan a candidate placement would produce, so the rule it packs by
+    and the rule this module judges by are one definition. Asking it of the finished plan is what
+    makes it right: a box placed later can slide under one already loaded and pick up its weight,
+    which no check of the candidate alone would see.
+    """
+    problems = []
+    for p in placements:
+        limit = (max_weight_on or {}).get(p.box.id)
+        if limit is None:
+            continue
+        carried = weight_above(p, placements)
+        if carried > limit:
+            problems.append(f"{p.box.id} carries {carried:g} kg, more than its {limit:g} kg limit")
+    return problems
+
+
 def find_problems(placements: list[Placement], container: Container,
                   min_support: float = MIN_SUPPORT,
                   max_weight_on: dict[str, float] | None = None) -> list[str]:
@@ -98,13 +118,7 @@ def find_problems(placements: list[Placement], container: Container,
     for a, b in combinations(placements, 2):
         if overlaps(a, b):
             problems.append(f"{a.box.id} overlaps {b.box.id}")
-    for p in placements:
-        limit = (max_weight_on or {}).get(p.box.id)
-        if limit is None:
-            continue
-        carried = weight_above(p, placements)
-        if carried > limit:
-            problems.append(f"{p.box.id} carries {carried:g} kg, more than its {limit:g} kg limit")
+    problems += stack_problems(placements, max_weight_on)
     total = sum(p.box.weight for p in placements)
     if total > container.max_weight:
         problems.append(f"total weight {total} kg exceeds {container.max_weight} kg")
