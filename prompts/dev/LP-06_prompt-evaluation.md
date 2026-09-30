@@ -130,3 +130,41 @@ the key rename.
 - **Verified:** 195 tests pass. Neutralising `_c8_nothing_missing` fails four of them. The rubric's own
   26 expected outputs still score all eight Yes and match, which is the property every score depends
   on.
+
+## Outcome of the fourth round: the review of #22, and the model the harness was written for
+
+- **Why:** Sam's review of #22 raised one blocking point — `read_reply` checked `stop_reason` for a
+  refusal but not for `max_tokens`, so a truncated reply was scored C1 No and the prompt version was
+  blamed for the harness's ceiling. Checking it turned up something larger: the review reasoned about
+  `claude-opus-5` because `src/quai/llm.py` said `DEFAULT_MODEL = "claude-opus-5"`, while `.env` names
+  `claude-haiku-4-5-20251001`. Every comment, docstring and documentation paragraph about thinking,
+  `max_tokens` and sampling parameters was written about a model this project does not run.
+- **What the AI produced:** the `max_tokens` branch in `read_reply` and its tests; the removal of
+  `DEFAULT_MODEL` with `MissingModel` under a new `NotConfigured`; `temperature 0` sent through
+  `extra_body`; `evaluation.temperature_cell`; the rewritten temperature section of
+  `documentation/prompt_evaluation.md`, the corrected `failures.md` entry, the journal entry on review
+  attribution, and the count sweep (25 → 26, 75 → 78, the `criteria()` example ending at C7).
+- **What was checked against the API rather than assumed:** three real calls to
+  `claude-haiku-4-5-20251001`. Without `temperature`: 200. With `temperature: 0`: **200** — so the
+  claim in the previous round's failures entry, that the current models reject it, was false for the
+  model actually configured, and `temperature 0` is now sent as the course asks. The third call found
+  the real obstacle: the SDK has dropped `temperature` from `messages.create()`, so passing it by name
+  raises `TypeError` before any request is made; `extra_body` carries it and returns 200.
+- **What was changed by hand:** the shape of the temperature decision. The obvious fix after the
+  `TypeError` was to go back to `n/a`, which would have been the second wrong answer for the same
+  reason — treating an SDK signature as a fact about the model. `sampling()` is a named function with
+  the reason written next to it, and `temperature_cell` prints what was sent rather than a constant, so
+  a run on a model that removed sampling parameters still records `n/a` honestly. The old `failures.md`
+  entry was rewritten rather than deleted: the failure it described was real, but it was the wrong
+  failure, and the part of it that stands — `temperature 0` never made a score repeatable — is kept.
+- **What the tests were missing:** the stand-in client accepts any keyword, so no unit test could have
+  caught the `TypeError`; it surfaced only on a real call. There is now a test that binds what the
+  harness sends against the real `messages.create()` signature, so a mismatch fails in the suite rather
+  than on the first call of a 78-call run.
+- **Optional review points not taken in this round:** the `per_criterion` denominator and a
+  `--from-transcript` flag. Both are argued on #22; Sam asked for the second on #12 and the first is a
+  printed-diagnosis question that no longer blocks a score.
+- **Not run:** still no scores. There is no prompt version to run yet (#12), and none was invented. The
+  harness was smoke-run end to end on T01 with a throwaway prompt to prove the path works at
+  temperature 0; that prompt wraps its JSON in prose, so it scored C1 No, which is the rubric working.
+- **Verified:** 205 tests pass, none skipped, with `anthropic` installed in the local `.venv`.
