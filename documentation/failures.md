@@ -44,3 +44,28 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 
 ---
 
+## 2026-09-30 — Merge conflict on `documentation/ai_usage.md` between #3 and #4
+
+- What happened: while #4 (`docs/team-automation`) was open, #3 (`feature/solver-v1`) was merged into
+  `main` and added its own row at the end of the AI usage table. #4 had added two rows at that same end.
+  `git merge origin/main` could not decide which rows come last, so it stopped on
+  `CONFLIT (contenu) : Conflit de fusion dans documentation/ai_usage.md` with both blocks between
+  `<<<<<<<`, `=======` and `>>>>>>>`. GitHub had already marked the PR as not mergeable.
+- Why: an append-only Markdown table is the classic conflict shape. Both branches wrote different lines
+  at the same place — the last line of the table — and neither is wrong, so Git refuses to guess. Nothing
+  was broken; the two sides were simply unaware of each other.
+- What we tried: took both sides rather than choosing one, since the two branches document real and
+  different uses of AI. Ordered the rows by date (`2026-09-28`, then the ongoing `From 2026-09-28` line,
+  then `2026-09-30`), removed the three markers, checked with
+  `grep -rn "<<<<<<<\|>>>>>>>" .` (only the two mentions inside CONTRIBUTING.md §6 remain, which is
+  expected), ran `python3 -m unittest discover tests` — 19 tests pass now that `tests/` arrived with #3 —
+  and committed the merge.
+- What we learned: a conflict in a log file is almost always "keep both", not "pick one"; the only real
+  decision is the order. Resolving it inside the branch keeps the merge visible in our history instead of
+  hiding it behind the GitHub button. And merging `main` into a long-lived branch early would have made
+  this a one-line conflict instead of a three-line one — the longer a branch stays open, the more it has
+  to catch up on. The push re-runs the CI on top of the new `main`, which is what clears the red check
+  from the entry above.
+- Related branch / PR: `docs/team-automation`, #4, conflict with #3.
+
+---
