@@ -2,7 +2,7 @@
 
 - **Author:** `SamDana-maker` (Sam)
 - **Date:** 2026-09-30
-- **Branch:** `feature/solver-weight-and-stop-order`
+- **Branch:** `feature/solver-v2`
 - **Issue:** #17
 
 ## Prompt as typed
