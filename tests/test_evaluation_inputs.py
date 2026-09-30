@@ -28,19 +28,35 @@ def stop_ids(text):
     return set(re.findall(r"`(S\d+)`", line))
 
 
+def table_rows(text, header):
+    """Rows of the one Markdown table introduced by `header`, as lists of cell strings.
+
+    Reading a named table instead of every `| ... |` line in the document is what keeps the
+    manifest rows (`| `B1` | washing machine | ... |`) out of the constraint contract.
+    """
+    rows = []
+    for line in text.split(header)[1].splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            if rows:
+                break  # the table has ended
+            continue
+        if set(line) <= set("|-: "):
+            continue  # the |---|---| separator
+        rows.append([cell.strip() for cell in line.strip("|").split("|")])
+    return rows
+
+
 def constraint_fields(text):
     """Map constraint name -> required fields, from the contract table."""
-    fields = {}
-    for name, raw in re.findall(r"^\| `(\w+)` \| (.+?) \| .+? \|$", text, re.MULTILINE):
-        if name in ("item", "text", "reason"):
-            continue
-        fields[name] = set(re.findall(r"`(\w+)`", raw))
-    return fields
+    return {
+        row[0].strip("`"): set(re.findall(r"`(\w+)`", row[1]))
+        for row in table_rows(text, "| Constraint | Fields | Meaning |")
+    }
 
 
 def reasons(text):
-    block = text.split("| `reason` | Used when |")[1]
-    return set(re.findall(r"^\| `(\w+)` \|", block, re.MULTILINE))
+    return {row[0].strip("`") for row in table_rows(text, "| `reason` | Used when |")}
 
 
 def sentences(text):
@@ -80,6 +96,14 @@ class TestEvaluationInputs(unittest.TestCase):
                 with self.subTest(tid, type=c.get("type")):
                     self.assertIn(c["type"], self.constraints)
                     self.assertEqual(set(c) - {"type"}, self.constraints[c["type"]])
+
+    def test_contract_table_is_not_polluted_by_other_tables(self):
+        """Manifest rows have the same shape as contract rows and must not be read as types."""
+        self.assertFalse(self.items & set(self.constraints))
+        self.assertFalse(self.stops & set(self.constraints))
+        for name, fields in self.constraints.items():
+            with self.subTest(name):
+                self.assertTrue(fields, f"{name} was parsed with no fields")
 
     def test_constraints_only_reference_manifest_items_and_stops(self):
         for tid, out in sentences(self.text):
