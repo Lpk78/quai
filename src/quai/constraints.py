@@ -19,6 +19,8 @@ and the solver mean the same thing by them:
   the item travels the whole route (`ConstraintSet.unload_stop`).
 - The stop order always wins over `load_last`, which only orders items within one stop.
 """
+import json
+import math
 from dataclasses import dataclass
 
 # The nine constraint types, each with exactly the fields it carries. A type that is not here, a
@@ -46,6 +48,8 @@ REASONS: frozenset[str] = frozenset([
 ])
 
 UNRESOLVED_FIELDS: frozenset[str] = frozenset(["text", "reason", "question"])
+
+TOP_LEVEL_KEYS: frozenset[str] = frozenset(["constraints", "unresolved"])
 
 # One field name per unit, so a value in the wrong unit cannot hide behind the right field name:
 # `limit_m` is an unknown field, and 1.2 under `limit_cm` is metres wearing a centimetre label.
@@ -112,3 +116,149 @@ class ConstraintSet:
     def unloading_plan(self) -> dict[str, str]:
         """Every item of the manifest mapped to the stop where it comes off."""
         return {item: self.unload_stop(item) for item in self.manifest.items}
+
+
+class ConstraintError(ValueError):
+    """Raised by `parse` when the output does not match the contract. It carries every problem,
+    not only the first, so the operator can be told everything that is wrong at once."""
+
+    def __init__(self, problems: list[str]):
+        super().__init__("; ".join(problems))
+        self.problems = list(problems)
+
+
+def parse(output, manifest: Manifest) -> ConstraintSet:
+    """Validate raw model output and return it as a `ConstraintSet`.
+
+    `output` is the JSON text the model returned, or an already decoded object. This is the only
+    door into the solver: there is no path that skips `find_problems`, so unvalidated output can
+    never be planned with.
+    """
+    if isinstance(output, (str, bytes, bytearray)):
+        try:
+            payload = json.loads(output)
+        except json.JSONDecodeError as error:
+            raise ConstraintError([f"the output is not valid JSON: {error}"]) from error
+    else:
+        payload = output
+    problems = find_problems(payload, manifest)
+    if problems:
+        raise ConstraintError(problems)
+    # Copied, so that a later change to the caller's payload cannot alter a validated set.
+    return ConstraintSet(manifest,
+                         tuple(dict(c) for c in payload["constraints"]),
+                         tuple(dict(u) for u in payload["unresolved"]))
+
+
+def find_problems(payload, manifest: Manifest) -> list[str]:
+    """Every reason this output must not reach the solver. An empty list means it is valid."""
+    if not isinstance(payload, dict):
+        return [f"the output must be a JSON object, got {type(payload).__name__}"]
+    problems = []
+    for key in sorted(TOP_LEVEL_KEYS - set(payload)):
+        problems.append(f"missing key {key!r}")
+    # Anything outside the two keys is refused rather than ignored: this is where a plan, a
+    # position or a loading sequence the solver must decide would arrive.
+    for key in sorted(set(payload) - TOP_LEVEL_KEYS):
+        problems.append(f"unknown key {key!r}")
+    lists = {}
+    for key in sorted(TOP_LEVEL_KEYS & set(payload)):
+        if isinstance(payload[key], list):
+            lists[key] = payload[key]
+        else:
+            problems.append(f"{key!r} must be a list, got {type(payload[key]).__name__}")
+    for index, constraint in enumerate(lists.get("constraints", [])):
+        problems += _constraint_problems(constraint, manifest, f"constraints[{index}]")
+    for index, entry in enumerate(lists.get("unresolved", [])):
+        problems += _unresolved_problems(entry, f"unresolved[{index}]")
+    if len(lists) == len(TOP_LEVEL_KEYS) and not lists["constraints"] and not lists["unresolved"]:
+        problems.append("nothing was translated and nothing was reported as unresolved")
+    if not problems:
+        # Only worth asking once every constraint is known to be well formed.
+        problems += _conflict_problems(lists["constraints"], manifest)
+    return problems
+
+
+def _constraint_problems(constraint, manifest: Manifest, where: str) -> list[str]:
+    if not isinstance(constraint, dict):
+        return [f"{where} must be an object, got {type(constraint).__name__}"]
+    kind = constraint.get("type")
+    if kind not in CONSTRAINT_FIELDS:
+        return [f"{where}: unknown constraint type {kind!r}"]
+    expected, given = CONSTRAINT_FIELDS[kind], set(constraint) - {"type"}
+    problems = [f"{where}: {kind} needs {field!r}" for field in sorted(expected - given)]
+    problems += [f"{where}: {kind} does not take {field!r}" for field in sorted(given - expected)]
+    if "item" in expected & given and constraint["item"] not in manifest.items:
+        # An item nobody loaded is an `unknown_item` for the operator to confirm, never a constraint.
+        problems.append(f"{where}: {constraint['item']!r} is not in the manifest")
+    if "stop" in expected & given and constraint["stop"] not in manifest.stops:
+        problems.append(f"{where}: {constraint['stop']!r} is not a stop on the route")
+    for field in sorted(LIMIT_FIELDS & expected & given):
+        problems += _limit_problems(constraint[field], field, where)
+    return problems
+
+
+def _limit_problems(value, field: str, where: str) -> list[str]:
+    """Centimetres are whole; kilograms may be fractional; neither may be zero or negative."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return [f"{where}: {field} must be a number, got {value!r}"]
+    if not math.isfinite(value):
+        # JSON decodes Infinity and NaN, and a limit that is neither cannot be compared to a load.
+        return [f"{where}: {field} must be a finite number, got {value!r}"]
+    if field == "limit_cm" and value != int(value):
+        # 1.2 here is one metre twenty in the wrong unit, not a centimetre count.
+        return [f"{where}: {field} must be a whole number of centimetres, got {value!r}"]
+    if value <= 0:
+        return [f"{where}: {field} must be greater than 0, got {value!r}"]
+    return []
+
+
+def _unresolved_problems(entry, where: str) -> list[str]:
+    if not isinstance(entry, dict):
+        return [f"{where} must be an object, got {type(entry).__name__}"]
+    given = set(entry)
+    problems = [f"{where}: needs {field!r}" for field in sorted(UNRESOLVED_FIELDS - given)]
+    problems += [f"{where}: does not take {field!r}" for field in sorted(given - UNRESOLVED_FIELDS)]
+    if "reason" in given and entry["reason"] not in REASONS:
+        problems.append(f"{where}: unknown reason {entry['reason']!r}")
+    if "text" in given and not _is_quoted_text(entry["text"]):
+        problems.append(f"{where}: text must quote the part of the sentence at fault")
+    if "question" in given and entry["question"] is not None and not _is_quoted_text(entry["question"]):
+        problems.append(f"{where}: question must be a question to ask the operator, or null")
+    return problems
+
+
+def _is_quoted_text(value) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _conflict_problems(constraints, manifest: Manifest) -> list[str]:
+    """Contradictions the model should have reported as `contradiction` instead of emitting."""
+    problems = []
+    flags = {kind: set(c["item"] for c in constraints if c["type"] == kind)
+             for kind in ("at_bottom", "on_top")}
+    for item in sorted(flags["at_bottom"] & flags["on_top"]):
+        problems.append(f"{item} cannot be both at_bottom and on_top")
+    for kind, field in (("unload_at", "stop"), ("max_stack_height", "limit_cm"),
+                        ("max_weight_on", "limit_kg"), ("max_total_weight", "limit_kg")):
+        stated: dict[str | None, object] = {}
+        for c in constraints:
+            if c["type"] != kind:
+                continue
+            item = c.get("item")
+            if item in stated and stated[item] != c[field]:
+                problems.append(f"{kind} for {item or 'the whole load'} is given twice, "
+                                f"as {stated[item]} and as {c[field]}")
+            stated.setdefault(item, c[field])
+    # Two items cannot both be loaded last at the same stop. Which stop that is comes from the
+    # default rule, so an item with no `unload_at` competes with the items of the last stop.
+    known = ConstraintSet(manifest, tuple(constraints))
+    last: dict[str, str] = {}
+    for c in constraints:
+        if c["type"] != "load_last":
+            continue
+        stop = known.unload_stop(c["item"])
+        if stop in last and last[stop] != c["item"]:
+            problems.append(f"{last[stop]} and {c['item']} cannot both be loaded last at {stop}")
+        last.setdefault(stop, c["item"])
+    return problems
