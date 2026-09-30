@@ -35,3 +35,25 @@ and tests
 - **Verified:** 90 tests pass. Every guard was mutation-tested — removing the unknown-item check, the
   unknown-stop check, the whole-centimetre check, the extra-field check, the unknown-top-level-key check,
   the contradiction pass or the `isinstance` guard each makes at least one test fail.
+
+## Outcome of the review round (#21)
+
+- **What the review asked for:** one blocking point and three optional ones. `load_last` refused twice
+  at the same stop, which refuses "load the toolbox and the paint cans last"; `not_stackable` with
+  `max_weight_on` passing validation; a reminder that #19 must re-check the accumulated set; and a
+  confirmation that `unloading_plan()` is the accessor SA-05 wants.
+- **What the AI produced:** the `load_last` group rule (check removed, contract table, *Route and
+  unloading order*, T26 as the test sentence, the refusal test turned into an acceptance test), the
+  `not_stackable` + limit contradiction with its two tests, the C8 rubric row, and the
+  `documentation/failures.md` entry on refusing a normal sentence.
+- **What was changed by hand:** where T26 goes. Inserting a two-items-last sentence among the clear
+  sentences would have renumbered T07–T25, and a number is a test input's identity — earlier notes and
+  failure entries refer to sentences by number. It was appended as T26 with that rule written into the
+  document, and the 25 counts moved to 26 everywhere instead. The C8 row was also reworded after
+  writing it: the first version promised that a dropped constraint was acceptable if something was put
+  in `unresolved` instead, which is not what the check does and not what C5 allows.
+- **Verified:** 91 tests pass. The two new contradiction tests fail if the check is removed, and T26
+  fails validation if the `load_last` change is reverted.
+- **Not changed, and why:** nothing was added for the accumulated-set point. `find_problems()` already
+  works on any list of constraints, so #19 has only to call it again before the solver; that was
+  written on the issue rather than guessed at in code here.
