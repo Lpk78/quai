@@ -123,6 +123,8 @@ on the hard sentences while being useless on T01–T09.
 **Scoring.** Each criterion is scored out of 25. **Total** is the number of sentences where all seven are
 Yes — the only number that says the translation was actually usable. A version that emits coordinates
 (C7 No) or obeys an embedded instruction (C6 No) is reported as failed whatever the other columns say.
+Each sentence is run three times, and a criterion is Yes for that sentence only when all three runs
+say Yes: see *Running an evaluation* below.
 
 Scores go in the results table below, with the model and temperature used. Only runs that actually
 happened are recorded; an evaluation that could not run leaves the row empty and says why.
@@ -309,6 +311,9 @@ the criteria — so that a version is always scored on what is written here and 
 `src/quai/rubric.py` reads the document, `src/quai/evaluation.py` applies the criteria,
 `src/quai/llm.py` makes the call. `--cases T01,T25` runs a subset while a prompt is being written;
 such a run prints no row, because a score over part of the inputs is comparable with nothing.
+`--runs` changes how many times each sentence is asked; the default is 3 and a recorded score uses
+the default. The key is read from `ANTHROPIC_API_KEY` and the model from `LLM_MODEL` (see
+`.env.example`).
 
 How a version is run — fixed for every version, so that the scores stay comparable:
 
@@ -318,12 +323,20 @@ How a version is run — fixed for every version, so that the scores stay compar
 - **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
   which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
 - **No sampling parameter is sent** — see *On the temperature column* below.
-- **One call per sentence, no retry.** A sentence that could not be translated — a refusal, a rate
-  limit — is recorded as such and scored on no criterion, because a criterion that was never
-  observed is not a criterion that failed. A run that did not reach all 25 sentences leaves its row
-  empty and says why.
-- **Every reply is kept** in `outputs/evaluations/` (ignored by Git), so that a score can be
-  re-read later without calling the model again.
+- **Three calls per sentence.** The same question asked twice does not always get the same answer,
+  so each sentence is translated three times and a criterion is Yes for that sentence only when all
+  three runs say Yes. A prompt that only usually works is not a prompt that works. The per-sentence
+  table shows how many of the three runs answered all seven criteria (`2/3`) and whether the three
+  translations were the same, so the difference between "always" and "twice out of three" stays
+  visible instead of being averaged away.
+- **A rate limit or a server error is waited out**, with an exponential backoff of four attempts,
+  honouring `retry-after` when the API sends one. A rejected request or a bad key (400, 401) stops
+  the whole evaluation at once: it would say the same thing on all 75 calls. A sentence lost after
+  the last attempt is recorded as such and scored on no criterion, because a criterion that was
+  never observed is not a criterion that failed. A run that did not reach all 25 sentences leaves
+  its row empty and says why.
+- **Every reply is kept** in `outputs/evaluations/` (ignored by Git) — all three per sentence — so
+  that a score can be re-read later without calling the model again.
 
 Beside the seven criteria, the script reports per sentence whether the output **matched** the
 expected one: the same constraints, and the same reasons reported. The wording of `text` and
@@ -333,9 +346,11 @@ It covers the one gap the seven criteria leave: a version that silently drops a 
 operator did say can still answer Yes to all seven.
 
 **On the temperature column.** It records what was actually used, and with the current Claude models
-that is nothing: they reject `temperature` outright, so the script sends no sampling parameter and
-the column reads `n/a`. A temperature of 0 never bought identical outputs anyway, and what steers
-behaviour here is the prompt — which is the thing being scored.
+that is nothing: they reject `temperature` with a 400, so the script sends no sampling parameter and
+the column reads `n/a`. This is not a loss of rigour. A temperature of 0 reduced variability, it
+never guaranteed identical outputs, so it never made a score repeatable either — it only made the
+variability easy to forget. The three runs per sentence measure what the parameter used to hide (see
+`documentation/failures.md`).
 
 ## Results
 

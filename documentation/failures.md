@@ -158,3 +158,25 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `feature/prompt-evaluation`, #11.
 
 ---
+## 2026-09-30 — `temperature 0` for repeatable outputs is no longer possible
+
+- What happened: the course material, and the results table of `documentation/prompt_evaluation.md`
+  with it, treats `temperature 0` as the way to make model output repeatable, and LP-06 was asked to
+  send it. The current Claude models — Opus 5, Sonnet 5, Opus 4.7 and 4.8 — **reject the
+  `temperature` parameter with a 400**. Sent as planned, the evaluation script would have failed on
+  its first call, and, since it is also meant to fail fast on a 400, it would have stopped there:
+  75 calls, none of them made, and an empty results table with no obvious cause.
+- Why: sampling parameters were removed from those models. The deeper point is that they were never
+  doing what the method assumed: `temperature 0` reduces variability, it never guaranteed identical
+  outputs, so a score taken at temperature 0 was never a repeatable measurement either — the
+  parameter made variability easy to forget rather than absent.
+- What we tried: the script sends no sampling parameter at all, and the temperature column of the
+  results table records `n/a` — what was actually used, rather than a number nobody sent. Variability
+  is now **measured instead of assumed away**: every sentence is translated three times, a criterion
+  counts as Yes only when all three runs say Yes, and the per-sentence table shows how many of the
+  three passed (`2/3`) and whether the three answers were the same. A prompt that only usually works
+  is no longer scored as a prompt that works.
+- What we learned: a method inherited from a course, a paper or an older model has to be checked
+  against the API that exists, not the one it was written for. And the honest response to losing a
+  knob that hid variability is to measure the variability, not to find another knob.
+- Related branch / PR: `feature/prompt-evaluation`, #22.
