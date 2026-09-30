@@ -33,6 +33,19 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | Bonus |
 | `feature/delivery-order` | Ordered list of stops → loading sequence | Bonus |
 
+## Known limitations of the v1 solver
+
+Raised by `SamDana-maker` while reviewing PR #3. Neither is a bug: the plans the solver produces are
+physically valid. Both are things it does not yet know about, recorded here so they are chosen rather
+than forgotten.
+
+| Limitation | What happens today | Why it matters |
+|---|---|---|
+| Stacking ignores weight and fragility | Boxes are ordered by volume only, so a heavy box may sit on a light or fragile one | A washing machine on cartons is a broken load even when the geometry checks out |
+| First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load) |
+
+Both are candidates for `feature/solver-v2`, after phase 1 works end to end.
+
 ## Course checkpoints
 
 | Session | Expected state on GitHub |
