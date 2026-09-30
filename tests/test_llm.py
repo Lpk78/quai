@@ -88,13 +88,14 @@ class TestConfiguration(unittest.TestCase):
         return path
 
     def test_no_key_means_no_evaluation(self):
-        with mock.patch.dict(os.environ, {"LLM_API_KEY": ""}, clear=False), \
+        with mock.patch.dict(os.environ, {llm.KEY_VARIABLE: ""}, clear=False), \
              mock.patch.object(llm, "load_env", lambda *a, **k: None):
             with self.assertRaises(llm.MissingKey):
                 llm.from_env()
 
     def test_env_values_do_not_override_the_real_environment(self):
-        env = self.an_env_file("LLM_MODEL=from-the-file\nLLM_API_KEY=unused\n# comment\n\n")
+        env = self.an_env_file(
+            "LLM_MODEL=from-the-file\nANTHROPIC_API_KEY=unused\n# comment\n\n")
         with mock.patch.dict(os.environ, {"LLM_MODEL": "from-the-shell"}, clear=False):
             llm.load_env(env)
             self.assertEqual(os.environ["LLM_MODEL"], "from-the-shell")

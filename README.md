@@ -65,7 +65,7 @@ Expected output:
 QUAI starts successfully.
 ```
 
-Score a prompt version on the fixed test inputs (needs `LLM_API_KEY` in `.env`):
+Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` in `.env`):
 
 ```bash
 python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md

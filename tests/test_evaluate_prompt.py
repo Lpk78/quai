@@ -47,7 +47,7 @@ class TestRefusingToPrintAScore(unittest.TestCase):
         self.assertEqual(evaluate_prompt.main([str(Path("no", "such", "prompt.md"))]), 2)
 
     def test_no_key_prints_no_scores(self):
-        missing = llm.MissingKey("LLM_API_KEY is not set in .env")
+        missing = llm.MissingKey("ANTHROPIC_API_KEY is not set in .env")
         with mock.patch.object(evaluate_prompt.llm, "from_env", side_effect=missing):
             with mock.patch("sys.stdout") as out:
                 code = evaluate_prompt.main([str(self.a_prompt_file())])

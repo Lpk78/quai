@@ -28,6 +28,10 @@ from dataclasses import dataclass
 DEFAULT_MODEL = "claude-opus-5"
 MAX_TOKENS = 8192
 
+# The name the Anthropic SDK reads by default, so the key is configured in one place and one way.
+KEY_VARIABLE = "ANTHROPIC_API_KEY"
+MODEL_VARIABLE = "LLM_MODEL"
+
 ENV_FILE = pathlib.Path(__file__).resolve().parents[2] / ".env"
 
 
@@ -124,13 +128,14 @@ def text_of(reply) -> str:
 def from_env(model: str | None = None) -> Translator:
     """Build a translator from `.env`, or say plainly that there is no key."""
     load_env()
-    key = os.environ.get("LLM_API_KEY", "").strip()
+    key = os.environ.get(KEY_VARIABLE, "").strip()
     if not key:
-        raise MissingKey("LLM_API_KEY is not set in .env, so there is nothing to evaluate with")
+        raise MissingKey(f"{KEY_VARIABLE} is not set in .env, so there is nothing to "
+                         "evaluate with")
     try:
         import anthropic
     except ImportError as error:  # pragma: no cover - depends on the machine, not on the code
         raise MissingKey("the anthropic package is not installed: pip install -r requirements.txt"
                          ) from error
-    name = model or os.environ.get("LLM_MODEL", "").strip() or DEFAULT_MODEL
+    name = model or os.environ.get(MODEL_VARIABLE, "").strip() or DEFAULT_MODEL
     return Translator(model=name, _client=anthropic.Anthropic(api_key=key))
