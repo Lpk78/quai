@@ -3,7 +3,8 @@
 - **Author:** `Lpk78` (Léo-Paul)
 - **Date:** 2026-09-28
 - **Branch:** `feature/solver-v1`
-- **Issue:** #5
+- **Issue:** #5 — opened later, by `LP-03` on 2026-09-28T13:51:16Z, to track work this branch had
+  already done. PR #3 never carried a `Closes #5`, and #5 was closed by hand on 2026-09-30T09:44:19Z.
 - **Recorded afterwards:** yes — written on 2026-09-30 by `LP-16`, after the `/task` skill existed.
 
 ## The prompt that produced the solver was not recovered
@@ -43,7 +44,7 @@ A related instruction in the next message of the same session, 13:44:13Z:
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/3 (reviewer: `SamDana-maker`, merged 2026-09-30) — closes #5
+- **PR:** https://github.com/Lpk78/quai/pull/3 (reviewer: `SamDana-maker`, merged 2026-09-30T08:11:08Z)
 - **What the AI produced for this prompt:** nothing. Claude Code checked `git status` and
   `git log main..feature/solver-v1`, found the five commits already present one per module, ran the tests
   on the branch, reported that the task was already done, and committed nothing. The five solver commits
