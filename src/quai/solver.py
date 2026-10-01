@@ -16,12 +16,30 @@ What the operator asked for reaches the solver only as a `ConstraintSet` built b
 through its accessors rather than by digging into the constraint dictionaries.
 """
 from .checks import MIN_SUPPORT, is_inside, overlaps, stack_problems, support_ratio
-from .constraints import ConstraintSet
+from .constraints import CONSTRAINT_FIELDS, ConstraintSet
 from .models import Box, Container, Placement, Plan
+
+# The constraint types this solver knows how to honour. Everything else in the contract is a
+# placement rule it has not learned yet (issue #29), and a set carrying one is refused rather than
+# planned without: a constraint that passed validation and is then dropped comes back as a plan the
+# independent checks call valid, which is the one answer this layer must never give. Read against
+# `CONSTRAINT_FIELDS` rather than a second hand-written list, so a type added to the contract
+# refuses itself here until someone teaches the solver what it means.
+HONOURED: frozenset[str] = frozenset(["unload_at", "load_last", "max_weight_on",
+                                      "max_total_weight"])
+
+
+class UnsupportedConstraint(ValueError):
+    """The set carries a constraint the solver cannot honour yet.
+
+    Raised instead of returning a plan, because the caller cannot tell the difference between a
+    plan that respected a constraint and one that never read it.
+    """
 
 
 def solve(boxes: list[Box], container: Container,
           constraints: ConstraintSet | None = None) -> Plan:
+    refuse_unhandled(constraints)
     placements: list[Placement] = []
     unplaced: list[Box] = []
     corners: set[tuple[int, int, int]] = {(0, 0, 0)}
@@ -60,6 +78,24 @@ def solve(boxes: list[Box], container: Container,
                         (chosen.x, chosen.y, chosen.z2)})
 
     return Plan(container, placements, unplaced)
+
+
+def unhandled(constraints: ConstraintSet | None) -> list[str]:
+    """The constraint types in this set the solver cannot honour, in the contract's own order."""
+    if constraints is None:
+        return []
+    return [kind for kind in CONSTRAINT_FIELDS
+            if kind not in HONOURED and constraints.of_type(kind)]
+
+
+def refuse_unhandled(constraints: ConstraintSet | None) -> None:
+    """Stop before planning if the operator asked for something this solver cannot do."""
+    kinds = unhandled(constraints)
+    if kinds:
+        raise UnsupportedConstraint(
+            "this solver cannot honour " + ", ".join(kinds) + " yet, so it will not plan with "
+            "them: a dropped constraint would come back as a plan the checks call valid. "
+            "See issue #29.")
 
 
 def loading_order(boxes: list[Box], constraints: ConstraintSet | None) -> list[Box]:

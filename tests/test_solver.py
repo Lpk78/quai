@@ -9,7 +9,7 @@ from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps, weight_above  # noqa: E402
 from quai.constraints import Manifest, parse  # noqa: E402
 from quai.models import Box, Container, Placement, Plan  # noqa: E402
-from quai.solver import solve  # noqa: E402
+from quai.solver import UnsupportedConstraint, solve, unhandled  # noqa: E402
 
 CONTAINER = Container(100, 100, 100, max_weight=500)
 
@@ -375,6 +375,52 @@ class TestLoadingOrder(unittest.TestCase):
                                {"type": "load_last", "item": "p"},
                                {"type": "load_last", "item": "q"})
         self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["z", "p", "q"])
+
+    def test_a_constraint_the_solver_cannot_honour_is_refused(self):
+        """Dropping it would hand back a plan the independent check calls valid (issue #29)."""
+        boxes = [crate("a", 40), crate("b", 30)]
+        for kind, extra in (("not_stackable", {}), ("at_bottom", {}), ("on_top", {}),
+                            ("keep_upright", {}), ("max_stack_height", {"limit_cm": 10})):
+            with self.subTest(kind):
+                route = constraint_set(boxes, ("S1",), {"type": kind, "item": "a", **extra})
+                with self.assertRaises(UnsupportedConstraint) as refused:
+                    solve(boxes, CONTAINER, route)
+                self.assertIn(kind, str(refused.exception))
+
+    def test_the_four_it_does_honour_are_not_refused(self):
+        boxes = [crate("a", 40), crate("b", 30)]
+        route = constraint_set(boxes, ("S1", "S2"),
+                               {"type": "unload_at", "item": "a", "stop": "S1"},
+                               {"type": "load_last", "item": "b"},
+                               {"type": "max_weight_on", "item": "a", "limit_kg": 50},
+                               {"type": "max_total_weight", "limit_kg": 400})
+        self.assertEqual(unhandled(route), [])
+        self.assertEqual(solve(boxes, CONTAINER, route).loading_order, ["b", "a"])
+
+    def test_every_contract_type_is_either_honoured_or_refused(self):
+        """No type may fall between the two: that is how the five were being dropped."""
+        from quai.constraints import CONSTRAINT_FIELDS
+        from quai.solver import HONOURED
+
+        self.assertTrue(HONOURED <= set(CONSTRAINT_FIELDS))
+        for kind in CONSTRAINT_FIELDS:
+            with self.subTest(kind):
+                fields = CONSTRAINT_FIELDS[kind]
+                constraint = {"type": kind}
+                if "item" in fields:
+                    constraint["item"] = "a"
+                if "stop" in fields:
+                    constraint["stop"] = "S1"
+                if "limit_cm" in fields:
+                    constraint["limit_cm"] = 10
+                if "limit_kg" in fields:
+                    constraint["limit_kg"] = 50
+                boxes = [crate("a", 40)]
+                route = constraint_set(boxes, ("S1",), constraint)
+                if kind in HONOURED:
+                    self.assertEqual(unhandled(route), [])
+                else:
+                    self.assertEqual(unhandled(route), [kind])
 
     def test_a_box_outside_the_manifest_is_refused(self):
         """The constraints were validated against a manifest; a box outside it has no stop."""
