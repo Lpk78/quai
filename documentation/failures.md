@@ -497,3 +497,30 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   nothing about the specification looked wrong until `loading_order` was read. For a solver this
   layer does not own, read the function before wiring to its supposed behaviour.
 - Related branch / PR: `feature/plan-constraints`, `SA-16`.
+
+---
+
+## 2026-10-01 — Scanning one small parcel ejected two cartons already loaded
+
+- What happened: the demo fixture (`SA-15`) loads eighteen boxes at 77.8% fill, then adds the parcel
+  scanned on stage. With that parcel assigned to stop 4 (Retiro), the plan came back **17 of 19
+  placed**: the parcel went in and `B15` and `B18` — two cartons that fit before it existed — came
+  out. The fill rate fell from 77.8% to 74.4%. Adding one 40 x 30 x 25 box made the load worse.
+- Why: `quai.solver` is first fit over candidate corners, and `loading_order` sorts by stop before
+  volume. A parcel for stop 4 is loaded in the middle of the round, so it takes a corner the boxes
+  for stops 3, 2 and 1 were going to use, and the corners it creates in exchange are the wrong shape
+  for them. Nothing is wrong with any single placement; the greedy choice is simply not reversible,
+  and the heuristic never reconsiders a box it has already placed.
+- What we tried: the parcel at every plausible stop. Stop 1 placed all nineteen (78.4%), stops 2 and
+  8 lost one carton, stops 3 and 4 lost two. Shortening the lamp carton `B18` from 45 to 40 cm then
+  let the parcel go to stop 2 — Chamberí, the first real delivery — with **19 of 19 placed** and the
+  fill rate rising to 78.2%, which is the fixture as committed. So the fix was a centimetre of
+  clearance, not a change of stop.
+- What we learned: "the solver found a place for it" and "the load is still as good" are different
+  questions, and only the second one matters to an operator watching a screen. A live-scan feature
+  that re-plans has to compare the new plan against the old one and say what moved — which is the
+  layer roadmap row 12 (`feature/constraint-solving`) will own, since that is where constraints
+  accumulate across sentences and the plan is recomputed. Worth remembering before the demo: the
+  cascade is real, it is reachable with one parcel, and it is invisible unless the unplaced list is
+  on screen.
+- Related branch / PR: `feature/demo-fixtures`, `SA-15`.
