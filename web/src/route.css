@@ -1,0 +1,65 @@
+/* The round screen: a map and the delivery order. Mobile first, designed at 390px and only widening.
+   Colours come from tokens.css — see documentation/design.md for which token means what.
+
+   Only what Leaflet cannot do for itself is here. Its own stylesheet handles the map furniture; this
+   file gives the canvas a height (a Leaflet map with no height renders as nothing, which looks like a
+   broken request rather than a missing rule) and draws the numbered pins. */
+
+.route-map {
+  padding: 0;
+  overflow: hidden;
+}
+
+.route-map__canvas {
+  /* Tall enough on a phone to show several stops at once, and the map is the point of the screen. */
+  height: 55vh;
+  min-height: 280px;
+  width: 100%;
+}
+
+/* The pin is the delivery number, because the order is what this screen exists to communicate. */
+.route-pin {
+  display: grid;
+  place-items: center;
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+  font-family: var(--quai-font-data);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  border: 2px solid var(--quai-surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+
+.route-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.route-stop {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+}
+
+.route-stop + .route-stop {
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.route-stop__where {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  /* Takes the slack so the arrival time stays hard right: the eye scans that column down the list. */
+  flex: 1;
+  min-width: 0;
+}
+
+.route-stop__eta {
+  color: var(--quai-text);
+  white-space: nowrap;
+}
