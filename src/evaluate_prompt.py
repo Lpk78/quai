@@ -14,6 +14,7 @@ results table means a run that actually happened, on the model the row names.
 results row, on purpose — a score over part of the inputs is not comparable with anything.
 """
 import argparse
+import dataclasses
 import datetime
 import json
 import pathlib
@@ -32,6 +33,12 @@ TRANSCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "outputs" / "evaluat
 PROMPT_START = "<!-- PROMPT START -->"
 PROMPT_END = "<!-- PROMPT END -->"
 
+# How a version is delivered belongs to the version, not to the run. If prefilling were a flag on the
+# command line, re-running v1 with it would produce a row that silently is not the v1 everyone else
+# scored. Declaring it in the file means every run of a version is the same run, which is the whole
+# basis on which two rows are compared.
+PREFILL_MARKER = "<!-- PREFILL: "
+
 # Where a documented version file lives. Anything under here must carry the markers: these files are
 # required to have a change log, and a change log names the sentences a version found hard.
 VERSIONS = pathlib.Path(__file__).resolve().parents[1] / "prompts"
@@ -47,6 +54,28 @@ def is_version_file(path: pathlib.Path) -> bool:
     except ValueError:
         return False
     return len(inside.parts) == 2 and inside.parts[0] != "dev"
+
+
+def prefill_of(path: pathlib.Path) -> str | None:
+    """The assistant turn a version ends its request with, or `None` if it does not prefill.
+
+    Declared as `<!-- PREFILL: { -->` outside the prompt markers, so it is part of the version and
+    not of the command line.
+
+    The value is stripped. That is not tidiness: the API refuses an assistant turn ending in
+    whitespace, and the comment syntax puts a space before `-->`, so reading it literally would send
+    `"{ "` and fail every call. There is no prefill worth declaring that ends in a space.
+    """
+    text = path.read_text(encoding="utf-8")
+    if PREFILL_MARKER not in text:
+        return None
+    rest = text.split(PREFILL_MARKER, 1)[1]
+    if "-->" not in rest:
+        raise SystemExit(f"{path}: {PREFILL_MARKER}… is never closed by -->")
+    prefill = rest.split("-->", 1)[0].strip()
+    if not prefill:
+        raise SystemExit(f"{path}: {PREFILL_MARKER}… declares an empty prefill")
+    return prefill
 
 
 def prompt_text(path: pathlib.Path) -> str:
@@ -100,8 +129,14 @@ def chosen_cases(all_cases, wanted: str):
     return tuple(known[name] for name in ids), True
 
 
-def write_transcript(run: evaluation.Run, folder: pathlib.Path) -> pathlib.Path:
-    """Keep every reply, so a score can be re-read later without calling the model again."""
+def write_transcript(run: evaluation.Run, folder: pathlib.Path,
+                     prefill: str | None = None) -> pathlib.Path:
+    """Keep every reply, so a score can be re-read later without calling the model again.
+
+    `prefill` is recorded because the stored `output` is what the solver would receive — the prefill
+    already joined to the continuation — so without it a reader cannot tell which characters the
+    model actually produced.
+    """
     folder.mkdir(parents=True, exist_ok=True)
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     path = folder / f"{run.version}_{stamp}.json"
@@ -109,6 +144,7 @@ def write_transcript(run: evaluation.Run, folder: pathlib.Path) -> pathlib.Path:
         "version": run.version,
         "model": run.model,
         "temperature": run.temperature,
+        "prefill": prefill,
         "date": datetime.date.today().isoformat(),
         "runs_per_sentence": run.runs,
         "complete": run.complete,
@@ -141,10 +177,15 @@ def main(argv=None) -> int:
         print("The results table keeps its empty row until a run happens.", file=sys.stderr)
         return 1
 
+    prefill = prefill_of(args.prompt)
+    if prefill is not None:
+        translator = dataclasses.replace(translator, prefill=prefill)
+
     version = args.prompt.stem
     print(f"Scoring {version} on {len(cases)} of {len(rubric.cases(text))} sentences, "
           f"{args.runs} runs each, with {translator.model} at temperature "
-          f"{evaluation.temperature_cell(translator.temperature)}\n")
+          f"{evaluation.temperature_cell(translator.temperature)}"
+          + (f", prefilled with {prefill!r}" if prefill is not None else "") + "\n")
 
     def report(case):
         if not case.ran:
@@ -175,7 +216,7 @@ def main(argv=None) -> int:
           f"Matched the expected output: {run.matched()}/{len(scored)}")
 
     if not args.no_transcript:
-        print(f"\nReplies written to {write_transcript(run, TRANSCRIPTS)}")
+        print(f"\nReplies written to {write_transcript(run, TRANSCRIPTS, prefill)}")
 
     if partial:
         print("\nPartial run: no results row. Run all 26 sentences to record a score.")

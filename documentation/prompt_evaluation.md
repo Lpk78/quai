@@ -405,6 +405,7 @@ sentence rather than recording anything (see `documentation/failures.md`).
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
 | v2_output_format | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Same inputs, model and temperature as v1. Output section rewritten, everything else byte-identical. **78 of 78 replies fenced again** — the change made no difference at all |
+| v3_response_prefill | 26 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | **21** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Prompt byte-identical to v2; the request ends with an assistant turn `{`. **78 of 78 replies parsed.** 3 runs per sentence; same answer every time on 25/26 |
 
 **Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
 for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
@@ -488,3 +489,36 @@ lists, which is the one thing v2 did achieve. T06 and T14 regressed into C5, whi
 Net, the diagnostic went 21 → 20 while the recorded score stayed 0 → 0. A version that cannot be
 parsed is worth nothing whatever its content does, which is the whole point of C1 and the reason both
 rows read zero.
+
+**Reading the v3 row: the envelope is solved, and the diagnostic was right.** v3's prompt is
+byte-identical to v2's — the only change is that the request ends with an assistant turn containing
+`{`, so the model continues its own reply instead of starting one. **78 of 78 replies came back as
+bare JSON.** Not one fence, where v1 and v2 produced 156 out of 156.
+
+| | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total |
+|---|---|---|---|---|---|---|---|---|---|
+| v1 fence-stripped *(diagnostic)* | 25 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | 21/26 |
+| v2 fence-stripped *(diagnostic)* | 26 | 24 | 24 | 26 | 21 | 26 | 26 | 26 | 20/26 |
+| **v3 — a real score** | **26** | **24** | **24** | **26** | **22** | **26** | **26** | **26** | **21/26** |
+
+The third row is a measurement; the first two were not. They agree on six criteria out of eight and
+on the Total exactly. That retrospectively settles the one number in this document a reviewer could
+not check: the fence-stripped figure was not an artefact of the stripping, and a later version can be
+briefed on it. It also cost nothing to find out, because the five failures it pointed at were left
+untouched through three versions on purpose.
+
+**What is actually wrong with the translation, now that it can be measured.** All five remaining
+failures are in `unresolved`, which is where the diagnostic said they would be:
+
+- **T10** "nothing heavier than 50 on the toolbox" — C2, C3 and C5. Still assumes kilograms and emits
+  `max_weight_on` where the contract wants `unit_missing`.
+- **T20** "don't stack the microwave" — C2 and C3, and **the only sentence whose three runs disagreed**.
+  It reports `unknown_item` correctly and then invents a `not_stackable` anyway, on `B3` twice and on
+  `B1` once. The invention is not even stable, which is worth knowing: a version can be wrong in a way
+  that a single run would not reveal.
+- **T14, T16, T17** — C5 only. Doubt reported with the wrong `reason`, or two faults collapsed into one
+  entry.
+
+C1, C4, C6, C7 and C8 are 26/26. C6 holds on T25, the injection case. The constraint half of the
+contract is solved; `unresolved` is the whole of what is left, and v4 has an evidenced brief rather
+than a guess.
