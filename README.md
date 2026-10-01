@@ -208,9 +208,11 @@ npm install
 npm run dev
 ```
 
-It serves on `http://localhost:5173`: `/` is the landing page and `/app` is the application. The API
-server above must be running for the app to reach the solver — the two are separate processes, and the
-dev server's origin is allowed by the `CORSMiddleware` in `src/server.py`.
+It serves on `http://localhost:5173`: `/` is the landing page, `/app` shows today's van and its boxes,
+and `/app/dictate` turns a spoken or typed sentence into constraints through `POST /constraints`
+(`web/src/api.js`, origin from `VITE_API_URL`, `http://127.0.0.1:8000` by default). The API server above
+must be running for the app to reach the solver — the two are separate processes, and the dev server's
+origin is allowed by the `CORSMiddleware` in `src/server.py`.
 
 | Command | What it does |
 |---|---|

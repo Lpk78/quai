@@ -21,9 +21,15 @@ describe("routing", () => {
     expect(heading).toHaveTextContent(/We load\./);
   });
 
-  it("shows the application shell at /app", () => {
+  it("shows the application home at /app", () => {
     at("/app");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Plan a load");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Good morning. Let’s load.");
+  });
+
+  it("shows the dictate screen at /app/dictate, inside the same shell", () => {
+    at("/app/dictate");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell QUAI your loading rules");
+    expect(screen.getByAltText("QUAI")).toBeInTheDocument();
   });
 
   it("shows a plain page for an address that does not exist", () => {
@@ -38,14 +44,5 @@ describe("routing", () => {
       .filter((a) => a.getAttribute("href") === "/app");
     expect(toApp.length).toBeGreaterThan(0);
     expect(toApp.some((a) => /get started/i.test(a.textContent))).toBe(true);
-  });
-});
-
-describe("the application shell is deliberately empty", () => {
-  it("names what will fill it rather than pretending it is there", () => {
-    at("/app");
-    expect(screen.getByText("#7")).toBeInTheDocument();
-    expect(screen.getByText("#8")).toBeInTheDocument();
-    expect(screen.getByText(/nothing to show yet/i)).toBeInTheDocument();
   });
 });
