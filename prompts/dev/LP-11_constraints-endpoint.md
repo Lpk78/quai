@@ -20,3 +20,14 @@ example.
 
 ## Outcome
 
+- **PR:** https://github.com/Lpk78/quai/pull/46 (reviewer: `SamDana-maker`)
+- **What the AI produced:** `POST /constraints` in `src/server.py`, the `TestConstraintsEndpoint`
+  tests in `tests/test_server.py`, and the README section documenting the endpoint.
+- **What was changed by hand:** nothing yet — the first review round will tell.
+- **Judgement calls made with the user, before writing code:** the manifest item shape (id, label,
+  dimensions, weight, optional `stop`) and the route shape (`stops`, required, delivery order) were
+  not specified by the task text and are a contract MORHI11's `HY-14` depends on, so they were
+  confirmed rather than guessed. Also deliberately out of scope for this PR, per the task: the
+  multi-sentence accumulation noted as a requirement on the #19 review thread, and authentication
+  (CORS reuses the `/plan` allowlist) — both flagged for the reviewer on the PR.
+
