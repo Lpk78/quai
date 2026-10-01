@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { OPERATOR_NAME, STOPS, loadWith } from "../data/manifest.js";
+import { IconBox, IconPin } from "../landing/icons.jsx";
 import { useScannedParcel } from "../scan/scannedParcel.jsx";
 
 export default function Home() {
@@ -8,6 +9,14 @@ export default function Home() {
   // screen plans with, so the count here cannot say eighteen while the plan holds nineteen.
   const { parcel } = useScannedParcel();
   const boxes = loadWith(parcel);
+
+  // No "Estimated route time" tile next to these, unlike the landing page's own version of this
+  // pattern (`LoadingPlanReady`): that one is marked "Example van — not a measured result", but this
+  // screen is the operator's real load, with nothing invented to put a disclaimer on.
+  const stats = [
+    [<IconBox key="i" />, boxes.length, "Parcels"],
+    [<IconPin key="i" />, STOPS.length, "Stops"],
+  ];
 
   return (
     <>
@@ -19,6 +28,18 @@ export default function Home() {
       <p className="muted">
         {OPERATOR_NAME} · {STOPS.length} stops · {boxes.length} boxes
       </p>
+
+      <ul className="stat-tiles">
+        {stats.map(([icon, value, label]) => (
+          <li className="stat-tile" key={label}>
+            <span className="stat-tile__icon" aria-hidden="true">{icon}</span>
+            <span>
+              <strong className="data">{value}</strong>
+              <span className="muted">{label}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
 
       <section className="card van-card">
         <h2>Today’s load</h2>

@@ -46,6 +46,19 @@ describe("home", () => {
     const link = screen.getByRole("link", { name: /scan a package/i });
     expect(link).toHaveAttribute("href", "/app/scan");
   });
+
+  it("shows a Parcels tile and a Stops tile, each matching the manifest", () => {
+    at("/app");
+    expect(screen.getByText("Parcels").previousElementSibling).toHaveTextContent("18");
+    expect(screen.getByText("Stops").previousElementSibling).toHaveTextContent("8");
+  });
+
+  it("never tiles an estimated route time next to them, unlike the landing page's example", () => {
+    // HY-17: this screen is the operator's real load, with nothing invented to put a
+    // "planned, not shipped" disclaimer on, unlike `LoadingPlanReady`'s example van.
+    at("/app");
+    expect(screen.queryByText(/estimated route time/i)).not.toBeInTheDocument();
+  });
 });
 
 describe("dictate, with no speech recognition in this environment", () => {
