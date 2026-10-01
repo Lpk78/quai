@@ -342,7 +342,7 @@
   align-items: stretch;
   gap: 1.5rem;
   /* Room above the row for the phones to stand out of their cards. */
-  padding-top: calc(var(--space-section) + 110px);
+  padding-top: calc(var(--space-section) + 90px);
 }
 
 .panel {
@@ -376,9 +376,10 @@
 
 .panel .phone-shot {
   align-self: end;
-  /* Negative top margin is what lets it overflow upward: the phone contributes 210 px to the row
-     and stands 110 px above the card. */
-  margin-top: -110px;
+  /* Negative top margin is what lets it overflow upward. The value has to beat the text column's
+     height, which grew when the badge row was added — measured, not guessed: at -110px the phone
+     had stopped protruding and started 8 px *inside* the card. */
+  margin-top: -185px;
   height: 320px;
 }
 
@@ -417,42 +418,97 @@
 
 /* --- 5. compact navy banner between sections (landing_ref_1) ----------------------------------- */
 
-.banner {
+.band {
   position: relative;
+  max-width: 84rem;
+  width: calc(100% - var(--gutter) * 2);
+  margin: calc(var(--space-section) + 4rem) auto var(--space-block);
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: clamp(1rem, 3vw, 2.5rem);
-  margin-top: var(--space-section);
-  padding: clamp(1rem, 1.8vw, 1.5rem) clamp(1.5rem, 2.5vw, 2.5rem);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-right: clamp(12rem, 27vw, 23.5rem);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(1.75rem, 2.4vw, 2.5rem) clamp(1.75rem, 2.4vw, 2.75rem);
   background: var(--quai-navy);
   border-radius: var(--radius);
-  overflow: hidden;
-  min-height: 7.5rem;
+  overflow: visible;
 }
 
-.banner__logo {
+.band__logo {
   display: block;
-  height: clamp(2rem, 3vw, 2.6rem);
+  height: 3rem;
   width: auto;
 }
 
-.banner__line {
+.band__line {
+  margin-top: 0.85rem;
   color: var(--quai-surface);
   font-family: var(--quai-font-display);
   font-weight: 700;
-  font-size: clamp(1.1rem, 2.2vw, 1.75rem);
-  line-height: 1.15;
+  font-size: clamp(1.5rem, 2.8vw, 2.4rem);
+  line-height: 1.12;
   letter-spacing: -0.02em;
 }
 
-/* Cut at the band's bottom edge, as in the reference: he sits on the floor of the banner. */
-.banner__image {
+.band__copyright {
+  margin-top: 1.1rem;
+  color: var(--quai-surface);
+  opacity: 0.6;
+  font-size: 0.85rem;
+}
+
+.band__links {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-self: center;
+}
+
+.band__links ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.band__heading {
+  color: var(--quai-surface);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 0.2rem;
+}
+
+.band__links a {
+  color: var(--quai-surface);
+  text-decoration: none;
+  opacity: 0.85;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.band__links a:hover {
+  opacity: 1;
+}
+
+/* He stands out of the band's top edge on the right. No drop-shadow: on navy it reads as the dark
+   halo the cut-out exists to remove. */
+.band__image {
   display: block;
   align-self: end;
-  width: clamp(5rem, 11vw, 9rem);
+  width: clamp(8rem, 15vw, 13rem);
   height: auto;
-  margin-bottom: calc(clamp(1rem, 1.8vw, 1.5rem) * -1);
+  /* Feet on the band's floor, head above its top edge. Sized from the band rather than guessed:
+     100% of its height plus 3.5rem is exactly how far he stands out, whatever the band's content
+     makes it. Three earlier attempts with margins and translates all left him inside, because with
+     align-self:end a negative margin-top changes the room reserved, not the position. */
+  position: absolute;
+  right: clamp(1rem, 4vw, 3.5rem);
+  bottom: 0;
+  height: calc(100% + 3.5rem);
+  width: auto;
 }
 
 /* --- 6. icon strip ----------------------------------------------------------------------------- */
@@ -614,6 +670,7 @@
 
 .dock__tile img {
   width: 100%;
+  /* Reserved before the image arrives, so the row never collapses and then jumps. */
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: var(--radius-sm);
@@ -656,12 +713,21 @@
 
 /* --- 5b. loading plan ready (landing_ref_3) ---------------------------------------------------- */
 
+/* Two balanced columns, centred, rather than text hard left and a small phone hard right with the
+   middle empty — measured at 902 px of text against 266 px of phone before (#42). */
 .plan {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
   align-items: center;
-  gap: clamp(2rem, 5vw, 4rem);
+  justify-items: center;
+  gap: 4rem;
+  max-width: 75rem;
   padding-top: var(--space-section);
+}
+
+.plan__text {
+  max-width: 30rem;
+  justify-self: end;
 }
 
 .plan h2 {
@@ -671,7 +737,6 @@
 
 .plan__body {
   margin-top: 1rem;
-  max-width: 28rem;
   color: var(--quai-text-muted);
 }
 
@@ -681,7 +746,6 @@
   margin: 1.75rem 0 0;
   padding: 0;
   list-style: none;
-  max-width: 24rem;
 }
 
 .plan__tiles li {
@@ -718,11 +782,15 @@
 }
 
 .plan .phone-shot {
-  height: clamp(20rem, 32vw, 28rem);
+  height: clamp(22rem, 34vw, 32rem);
 }
 
-.plan .tag {
-  margin-top: 1rem;
+/* Two notes, each its own pill: one about the figures, one about the feature. */
+.plan__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
 }
 
 /* --- 5c. route and delivery order (landing_ref_2) ------------------------------------------------ */
