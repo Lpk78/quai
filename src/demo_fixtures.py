@@ -17,10 +17,18 @@ heavy items are therefore given late stops: that is what puts the appliances on 
 light cartons above them. Move a 70 kg appliance to an early stop and the plan will stack it on top
 of the cartons — correct for the route, wrong for the van.
 
-**The scanned parcel goes to the first delivery.** It is loaded last, so it fits into what is left
-without moving anything already placed. Give it a later stop and it is loaded in the middle of the
-round instead, where the first-fit heuristic has to re-use corners the boxes after it were going to
-take: scanning one 40 x 30 x 25 parcel then leaves two cartons unplaced. See the 2026-10-01 entry in
+**The scanned parcel goes to the first delivery, and two cartons still move.** Stop 2 is late enough
+in the loading order — the parcel goes in 17th of 19 — that nothing is ejected, which a later stop
+does not manage: give it stop 3 or 4 and the first-fit heuristic re-uses corners the boxes after it
+needed, leaving two cartons unplaced.
+
+What stop 2 does not buy is a load that holds still. `B15` and `B18` are the two stop-1 cartons, and
+stop 1 comes off first so they are loaded *after* the parcel: both land somewhere else once it is in,
+`B15` at (225, 0, 85) → (240, 85, 85) and `B18` at (240, 85, 85) → (185, 0, 90). They stay placed and
+the plan stays valid — but a 3D view driven by real coordinates will show those two jump when the
+parcel is scanned. Planning around what is already in the van is issue #36; until that lands, this is
+a fact of the fixture rather than a bug in it, and `tests/test_demo_fixtures.py` pins which two boxes
+move so a third one cannot appear unnoticed. See the 2026-10-01 entry in
 `documentation/failures.md`.
 """
 import json
@@ -97,8 +105,9 @@ LOADED_ITEMS = [
      "weight":  8, "stop": "S1"},
 ]
 
-# The parcel scanned on stage. It starts outside the load: the demo adds it, and the solver finds it
-# a place without disturbing the eighteen already in.
+# The parcel scanned on stage. It starts outside the load: the demo adds it, and the solver finds it a
+# place without ejecting any of the eighteen already in — two of them do move, though; see *The
+# scanned parcel* in the module docstring.
 #
 # `fragile` is recorded because the label on the box says so, but nothing downstream reads it. The
 # contract's nearest constraint is `not_stackable`, which `quai.solver` lists outside `HONOURED` and
