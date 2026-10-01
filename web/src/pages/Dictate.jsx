@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import { ApiError, postConstraints } from "../api.js";
-import { BOXES, STOPS } from "../data/manifest.js";
+import { ApiError, postConstraints, postPlan } from "../api.js";
+import { BOXES, STOPS, VAN } from "../data/manifest.js";
 import { IconMic } from "../landing/icons.jsx";
+
+// `/plan` takes a box the way `POST /plan` has always taken one — id, dimensions, weight — not the
+// richer record `/constraints` reads a label and a stop off. Stripped here rather than left for
+// pydantic to ignore, so the request matches what `web/src/plan/demoLoad.js` already sends.
+const PLAN_BOXES = BOXES.map(({ id, length, width, height, weight }) => (
+  { id, length, width, height, weight }
+));
 
 // jsdom defines neither, so tests exercise the text-field fallback the same way an unsupported
 // browser does.
@@ -41,7 +48,9 @@ export default function Dictate() {
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [confirming, setConfirming] = useState(false);
   const recognitionRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
@@ -91,6 +100,25 @@ export default function Dictate() {
     setStep("talk");
   }
 
+  async function handleConfirm() {
+    setConfirming(true);
+    setError(null);
+    try {
+      const plan = await postPlan({
+        container: VAN,
+        boxes: PLAN_BOXES,
+        constraints: result.constraints,
+      });
+      navigate("/app/plan", { state: { plan, request: { container: VAN, boxes: PLAN_BOXES } } });
+    } catch (err) {
+      setError(err instanceof ApiError
+        ? err
+        : new ApiError("server", "QUAI could not build a plan.", String(err)));
+      setStep("error");
+      setConfirming(false);
+    }
+  }
+
   return (
     <>
       <Link className="muted back-link" to="/app">
@@ -115,7 +143,12 @@ export default function Dictate() {
       )}
 
       {step === "result" && (
-        <ResultStep result={result} onEdit={handleEdit} />
+        <ResultStep
+          result={result}
+          onEdit={handleEdit}
+          onConfirm={handleConfirm}
+          confirming={confirming}
+        />
       )}
 
       {step === "error" && <Failure error={error} onEdit={handleEdit} />}
@@ -200,7 +233,7 @@ function TalkStep({
   );
 }
 
-function ResultStep({ result, onEdit }) {
+function ResultStep({ result, onEdit, onConfirm, confirming }) {
   const { constraints, unresolved } = result;
   return (
     <>
@@ -238,9 +271,9 @@ function ResultStep({ result, onEdit }) {
         <button type="button" className="button button--quiet" onClick={onEdit}>
           Edit
         </button>
-        <Link className="button" to="/app/plan">
-          Confirm <span aria-hidden="true">→</span>
-        </Link>
+        <button type="button" className="button" onClick={onConfirm} disabled={confirming}>
+          {confirming ? "Planning…" : "Confirm"} <span aria-hidden="true">→</span>
+        </button>
       </div>
     </>
   );
