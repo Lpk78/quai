@@ -80,3 +80,16 @@ export function postConstraints(text, manifest, stops, opts = {}) {
   return post("/constraints", { text, manifest, stops }, "QUAI could not accept that sentence.",
     opts);
 }
+
+/* `stops` is the round in delivery order, each `{ id, address }` — the address is what the geocoder
+ * reads, so `name` is left out rather than sent and ignored. The order is the answer, not a
+ * suggestion: `POST /route` drives the stops as given and never reorders them, so this sends them in
+ * the order the manifest holds them (#35).
+ *
+ * A 422 here is usually one address the Base Adresse Nationale could not find, and its detail names
+ * which — worth showing rather than replacing with a fallback. */
+export function postRoute(stops, departureTime, opts = {}) {
+  const body = { stops: stops.map(({ id, address }) => ({ id, address })) };
+  if (departureTime) body.departure_time = departureTime;
+  return post("/route", body, "The route service refused these stops.", opts);
+}
