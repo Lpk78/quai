@@ -41,7 +41,7 @@ so #22 has to be merged after #21.
 
 | Branch | Deliverable | Owner | Status |
 |---|---|---|---|
-| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
+| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | Server half done in #PR (`SA-07`); the view is still open |
 | `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
