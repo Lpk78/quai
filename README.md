@@ -148,6 +148,37 @@ runs passed, and the row to paste into the results table of `documentation/promp
 With no key it says so and prints no scores. The method is described in that document, under
 *Running an evaluation*.
 
+### Web app
+
+The front end lives in `web/`. It needs Node 20 or later.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+It serves on `http://localhost:5173`: `/` is the landing page and `/app` is the application. The API
+server above must be running for the app to reach the solver — the two are separate processes, and the
+dev server's origin is allowed by the `CORSMiddleware` in `src/server.py`.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | dev server with hot reload |
+| `npm run build` | production bundle in `web/dist/` |
+| `npm run preview` | serve that bundle, to check the PWA as it ships |
+| `npm test` | unit tests (routing, the copy rules and the colour tokens) |
+| `npm run build:tokens` | regenerate `src/tokens.css` from `assets/brand/tokens.json` |
+
+**Installing it on a phone.** The app is a PWA: run `npm run build && npm run preview`, open it on the
+phone over the same network, and use the browser's *Add to home screen*. It then opens at `/app` in its
+own window. Installation needs HTTPS or `localhost`, so a plain LAN address will not offer it.
+
+**Styling.** Every colour and font comes from `assets/brand/tokens.json` through the generated
+`web/src/tokens.css` — never typed by hand. The rules for using them are in `documentation/design.md`,
+including the two accessibility rules the interface must follow and the copy rules for anything the
+product says about itself. `npm test` checks both.
+
 ## Current scope
 
 The smallest useful version: a hand-typed list of boxes and one container, a solver that places them
@@ -165,6 +196,7 @@ without overlap, and a 3D view of the result. No scanning, no LLM yet.
 ├── notebooks/             ← exploration only
 ├── assets/                ← images, 3D models, demo material
 │   └── brand/             ← logo, app icon, design tokens, visual references
+├── web/                   ← React + Vite web app (landing page, operator app, PWA)
 └── documentation/         ← journal, design system, prompt evaluation, failures, AI usage, roadmap
 ```
 

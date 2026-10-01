@@ -5,6 +5,7 @@ Run from the repository root:  uvicorn server:app --app-dir src --reload
 from collections import Counter
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from quai import incident as incidents
@@ -13,6 +14,29 @@ from quai.models import Box, Container, Placement
 from quai.solver import ImpossibleStart, UnsupportedConstraint, solve
 
 app = FastAPI(title="QUAI")
+
+# The web app runs on its own origin in development (Vite serves it on :5173), so the browser refuses
+# to hand it the response unless this header says otherwise. The origins are listed rather than
+# opened with "*" so that the dev app works without every page the operator happens to have open
+# being able to read this API's answers.
+#
+# What this is not: access control. CORS is a rule browsers follow, not one the server enforces —
+# a request from any origin still runs, and curl ignores the whole mechanism. `POST /plan` is pure
+# computation, so that costs nothing. `POST /constraints` (#19) will spend Claude API credits, and
+# it needs authentication rather than an origin list. Checked by SamDana-maker on #33.
+DEV_ORIGINS = [
+    "http://localhost:5173",   # vite dev server
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",   # vite preview, the production build served locally
+    "http://127.0.0.1:4173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=DEV_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class BoxIn(BaseModel):

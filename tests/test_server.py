@@ -86,6 +86,33 @@ class TestPlanEndpoint(unittest.TestCase):
         self.assertEqual(client.post("/plan", json={"boxes": []}).status_code, 422)
 
 
+class TestCrossOrigin(unittest.TestCase):
+    """The web app (#18) runs on its own origin, so the browser needs this to let it call the API."""
+
+    def test_the_vite_dev_server_is_allowed(self):
+        response = client.options(
+            "/plan",
+            headers={"Origin": "http://localhost:5173",
+                     "Access-Control-Request-Method": "POST",
+                     "Access-Control-Request-Headers": "content-type"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
+
+    def test_a_real_request_carries_the_header_back(self):
+        response = client.post("/plan", json={"container": CONTAINER, "boxes": []},
+                               headers={"Origin": "http://localhost:5173"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
+
+    def test_an_unknown_origin_is_not_allowed(self):
+        # Not a wildcard: this API is the only place the Claude key lives, so any page in the
+        # operator's browser must not be able to call it.
+        response = client.post("/plan", json={"container": CONTAINER, "boxes": []},
+                               headers={"Origin": "https://example.com"})
+        self.assertNotIn("access-control-allow-origin", response.headers)
+
+
 class TestRecomputeEndpoint(unittest.TestCase):
     """`POST /plan/recompute`: the vehicle keeps what is in it, the dock gets replanned."""
 
@@ -207,6 +234,8 @@ class TestRecomputeEndpoint(unittest.TestCase):
         container = Container(self.VAN["length"], self.VAN["width"], self.VAN["height"],
                               max_weight=self.VAN["max_weight"])
         self.assertEqual(find_problems(placements, container), [])
+
+
 
 
 if __name__ == "__main__":
