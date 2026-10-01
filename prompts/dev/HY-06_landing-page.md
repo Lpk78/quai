@@ -42,6 +42,19 @@ does `design.md`. The mockup is followed for layout, colour and composition only
 
 ## Outcome
 
-- **PR:**
-- **What the AI produced:**
-- **What was changed by hand:**
+- **PR:** https://github.com/Lpk78/quai/pull/PRNUM
+- **What the AI produced:** the eight sections of the landing page, the four phone screens drawn in
+  HTML and CSS, nine inline icons, the two stylesheets, the twelve responsive WebP images, and six
+  further tests.
+- **How it was checked:** the production build was opened in a real browser and compared section by
+  section against `QUAI_website_mockup_v2.png` and `QUAI_marketing_board.png`, over three rounds of
+  correction — the "Watch the film" button was rendering orange instead of white (a specificity clash
+  with `.button`), the headline ran onto a bad line break, the feature panels left a gap because the
+  phones were top-aligned, and the nav buttons wrapped their own labels at 390 px.
+- **What it found on its own:** a two-layer CSS mask on the hero photo made it vanish in Chrome, because
+  the prefixed and standard spellings of `mask-composite` disagree; it was reduced to one layer.
+- **What was changed by hand:** the decisions. The strapline in section 5 was changed to the approved
+  slogan (see above). The phones are drawn rather than screenshotted. The v2 mockup's copy was not used.
+- **Note for whoever reviews the screenshots:** Chrome's screenshot pipeline does not always rasterise
+  the masked hero photo, so some captures show that area blank while the page itself renders it. The
+  committed screenshots are ones where it rendered.
