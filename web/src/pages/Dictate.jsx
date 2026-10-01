@@ -2,15 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError, postConstraints, postPlan } from "../api.js";
-import { BOXES, STOPS, VAN } from "../data/manifest.js";
+import { STOPS, VAN, loadWith } from "../data/manifest.js";
 import { IconMic } from "../landing/icons.jsx";
+import { useScannedParcel } from "../scan/scannedParcel.jsx";
 
 // `/plan` takes a box the way `POST /plan` has always taken one — id, dimensions, weight — not the
 // richer record `/constraints` reads a label and a stop off. Stripped here rather than left for
 // pydantic to ignore, so the request matches what `web/src/plan/demoLoad.js` already sends.
-const PLAN_BOXES = BOXES.map(({ id, length, width, height, weight }) => (
-  { id, length, width, height, weight }
-));
+//
+// Derived per render rather than once at import, because since `SA-17b` the load is eighteen boxes or
+// nineteen depending on whether a parcel was scanned, and a constant captured at import would always
+// be the eighteen.
+function planBoxesOf(boxes) {
+  return boxes.map(({ id, length, width, height, weight }) => (
+    { id, length, width, height, weight }
+  ));
+}
 
 // jsdom defines neither, so tests exercise the text-field fallback the same way an unsupported
 // browser does.
@@ -49,6 +56,11 @@ export default function Dictate() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const { parcel } = useScannedParcel();
+  // Eighteen in the van, plus the parcel if one was scanned on the way here. Both the sentence sent to
+  // `/constraints` and the load sent to `/plan` have to see the same list, or the model would be asked
+  // about a box the solver is not given.
+  const boxes = loadWith(parcel);
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
 
@@ -85,7 +97,7 @@ export default function Dictate() {
     setStep("sending");
     setError(null);
     try {
-      const data = await postConstraints(transcript, BOXES, STOPS);
+      const data = await postConstraints(transcript, boxes, STOPS);
       setResult(data);
       setStep("result");
     } catch (err) {
@@ -104,12 +116,13 @@ export default function Dictate() {
     setConfirming(true);
     setError(null);
     try {
+      const planBoxes = planBoxesOf(boxes);
       const plan = await postPlan({
         container: VAN,
-        boxes: PLAN_BOXES,
+        boxes: planBoxes,
         constraints: result.constraints,
       });
-      navigate("/app/plan", { state: { plan, request: { container: VAN, boxes: PLAN_BOXES } } });
+      navigate("/app/plan", { state: { plan, request: { container: VAN, boxes: planBoxes } } });
     } catch (err) {
       setError(err instanceof ApiError
         ? err

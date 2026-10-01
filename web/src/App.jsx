@@ -1,5 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 
+import { ScannedParcelProvider } from "./scan/scannedParcel.jsx";
+
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import AppShell from "./pages/AppShell.jsx";
@@ -11,16 +13,18 @@ import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/app" element={<AppShell />}>
-        <Route index element={<Home />} />
-        <Route path="scan" element={<Scan />} />
-        <Route path="dictate" element={<Dictate />} />
-      </Route>
-      <Route path="/app/plan" element={<PlanScreen />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <ScannedParcelProvider>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/app" element={<AppShell />}>
+          <Route index element={<Home />} />
+          <Route path="scan" element={<Scan />} />
+          <Route path="dictate" element={<Dictate />} />
+        </Route>
+        <Route path="/app/plan" element={<PlanScreen />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </ScannedParcelProvider>
   );
 }

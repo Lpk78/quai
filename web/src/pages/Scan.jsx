@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { BOXES } from "../data/manifest.js";
+import { SCANNED_PARCEL, loadWith } from "../data/manifest.js";
 import { identify } from "../scan/scanCode.js";
+import { useScannedParcel } from "../scan/scannedParcel.jsx";
 
 /* The step before dictating: read the label on the package in the operator's hands, so the sentence
    they say next is about something QUAI can name.
@@ -14,26 +15,37 @@ import { identify } from "../scan/scanCode.js";
    not a placeholder for the demo's sake either: it is the fallback a dock needs when a label is
    scuffed, wet, or the phone has no camera permission.
 
-   What this screen does NOT do: change the manifest. `QUAI-BOX-0001` already sits in
-   `data/manifest.js` alongside the eighteen loaded boxes, so there is nothing here to add it to.
-   Modelling a parcel that is scanned *into* a load — out of the static list, into app state, marked
-   not yet loaded — is a structural change to that module and to the dictate screen, and it is its own
-   task rather than a side effect of this one. Agreed with MORHI11 while HY-15 was in flight.
+   A scan puts the parcel into the load (`SA-17b`). `SCANNED_PARCEL` is held out of `BOXES` so that
+   there is something to add: reading its label is what moves it from "in the operator's hands" to "in
+   the van", and /app/dictate then plans nineteen boxes rather than eighteen. A label for a box that is
+   already aboard is recognised and shown, but adds nothing — it was never outside the load.
 
-   No new class names either, for the same reason: HY-15 is visual polish across these screens, so this
-   screen is built from the shared ones already in `app.css` rather than adding selectors into a file
-   being reworked underneath it. Styling hooks are his to add. */
+   No new class names: HY-15 is visual polish across these screens, so this screen is built from the
+   shared ones already in `app.css` rather than adding selectors into a file being reworked underneath
+   it. Styling hooks are his to add. */
 export default function Scan() {
   const [code, setCode] = useState("");
   const [found, setFound] = useState(null);
+  const { parcel, scan } = useScannedParcel();
   const navigate = useNavigate();
+
+  const box = found?.status === "known" ? found.box : null;
+  // Reading the parcel's label is what puts it in the van; a box that was already loaded is simply
+  // confirmed. `alreadyAboard` is the second scan of the same label — nothing to add twice.
+  const isParcel = box?.id === SCANNED_PARCEL.id;
+  const alreadyAboard = isParcel && Boolean(parcel);
 
   function handleSubmit(event) {
     event.preventDefault();
-    setFound(identify(code, BOXES));
+    // Matched against the whole load, parcel included, so a second scan of the same label is
+    // recognised rather than reported as a box this van is not carrying.
+    setFound(identify(code, loadWith(SCANNED_PARCEL)));
   }
 
-  const box = found?.status === "known" ? found.box : null;
+  function handleContinue() {
+    if (isParcel) scan(SCANNED_PARCEL);
+    navigate("/app/dictate");
+  }
 
   return (
     <>
@@ -101,12 +113,19 @@ export default function Scan() {
             <p className="data muted">
               {box.length} × {box.width} × {box.height} cm · {box.weight} kg
             </p>
+            <p className="muted">
+              {alreadyAboard
+                ? "Already added to this load."
+                : isParcel
+                  ? "Not loaded yet. Continue to say where it goes."
+                  : "Already in the van."}
+            </p>
           </section>
 
           <button
             type="button"
             className="button button--block"
-            onClick={() => navigate("/app/dictate")}
+            onClick={handleContinue}
           >
             Say what to do with it <span aria-hidden="true">→</span>
           </button>

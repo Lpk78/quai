@@ -147,7 +147,10 @@ describe("confirm sends the dictated constraints to /plan and shows what it retu
     );
     // Not just any plan: the one /plan returned for this constraint, not the no-constraint default.
     expect(screen.getByText("B18")).toBeInTheDocument();
-    expect(screen.getByText("1 / 19")).toBeInTheDocument();
+    // Eighteen, not nineteen: this test enters at /app/dictate without passing through /app/scan, so
+    // the fragile parcel is not aboard. SA-17b took it out of BOXES — scanning its label is what adds
+    // it. The nineteen-box path is covered in scan.test.jsx.
+    expect(screen.getByText("1 / 18")).toBeInTheDocument();
   });
 
   it("shows an unhonoured constraint under 'Not applied' rather than hiding it", async () => {
