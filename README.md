@@ -126,6 +126,20 @@ not match the contract, never reaches the caller: it is a `502` with the validat
 call (rate limit, refusal, network error, after retries) is a `503`. CORS uses the same allowlist as
 `/plan` — not authentication; tracked as a gap on issue #19.
 
+### The web app
+
+```bash
+cd web && npm install && npm run dev      # http://localhost:5173
+```
+
+`/` is the landing page and `/app` the application shell. `/app/plan` asks the solver for a plan and
+shows it: where each box goes, and which ones did not fit. It needs the API running
+(`uvicorn server:app --app-dir src`), and reads its address from `VITE_API_URL`, defaulting to
+`http://127.0.0.1:8000`. Screenshots at phone width are in `documentation/screenshots/`.
+
+The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
+the same eleven-box demo load as `src/demo.py`, and says so.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
