@@ -24,6 +24,9 @@ FAMILIES = ROOT / "prompts"
 # the prose around them.
 OPERATOR_LINE = re.compile(r"^Operator:\s*(.+)$", re.M)
 
+# A version file declares its technique on this line, outside the prompt markers.
+TECHNIQUE_LINE = re.compile(r"^- \*\*Technique:\*\*\s*(.+)$", re.M)
+
 # Two sentences sharing more than this fraction of their words are close enough to be a paraphrase.
 # The four examples in v4 peak at 0.29 against the 26, so this leaves real headroom; it is set to
 # catch a future example written carelessly, not to police wording.
@@ -51,12 +54,31 @@ class TestExamplesAreNotTestSentences(unittest.TestCase):
     def examples_in(self, path: Path):
         return OPERATOR_LINE.findall(evaluate_prompt.prompt_text(path))
 
-    def test_v4_really_does_carry_examples(self):
-        """Otherwise the checks below would pass by finding nothing, which is the usual way."""
-        path = FAMILIES / "constraint-translation" / "v4_few_shot.md"
-        if not path.is_file():
-            self.skipTest("v4 is not on this branch")
-        self.assertEqual(len(self.examples_in(path)), 4)
+    def technique_of(self, path: Path):
+        match = TECHNIQUE_LINE.search(path.read_text(encoding="utf-8"))
+        return match.group(1) if match else ""
+
+    def test_some_version_really_does_carry_examples(self):
+        """Otherwise the checks below would pass by finding nothing, which is the usual way.
+
+        It asserts that examples exist somewhere, not how many a given version has: v4 carries four
+        and v5 carries three, because v5 drops the two of v4's that measurably changed nothing. A
+        count pinned to one file makes dropping an example that did not work into a test failure,
+        which is the wrong incentive for a family whose whole point is that versions differ.
+        """
+        carriers = [p for p in version_files() if self.examples_in(p)]
+        self.assertTrue(carriers, "no version file carries a worked example; the checks below "
+                                  "would pass vacuously")
+
+    def test_every_few_shot_version_carries_an_example(self):
+        """The check above only asks that examples exist somewhere; a few-shot version that lost
+        its own would still pass it by finding them in another file. This is the one that would
+        catch that.
+        """
+        for path in version_files():
+            if "few-shot" in self.technique_of(path):
+                with self.subTest(path.name):
+                    self.assertGreaterEqual(len(self.examples_in(path)), 1)
 
     def test_no_example_is_a_test_sentence(self):
         def bare(sentence):
