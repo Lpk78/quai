@@ -95,6 +95,21 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
 dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
 
+### Prompt evaluation
+
+Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
+`.env`; neither has a default):
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+Each sentence is translated three times, so that a prompt which only usually works is not scored as
+one that works. It prints one line per sentence, the eight rubric criteria, how many of the three
+runs passed, and the row to paste into the results table of `documentation/prompt_evaluation.md`.
+With no key it says so and prints no scores. The method is described in that document, under
+*Running an evaluation*.
+
 ## Current scope
 
 The smallest useful version: a hand-typed list of boxes and one container, a solver that places them
