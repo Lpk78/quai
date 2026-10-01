@@ -357,6 +357,34 @@ class TestRejectedContradiction(unittest.TestCase):
                 self.assertRejected([{"type": "not_stackable", "item": "B3"}, limit],
                                     f"B3 cannot be both not_stackable and given a {limit['type']}")
 
+    def test_on_top_and_a_stack_limit_for_the_same_item_are_rejected(self):
+        """`SA-19`. The solver reads `on_top` as "nothing is above it", so the contradiction that
+        already applied to `not_stackable` applies to it word for word: a limit says what may be
+        stacked on the item, `on_top` says nothing may be. It was missing only because nothing
+        honoured `on_top` yet."""
+        for limit in ({"type": "max_weight_on", "item": "B3", "limit_kg": 20},
+                      {"type": "max_stack_height", "item": "B3", "limit_cm": 40}):
+            with self.subTest(limit["type"]):
+                self.assertRejected([{"type": "on_top", "item": "B3"}, limit],
+                                    f"B3 cannot be both on_top and given a {limit['type']}")
+
+    def test_on_top_with_a_stop_is_not_a_conflict(self):
+        """Deliberately allowed. "Put the fragile one on top, it comes off at Le Havre" is one
+        sensible sentence: a box can ride on top and be reached at a later stop. Refusing it would
+        throw away a legitimate request, which the contract must never do for the sake of a plan the
+        solver finds awkward — `quai.solver.last` documents what it costs instead."""
+        payload = {"constraints": [{"type": "on_top", "item": "B3"},
+                                   {"type": "unload_at", "item": "B3", "stop": "S2"}],
+                   "unresolved": []}
+        self.assertEqual(find_problems(payload, MANIFEST), [])
+
+    def test_on_top_for_several_items_is_not_a_conflict(self):
+        # A top layer holds more than one box, so this is one request, not a clash.
+        payload = {"constraints": [{"type": "on_top", "item": "B3"},
+                                   {"type": "on_top", "item": "B1"}],
+                   "unresolved": []}
+        self.assertEqual(find_problems(payload, MANIFEST), [])
+
     def test_a_stack_limit_on_another_item_is_not_a_conflict(self):
         payload = {"constraints": [{"type": "not_stackable", "item": "B3"},
                                    {"type": "max_weight_on", "item": "B1", "limit_kg": 20}],

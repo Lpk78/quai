@@ -73,6 +73,42 @@ def weight_above(p: Placement, placements: list[Placement]) -> float:
                if any(under is p for under in stack_below(o, placements)))
 
 
+def footprints_overlap(a: Placement, b: Placement) -> bool:
+    """True if `a` and `b` share floor area, whatever height either of them is at."""
+    return (min(a.x2, b.x2) > max(a.x, b.x)
+            and min(a.y2, b.y2) > max(a.y, b.y))
+
+
+def covering(p: Placement, placements: list[Placement]) -> list[Placement]:
+    """Everything standing in the column above `p`, resting on it or not.
+
+    Deliberately not `stack_below` reversed. That walks the resting-contact graph, which is right for
+    `max_weight_on` because weight travels through contact — but a box supported three quarters by a
+    taller neighbour can **overhang** `p` without resting on it, and it is still over `p`. An operator
+    saying "nothing on top of this" means the column, not the contact graph.
+    """
+    return [o for o in placements
+            if o is not p and o.z >= p.z2 and footprints_overlap(o, p)]
+
+
+def covered_problems(placements: list[Placement], must_be_clear: set[str] | None) -> list[str]:
+    """Every box that had to stay clear and has something above it anyway.
+
+    `on_top` is read as "nothing is above it", which is what makes it checkable at all: "the top
+    layer" is not a thing the plan records, whereas an empty column is. The solver asks this of the
+    plan a candidate would produce, so the rule it packs by and the rule this module judges by are one
+    definition — the same arrangement `stack_problems` has.
+    """
+    problems = []
+    for p in placements:
+        if p.box.id not in (must_be_clear or set()):
+            continue
+        above = sorted(o.box.id for o in covering(p, placements))
+        if above:
+            problems.append(f"{p.box.id} must stay clear but carries {', '.join(above)} above it")
+    return problems
+
+
 def stack_problems(placements: list[Placement],
                    max_weight_on: dict[str, float] | None) -> list[str]:
     """Every box carrying more than the limit the operator gave it.
@@ -95,11 +131,14 @@ def stack_problems(placements: list[Placement],
 
 def find_problems(placements: list[Placement], container: Container,
                   min_support: float = MIN_SUPPORT,
-                  max_weight_on: dict[str, float] | None = None) -> list[str]:
+                  max_weight_on: dict[str, float] | None = None,
+                  must_be_clear: set[str] | None = None) -> list[str]:
     """List every physical problem in a plan. An empty list means the plan is valid.
 
     `max_weight_on` maps a box id to the weight its whole stack may not exceed, as the operator
-    stated it; boxes with no limit are left out of it.
+    stated it; boxes with no limit are left out of it. `must_be_clear` is the ids the operator asked
+    to keep nothing above — `on_top` — and a plan that puts something over one of them is invalid
+    here, not merely unlucky.
     """
     problems = []
     for p in placements:
@@ -119,6 +158,7 @@ def find_problems(placements: list[Placement], container: Container,
         if overlaps(a, b):
             problems.append(f"{a.box.id} overlaps {b.box.id}")
     problems += stack_problems(placements, max_weight_on)
+    problems += covered_problems(placements, must_be_clear)
     total = sum(p.box.weight for p in placements)
     if total > container.max_weight:
         problems.append(f"total weight {total} kg exceeds {container.max_weight} kg")

@@ -29,6 +29,11 @@ def slabs(*weights: float) -> list[Box]:
     return [Box(chr(ord("a") + i), 100, 100, 20, w) for i, w in enumerate(weights)]
 
 
+def half(box_id: str, height: int) -> Box:
+    """Half the floor of CONTAINER, so two of them fit side by side and both can have a clear top."""
+    return Box(box_id, 100, 50, height, 5)
+
+
 def crate(box_id: str, height: int) -> Box:
     """A box filling the floor of CONTAINER; its height is its volume, so the largest-first
     tie-break is easy to tell apart from the order the route asks for."""
@@ -379,7 +384,8 @@ class TestLoadingOrder(unittest.TestCase):
     def test_a_constraint_the_solver_cannot_honour_is_refused(self):
         """Dropping it would hand back a plan the independent check calls valid (issue #29)."""
         boxes = [crate("a", 40), crate("b", 30)]
-        for kind, extra in (("not_stackable", {}), ("at_bottom", {}), ("on_top", {}),
+        # `on_top` left this list in `SA-19`, which is the whole point of that change. Four remain.
+        for kind, extra in (("not_stackable", {}), ("at_bottom", {}),
                             ("keep_upright", {}), ("max_stack_height", {"limit_cm": 10})):
             with self.subTest(kind):
                 route = constraint_set(boxes, ("S1",), {"type": kind, "item": "a", **extra})
@@ -387,7 +393,7 @@ class TestLoadingOrder(unittest.TestCase):
                     solve(boxes, CONTAINER, route)
                 self.assertIn(kind, str(refused.exception))
 
-    def test_the_four_it_does_honour_are_not_refused(self):
+    def test_the_ones_it_does_honour_are_not_refused(self):
         boxes = [crate("a", 40), crate("b", 30)]
         route = constraint_set(boxes, ("S1", "S2"),
                                {"type": "unload_at", "item": "a", "stop": "S1"},
@@ -461,3 +467,133 @@ class TestTheDemoLoad(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNothingAboveIsGeometric(unittest.TestCase):
+    """`covering` reads the column, not the contact graph (`SA-19`).
+
+    This is the one design decision inside `on_top`, so it is pinned rather than assumed: a box held
+    up by a taller neighbour can hang over another box without resting on it, and an operator saying
+    "nothing on top of this" means that box too.
+    """
+
+    def setUp(self):
+        short = Placement(Box("short", 50, 100, 20), 0, 0, 0, 50, 100, 20)
+        tall = Placement(Box("tall", 50, 100, 40), 50, 0, 0, 50, 100, 40)
+        # Resting on `tall` (50 of its 60 cm of base, so 83% — supported), and overhanging `short`
+        # by 10 cm without touching it: `short` ends at z=20, this starts at z=40.
+        over = Placement(Box("over", 60, 100, 20), 40, 0, 40, 60, 100, 20)
+        self.plan = [short, tall, over]
+        self.short, self.over = short, over
+
+    def test_an_overhang_counts_as_being_above(self):
+        self.assertEqual([p.box.id for p in checks.covering(self.short, self.plan)], ["over"])
+
+    def test_the_contact_graph_alone_would_have_missed_it(self):
+        # Why `max_weight_on` and `on_top` cannot share one predicate: weight travels through contact,
+        # and this box's weight does not reach `short`, but it is still over it.
+        self.assertNotIn("short", [p.box.id for p in checks.stack_below(self.over, self.plan)])
+        self.assertEqual(checks.weight_above(self.short, self.plan), 0)
+
+    def test_the_checks_call_that_plan_invalid_when_short_must_stay_clear(self):
+        problems = find_problems(self.plan, Container(100, 100, 100), must_be_clear={"short"})
+        self.assertEqual(len(problems), 1)
+        self.assertIn("short must stay clear", problems[0])
+        self.assertIn("over", problems[0])
+
+    def test_a_box_that_must_stay_clear_with_an_empty_column_is_valid(self):
+        self.assertEqual(find_problems(self.plan, Container(100, 100, 100),
+                                       must_be_clear={"over"}), [])
+
+
+class TestOnTop(unittest.TestCase):
+    """`on_top`, honoured by placing the box last so nothing can land on it (`SA-19`)."""
+
+    def stack(self):
+        # Each crate fills the floor, so the only place for the next one is on top of the last.
+        return [crate("a", 40), crate("b", 30), crate("c", 20)]
+
+    def test_without_the_constraint_the_biggest_box_is_buried(self):
+        # The baseline the constraint has to change: largest-first puts `a` on the floor, and the
+        # other two end up over it.
+        plan = solve(self.stack(), CONTAINER)
+        self.assertEqual(plan.loading_order, ["a", "b", "c"])
+        placed = {p.box.id: p for p in plan.placements}
+        self.assertEqual(sorted(o.box.id for o in checks.covering(placed["a"], plan.placements)),
+                         ["b", "c"])
+
+    def test_on_top_moves_it_to_the_end_of_the_load_and_clears_its_column(self):
+        boxes = self.stack()
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "a"})
+        plan = solve(boxes, CONTAINER, route)
+        self.assertEqual(plan.loading_order[-1], "a", "it has to be loaded last")
+        placed = {p.box.id: p for p in plan.placements}
+        self.assertEqual(checks.covering(placed["a"], plan.placements), [])
+        self.assertGreater(placed["a"].z, 0, "and it ends up on top of the others, not beside them")
+
+    def test_nothing_is_attempted_after_it_which_is_why_the_property_holds(self):
+        # The argument this change rests on, asserted directly on the order the solver walks: every
+        # box that must stay clear is at the end of it, so no later placement exists that could land
+        # on one. Asserted on the attempted order, not `plan.loading_order`, which lists only the
+        # boxes that found room — a box left unplaced would otherwise hide the property.
+        boxes = self.stack() + [crate("d", 10)]
+        clear = {"a", "c"}
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "a"},
+                               {"type": "on_top", "item": "c"})
+        attempted = solver_module.last(solver_module.loading_order(boxes, route), clear)
+        self.assertEqual([box.id for box in attempted][-2:], ["a", "c"])
+        plan = solve(boxes, CONTAINER, route)
+        for placed in plan.placements:
+            if placed.box.id in clear:
+                with self.subTest(placed.box.id):
+                    self.assertEqual(checks.covering(placed, plan.placements), [])
+
+    def test_two_boxes_that_must_stay_clear_do_not_bury_each_other(self):
+        # The case ordering alone does not solve: the second one placed could land on the first. Half
+        # the floor each, so there is genuinely room for both to be clear side by side — with
+        # full-floor crates one of them would simply be unplaced and this would assert nothing.
+        boxes = [half("big", 40), half("x", 30), half("a", 20), half("b", 20)]
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "a"},
+                               {"type": "on_top", "item": "b"})
+        plan = solve(boxes, CONTAINER, route)
+        self.assertEqual(len(plan.placements), 4, "all four should fit; otherwise this proves little")
+        self.assertEqual(find_problems(plan.placements, CONTAINER,
+                                       must_be_clear={"a", "b"}), [])
+
+    def test_the_independent_checks_agree_with_the_plan_the_solver_built(self):
+        boxes = self.stack()
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "a"})
+        plan = solve(boxes, CONTAINER, route)
+        self.assertEqual(find_problems(plan.placements, CONTAINER, must_be_clear={"a"}), [])
+
+    def test_a_box_with_nowhere_clear_to_go_is_unplaced_rather_than_forced(self):
+        # Three crates exactly fill the height, so the last one can only go where it would be buried
+        # or not at all. Reported, never forced in — the rule the whole solver follows.
+        boxes = [crate("a", 40), crate("b", 40), crate("c", 40)]
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "c"})
+        plan = solve(boxes, CONTAINER, route)
+        self.assertIn("c", [box.id for box in plan.unplaced])
+        self.assertEqual(find_problems(plan.placements, CONTAINER, must_be_clear={"c"}), [])
+
+    def test_the_same_input_still_gives_the_same_plan(self):
+        boxes = self.stack()
+        route = constraint_set(boxes, ("S1",), {"type": "on_top", "item": "a"})
+        first, second = solve(boxes, CONTAINER, route), solve(boxes, CONTAINER, route)
+        self.assertEqual([(p.box.id, p.x, p.y, p.z) for p in first.placements],
+                         [(p.box.id, p.x, p.y, p.z) for p in second.placements])
+
+    def test_it_overrides_the_route_for_that_box_and_only_that_box(self):
+        # Stated out loud because it is the cost of this design: `load_last` sits below the stop in
+        # the order and can never cross it, but `on_top` has to, since being clear is a property of
+        # the finished plan. The other boxes keep their route order.
+        boxes = [crate("early", 40), crate("late", 30), crate("other", 20)]
+        route = constraint_set(boxes, ("S1", "S2"),
+                               {"type": "unload_at", "item": "early", "stop": "S1"},
+                               {"type": "unload_at", "item": "late", "stop": "S2"},
+                               {"type": "unload_at", "item": "other", "stop": "S2"},
+                               {"type": "on_top", "item": "late"})
+        plan = solve(boxes, CONTAINER, route)
+        # `late` is for the last stop, so the route alone would load it first; `on_top` sends it last.
+        self.assertEqual(plan.loading_order[-1], "late")
+        self.assertLess(plan.loading_order.index("other"), plan.loading_order.index("early"),
+                        "the boxes without on_top keep the order the route gave them")
