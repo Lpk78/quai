@@ -170,4 +170,16 @@ problem at any level and option 1 is the fallback, with the server changed to ma
 
 ## Scores
 
-See the results table in `documentation/prompt_evaluation.md`.
+**21/26** — C1 26, C2 24, C3 24, C4 26, C5 22, C6 26, C7 26, C8 26. Run on 2026-10-01 against
+`claude-haiku-4-5-20251001` at temperature 0, 26 sentences × 3 calls, same answer every time on 25/26.
+The first real score in the family.
+
+**78 of 78 replies parsed.** Not one fence, where v1 and v2 produced 156 out of 156 on the same
+prompt text. The envelope was the delivery, not the wording.
+
+All five remaining failures are in `unresolved`: T10 (C2, C3, C5), T20 (C2, C3), T14, T16 and T17
+(C5). T20 is the only sentence whose three runs disagreed — it reports `unknown_item` correctly and
+then invents a `not_stackable` anyway, on `B3` twice and `B1` once.
+
+See *Reading the v3 row* in `documentation/prompt_evaluation.md` for the comparison against the two
+fence-stripped diagnostics, which this run retrospectively confirms.
