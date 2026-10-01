@@ -388,4 +388,29 @@ sentence rather than recording anything (see `documentation/failures.md`).
 
 | Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total /26 | Model | Temp. | Date | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| v1_zero_shot | | | | | | | | | | | | | Not run yet (#12) |
+| v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
+
+**Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
+for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
+reply exactly as it arrives, so every one of them failed C1 before any field was looked at, and a
+sentence that fails C1 fails the rest — there is no object to check.
+
+Stripping the fence from the stored transcript and re-scoring the same replies gives **C1 25/26, C2
+24/26, C3 24/26, C4 26/26, C5 22/26, C6 26/26, C7 26/26, C8 26/26, Total 21/26**. That number is a
+**diagnostic, not a score**: it was not produced by a run, no version is credited with it, and it never
+appears in the table. It is recorded because it says where the next version's work is — one formatting
+habit is worth 21 sentences, and the remaining five failures are almost all in `unresolved`:
+
+- **T10** "nothing heavier than 50" — assumed kilograms and emitted `max_weight_on`, where the contract
+  wants `unit_missing`. The prompt says not to guess a unit that cannot be worked out; the model decided
+  it could be worked out.
+- **T20** "don't stack the microwave" — reported `unknown_item` *and* bound the request to `B2`, the
+  flat-screen TV, anyway. It did both things at once, which is exactly what C2 forbids.
+- **T24** "what's the weather in Rouen tomorrow?" — returned two empty lists. The contract says a
+  sentence that yields nothing gets at least one `unresolved` entry, so empty/empty is a C1 failure.
+- **T16** and **T17** — reported the doubt with the wrong `reason` (`out_of_scope` for an ambiguity),
+  and T17 collapsed its two separate faults into one entry.
+
+The constraint half of the contract came back essentially correct (C4, C6, C7 and C8 all 26/26, and C6
+held on T25, the injection case). The `unresolved` half is where instruction-only prose did not carry
+the distinctions. That is the evidence for what v2 tries, rather than a guess about it.

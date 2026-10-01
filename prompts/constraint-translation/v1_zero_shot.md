@@ -166,5 +166,18 @@ afterwards:
 
 ## Scores
 
-See the results table in `documentation/prompt_evaluation.md`. The run that produced the row is
-recorded there with its model and temperature.
+**0 on all eight criteria, Total 0/26.** Run on 2026-10-01 against `claude-haiku-4-5-20251001` at
+temperature 0, 26 sentences × 3 calls = 78 calls. Same answer every time on 26/26.
+
+Every one of the 78 replies came back wrapped in a ```json fence, so none of them reached `parse()`.
+The prompt says "No prose before or after it, no code fence" and the model fenced anyway, on every
+sentence, every run. The JSON *inside* the fence was usually right — T01 returned exactly the
+expected `not_stackable` on `B1` — which is the whole finding: this version failed on its envelope,
+not on its reading of the sentences.
+
+The row was not tuned before it was recorded. Fixing the fence and re-running would have produced a
+first row worth looking at and destroyed what a baseline is for.
+
+See *Reading the v1 row* in `documentation/prompt_evaluation.md` for the fence-stripped diagnostic and
+the five sentences that fail for reasons other than the fence. In short: the constraint half of the
+contract is essentially solved by instruction alone, and `unresolved` is not.
