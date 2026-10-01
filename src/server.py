@@ -13,10 +13,15 @@ from quai.solver import solve
 
 app = FastAPI(title="QUAI")
 
-# The web app runs on its own origin in development (Vite serves it on :5173), so the browser treats
-# every call to this API as cross-origin and blocks it before the handler runs. The allowed origins
-# are listed rather than opened with "*": this API is the only place the Claude key lives, and a
-# wildcard would let any page in the operator's browser call it.
+# The web app runs on its own origin in development (Vite serves it on :5173), so the browser refuses
+# to hand it the response unless this header says otherwise. The origins are listed rather than
+# opened with "*" so that the dev app works without every page the operator happens to have open
+# being able to read this API's answers.
+#
+# What this is not: access control. CORS is a rule browsers follow, not one the server enforces —
+# a request from any origin still runs, and curl ignores the whole mechanism. `POST /plan` is pure
+# computation, so that costs nothing. `POST /constraints` (#19) will spend Claude API credits, and
+# it needs authentication rather than an origin list. Checked by SamDana-maker on #33.
 DEV_ORIGINS = [
     "http://localhost:5173",   # vite dev server
     "http://127.0.0.1:5173",
