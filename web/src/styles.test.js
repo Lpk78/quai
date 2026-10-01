@@ -80,7 +80,12 @@ describe("the planned-not-shipped badge", () => {
     expect(rule).toContain("color: var(--quai-text-muted)");
     // the tint sits on a white card
     const pill = flatten("#102238", 0.07, "#FFFFFF");
-    const text = [0x4b, 0x55, 0x63]; // --quai-text-muted
+    // Read from tokens.css, not written out: the same drift this project fixed for navy on #28 and
+    // for the manifest colours on #33, and --quai-text-muted is derived in build-tokens.mjs rather
+    // than in tokens.json, so it is the easier one to change without thinking (#42).
+    const tokens = readFileSync("src/tokens.css", "utf8");
+    const muted = tokens.match(/--quai-text-muted:\s*(#[0-9A-Fa-f]{6})/)[1];
+    const text = [1, 3, 5].map((i) => parseInt(muted.slice(i, i + 2), 16));
     expect(contrast(text, pill)).toBeGreaterThanOrEqual(4.5);
   });
 });
