@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="QUAI">
+<title>QUAI</title>
+<rect width="512" height="512" rx="114" fill="#102238"/>
+<g transform="translate(94 110) scale(1.06)"><path d="M0,108 A108,108 0 0 1 108,0 L180,0 A108,108 0 0 1 288,108 L288,204 A46,46 0 0 1 242,250 L46,250 A46,46 0 0 1 0,204 Z" fill="#FFFFFF"/><path d="M66,92 Q66,70 88,74 L198,96 Q216,100 216,122 L216,210 L66,210 Z" fill="#102238"/><path d="M94,116 Q94,98 110,101 L174,118 Q190,122 190,138 L190,206 L94,206 Z" fill="#FF8A00"/><path d="M66,204 L240,194 L308,264 L142,278 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/></g>
+</svg>
