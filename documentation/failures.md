@@ -467,3 +467,33 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   fourth draw from the same distribution, and the next example's side effects are not predictable
   from the last one's.
 
+
+---
+
+## 2026-10-01 — The wiring we specified for `load_last` would have done nothing at all
+
+- What happened: `SA-16` was specified as "reorder that item to the end of the boxes list passed to
+  the solver (the solver places in list order, so this achieves loaded last)". The solver does not
+  place in list order. `solve()` places `loading_order(boxes, constraints)`, and `loading_order`
+  always sorts — by stop, then `load_last`, then descending volume, then id. Passing the list in a
+  different order was checked against the real solver: reversing the input gave a **byte-identical
+  plan**, and moving the box to the end of the list left its x unchanged at 0. The feature would have
+  shipped, passed a careless test, and done nothing.
+- Why: the premise was about a solver that does not exist. Worse, `load_last` is already in the
+  solver's `HONOURED` set and already implemented in `loading_order` via `last_group` — the work was
+  not to build the behaviour but to open a door to it. Three lines of wiring through
+  `quai.constraints.parse()` move the box from x=0 (loaded first, back wall) to x=70 (loaded last,
+  nearer the doors), which is the whole visible effect that was asked for.
+- What we tried: the premise was tested before it was built, which is the only reason this entry is
+  not a bug report. Two checks, both against `quai.solver` rather than against a reading of it:
+  reorder the input list and compare the plan (identical), then pass a `load_last` constraint through
+  `parse()` and compare (changed). The first attempt at the *test* was wrong in the same family — it
+  used a box that the volume tie-break was already loading last, so it asserted nothing; and the
+  first container was a 100 cm cube, where every box stacks at x=0 and "nearer the doors" cannot be
+  observed even when the ordering is correct. Both are now chosen deliberately, with the reason in a
+  comment.
+- What we learned: a task that says "the solver does X, so do Y" is two claims, and the cheap one to
+  check is the first. The reorder was plausible — plenty of packers do consume list order — and
+  nothing about the specification looked wrong until `loading_order` was read. For a solver this
+  layer does not own, read the function before wiring to its supposed behaviour.
+- Related branch / PR: `feature/plan-constraints`, `SA-16`.
