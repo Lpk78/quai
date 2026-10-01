@@ -64,4 +64,21 @@ Flagged for a follow-up rather than folded in here.
 
 ## Outcome
 
-_Filled after the PR is opened._
+- **PR:** https://github.com/Lpk78/quai/pull/56 (reviewer: `Lpk78`)
+- **What the AI produced:** the two `.plan-dims`/`.plan-at` grid-placement fixes (both breakpoints),
+  the `.plan-item--unplaced` truncation fix, and moving `.plan-summary`/`.plan-failure` onto `.card`.
+- **How it was checked:** `npm test` (60 pass) and `python -m unittest discover tests` (347 pass, 1
+  skip) locally — but the two named bugs are CSS-layout bugs jsdom's test environment cannot see
+  either way, passing or failing, since it does not run a real layout engine. Verified instead in an
+  actual Chromium tab: a true 390px viewport via an iframe (window resize has a 500px floor here), the
+  exact DOM rects measured before the fix (`.plan-dims` at 28×104px, wrapped) and after (294×21px,
+  one line), the same at a 700px desktop width, and the truncation fix tried against a long id that
+  isn't in the committed demo data. No new jsdom test was added for either bug: there isn't one that
+  would exercise the actual failure mode, and a test that can't fail is worse than none.
+- **What was changed by hand:** nothing in the committed code — the decisions are the diagnosis
+  itself. The task described bug 1 as being about `.plan-at`; reading the grid before writing CSS
+  found it was `.plan-dims`, and that the same mistake recurs for `.plan-at` at the desktop
+  breakpoint. The task described bug 2 as a current, observed overlap; it does not reproduce against
+  `demoLoad.js`'s data at any width tried, so it's recorded as a defensive fix for long ids (the kind
+  the Madrid-round data already in `/app` and `/app/dictate` uses) rather than claimed as a direct
+  repro.
