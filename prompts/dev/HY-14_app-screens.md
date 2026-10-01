@@ -41,4 +41,15 @@ covers, so the existing enforcement is extended rather than left to only check t
 
 ## Outcome
 
-_Filled after the PR is opened._
+- **PR:** https://github.com/Lpk78/quai/pull/47
+- **What the AI produced:** `web/src/data/manifest.js` (today's van, reusing the reference manifest),
+  `web/src/api.js` (minimal `postConstraints` client), `AppShell.jsx` turned into a layout with nested
+  routes, `Home.jsx`, `Dictate.jsx` (tap-to-talk with text-field fallback, the three result states),
+  `app.css`, the updates to `pages.test.jsx`, `copy.test.jsx` and `styles.test.js`, the new
+  `app.test.jsx` mocking the API client, and the README note.
+- **How it was checked:** `npm test` (35 tests, all passing) and `npm run build` run locally.
+- **What was changed by hand:** the decisions, not the output. Reusing the reference manifest from
+  `documentation/prompt_evaluation.md` as "today's van" instead of inventing demo data. Leaving the
+  route/ETA/stop-count content out of the home screen entirely, since it is both out of this task's
+  scope and the kind of claim `design.md`'s copy rules single out. Extending `copy.test.jsx` to
+  `/app/dictate` rather than leaving the new route unchecked.
