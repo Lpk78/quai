@@ -207,4 +207,23 @@ distinction.
 
 ## Scores
 
-See the results table in `documentation/prompt_evaluation.md`.
+**21/26** — C1 25, C2 25, C3 25, C4 26, C5 21, C6 26, C7 26, C8 26. 78 calls at temperature 0 on
+`claude-haiku-4-5-20251001`, same answer every time on 26/26. v3 scored 21, v4 scored 22.
+
+**The bound worked.** T13, broken by v4, passes again on all three runs — which is what this version
+was for.
+
+**Two sentences that passed in both v3 and v4 now fail**, and they fail in the same direction:
+
+- **T06** emits the correct `load_last` and then reports "I need it first on site" as `out_of_scope`.
+  That is the operator's reason for the request, read as a second request — C5's manufactured-doubt
+  direction.
+- **T24** returns two empty lists, the failure v1 had. It passed in v3 with no examples at all.
+
+All three examples here produce a non-empty `unresolved`, two with an empty `constraints`. The model
+began answering in the shapes it was shown. The falsification written before the run was "T13 failing
+again"; it did not, so the bound is sound — what the run falsified instead is the assumption that
+adding examples only affects the cases they depict.
+
+See *Reading the v5 row* in `documentation/prompt_evaluation.md` for the per-sentence table against
+v3 and v4.

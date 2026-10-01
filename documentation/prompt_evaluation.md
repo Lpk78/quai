@@ -407,6 +407,7 @@ sentence rather than recording anything (see `documentation/failures.md`).
 | v2_output_format | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Same inputs, model and temperature as v1. Output section rewritten, everything else byte-identical. **78 of 78 replies fenced again** — the change made no difference at all |
 | v3_response_prefill | 26 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | **21** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Prompt byte-identical to v2; the request ends with an assistant turn `{`. **78 of 78 replies parsed.** 3 runs per sentence; same answer every time on 25/26 |
 | v4_few_shot | 26 | 24 | 24 | 26 | 23 | 26 | 26 | 26 | **22** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | v3's prompt with four worked examples appended, same delivery. 3 runs per sentence; same answer every time on 26/26 |
+| v5_bounded_examples | 25 | 25 | 25 | 26 | 21 | 26 | 26 | 26 | **21** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | From v3, not v4. Three examples, one of which bounds another. T13 fixed; T06 and T24 newly broken. 3 runs per sentence; same answer every time on 26/26 |
 
 **Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
 for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
@@ -558,3 +559,43 @@ T16 and T17. The remaining `unresolved` failures may not be a prompting problem 
 is a defensible reading of "load the appliances together", and T17 collapses two faults into one entry
 that is not wrong so much as incomplete. Before a fifth version, the rubric's expectations for those
 three are worth re-reading against what a careful operator would actually accept.
+
+**Reading the v5 row: the bound worked and the examples still cost two sentences.** v5 starts from v3,
+not v4, and carries three examples: v4's unknown-item example, a **new counter-example** placed
+immediately after it to mark where its rule stops, and v4's `ambiguous`-not-`out_of_scope` example.
+v4's other two were dropped for having had no measurable effect.
+
+Per sentence, across the three versions that could be scored:
+
+| | v3 | v4 | v5 | |
+|---|---|---|---|---|
+| **T13** "Put the fragile stuff on top." | pass | **C2, C3** | **pass** | the counter-example did its job |
+| **T20** "…don't stack the microwave" | C2, C3 | pass | pass | |
+| **T14** "the heavy things on the light ones" | C5 | pass | pass | |
+| **T06** "Load the toolbox last, I need it first on site." | pass | pass | **C5** | **new** |
+| **T24** "What's the weather in Rouen tomorrow?" | pass | pass | **C1, C5** | **new** |
+| **T10**, **T16**, **T17** | fail | fail | fail | unmoved by anything, three versions running |
+| **Total** | **21** | **22** | **21** | |
+
+**The counter-example worked exactly as designed.** T13 was broken by v4 teaching "answer the
+resolvable part of any doubtful sentence"; v5 places a case with no resolvable part directly beside
+that rule and says it is its limit, and T13 passes again on all three runs. That part is a clean
+result: an over-general lesson can be bounded by showing where it stops.
+
+**And the two new failures point the same way as each other.** T06 "Load the toolbox last, I need it
+first on site" now emits the correct `load_last` **and** reports "I need it first on site" as
+`out_of_scope` — the operator's reason for the request, read as a second request. That is C5's other
+direction: doubt manufactured where the sentence is clear. T24 returns **two empty lists**, the exact
+failure v1 had, and it passed in v3 with no examples at all and in v4 with an example covering it.
+
+Together they say something sharper than "v5 is worse". All three of v5's examples produce a
+non-empty `unresolved`, and two of them pair it with an empty `constraints`. The model has started
+answering in the shapes it was shown: it reaches for `unresolved` on a sentence that needs none
+(T06), and for a sentence matching no example it produces the empty shell (T24) rather than falling
+back on the contract. **Examples do not only teach the decision they show; they narrow what the model
+treats as a possible answer.** That is the same mechanism as v4's regression, seen from the other
+side — v4 over-generalised one example, v5 under-covered the space with three.
+
+**Three versions have now not moved T10, T16 or T17.** Prose did not, four examples did not, and
+three bounded examples did not. Per the decision recorded on #40, the rubric stays as it is for T16
+and T17 and they are recorded here as a debatable expectation rather than re-scored.

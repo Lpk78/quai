@@ -418,3 +418,29 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   directions. Next time, an experiment with four independent changes should expect to be read as four
   results.
 - Related branch / PR: `prompt/constraint-translation-v4-few-shot`, #12.
+
+---
+
+## 2026-10-01 — Worked examples narrow what the model thinks an answer can look like
+
+- What happened: v4 broke T13 by over-generalising one example. v5 fixed that precisely — a
+  counter-example placed beside the rule, labelled as its limit — and **T13 passed again on all three
+  runs**. In the same run, **T06 and T24 failed for the first time**, and both had passed in v3 (no
+  examples) and in v4 (four examples). The Total went 22 back down to 21.
+- Why: all three of v5's examples produce a non-empty `unresolved`, and two pair it with an empty
+  `constraints`. T06 is a clear sentence with a reason attached — "Load the toolbox last, I need it
+  first on site" — and v5 emits the right `load_last` and then reports the *reason* as
+  `out_of_scope`, manufacturing doubt that is not there. T24 matches none of the three examples and
+  comes back as two empty lists, the failure v1 had. The examples stopped being illustrations of
+  decisions and became the space of permitted answers.
+- What we tried: kept the result and reported it per sentence against both ancestors rather than as a
+  Total, because the Total says "21, no better than v3" and the per-sentence table says three
+  different things: the bound worked, two new sentences broke in the same direction, and three
+  sentences have now resisted prose, four examples and three bounded examples alike.
+- What we learned: an example is not an additive instruction. v4's lesson was that an example teaches
+  the decision it shows *plus* whatever generalisation the reader draws; v5's is the other half —
+  the set of examples also tells the model what an answer is allowed to look like, so a case covered
+  by none of them gets answered in the nearest shape rather than from the contract. Adding an example
+  changes the sentences it does not mention. Both regressions were invisible in the Total and obvious
+  in the per-sentence diff, which is the second time that table has been the whole value of a run.
+- Related branch / PR: `prompt/constraint-translation-v5-bounded-examples`, #12.
