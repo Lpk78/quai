@@ -99,29 +99,36 @@ class TestGeocoding(unittest.TestCase):
 
 class TestTheRoute(unittest.TestCase):
     def points(self):
-        return [routing.Point(*AMIENS, "Amiens"),
-                routing.Point(*PARIS, "Paris"),
-                routing.Point(*LILLE, "Lille")]
+        """Lille, then Amiens, then Paris.
+
+        Deliberately not the order any plausible 'optimisation' would produce: sorting these by
+        longitude, by latitude or by name all give something else, so a test that passes here is a
+        test that could have failed. An earlier version of this fixture drove them west-to-east and
+        silently tolerated a sort (see `documentation/failures.md`).
+        """
+        return [routing.Point(*LILLE, "Lille"),
+                routing.Point(*AMIENS, "Amiens"),
+                routing.Point(*PARIS, "Paris")]
 
     def test_the_stops_are_driven_in_the_order_given(self):
         """The rule this module exists for: coordinates enter the URL in the order supplied."""
-        rec = service({}, route_payload=routed([AMIENS, PARIS, LILLE]))
+        rec = service({}, route_payload=routed([LILLE, AMIENS, PARIS]))
         with rec.client() as client:
             routing.road_route(self.points(), client)
         path = rec.urls[0]
-        self.assertIn("2.290084,49.897442;2.3522,48.8566;3.0573,50.6292", path)
+        self.assertIn("3.0573,50.6292;2.290084,49.897442;2.3522,48.8566", path)
 
     def test_the_trip_service_is_never_called(self):
         """OSRM's /trip reorders the stops to make the journey shorter. That is the one thing QUAI
         must not do: the order comes with the manifest and the vehicle was loaded against it."""
-        rec = service({}, route_payload=routed([AMIENS, PARIS, LILLE]))
+        rec = service({}, route_payload=routed([LILLE, AMIENS, PARIS]))
         with rec.client() as client:
             routing.road_route(self.points(), client)
         self.assertIn("/route/v1/", rec.urls[0])
         self.assertNotIn("/trip/", rec.urls[0])
 
     def test_distance_duration_and_geometry_come_back(self):
-        rec = service({}, route_payload=routed([AMIENS, PARIS, LILLE]))
+        rec = service({}, route_payload=routed([LILLE, AMIENS, PARIS]))
         with rec.client() as client:
             road = routing.road_route(self.points(), client)
         self.assertEqual(road.distance_m, 2000.0)
@@ -144,7 +151,7 @@ class TestTheRoute(unittest.TestCase):
 
     def test_a_leg_count_that_does_not_match_the_stops_is_refused(self):
         """One leg per pair is what makes the cumulative sum mean 'arrival at stop i'."""
-        wrong = routed([AMIENS, PARIS, LILLE])
+        wrong = routed([LILLE, AMIENS, PARIS])
         wrong["routes"][0]["legs"] = wrong["routes"][0]["legs"][:1]
         rec = service({}, route_payload=wrong)
         with rec.client() as client:
