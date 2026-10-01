@@ -245,6 +245,29 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `docs/backfill-dev-prompts`, `LP-16`; the unrecoverable prompt belongs to #3.
 
 ---
+## 2026-09-30 — A stack limit the solver only ever enforced upwards
+
+- What happened: the solver checked `max_weight_on` by asking, of the box it was about to place, which
+  boxes it would come to rest on and whether its weight still fitted under their limits. That is only
+  right while boxes go in from the bottom up. A box placed later can slide into a gap *under* one already
+  loaded — first fit tries the lowest corner first, so it does exactly that — and becomes a new support
+  for it. The load already sitting above was never counted against it. 117 tests were green; a sweep over
+  200 generated loads with routes and limits produced 2 plans that broke a limit.
+- Why: the check was written as a delta — "what does this box add?" — because that is how the cap on the
+  whole load works, and the same shape was reused without asking whether placing a box can change what
+  rests on a box that is already placed. It can.
+- What we tried: `checks.stack_problems()` is now the one definition of the rule. The independent checks
+  ask it of the finished plan and the solver asks it of the plan a candidate placement would produce, so
+  the solver cannot pack by a looser reading than the checks judge by. The smallest case is
+  `test_a_box_cannot_slide_under_a_load_it_may_not_carry`, and the sweep that found it is now a test.
+- What we learned: two things. A greedy packer does not fill bottom-up, so nothing about a plan may be
+  treated as settled while boxes are still going in. And a hand-written suite only proves what its author
+  already thought of — every one of the 117 tests was written by someone who believed the check was
+  right, and the bug came out of loads nobody designed.
+- Related branch / PR: `feature/solver-v2`, #17.
+
+---
+
 ## 2026-10-01 — A brand kit whose own mockups failed accessibility
 
 - What happened: the approved design pack arrived with the primary action buttons drawn as white text
@@ -333,6 +356,238 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   expected to find hard, so the family's first recorded score would have been a prompt shown its own test
   set. Caught before the run; the script now sends only what sits between the prompt markers.
 - Related branch / PR: `prompt/constraint-translation-v1-zero-shot`, #12.
+
+---
+
+## 2026-10-01 — Two prompt versions, 156 calls, and the fence did not move
+
+- What happened: `v1_zero_shot` scored **0/26** because all 78 replies arrived inside a ```json fence
+  and `parse()` reads the reply as it comes. `v2_output_format` changed the *Output* section and
+  nothing else — the rest of the prompt was spliced from v1 byte for byte — removing the fenced
+  example v1 had demonstrated while forbidding fences, stating the rule as a property the model can
+  check while writing ("the first character you emit is `{`"), and giving the reason. It scored
+  **0/26**: 78 of 78 replies fenced again, byte-identically, `Same answer on every run: 26/26` both
+  times.
+- Why: the hypothesis was that v1's instruction and its example disagreed and the example won. It was
+  a good hypothesis — 78 out of 78 is far too consistent for reluctance — and it was wrong. Whatever
+  produces the fence on `claude-haiku-4-5-20251001` is not reachable from the system prompt. Three
+  separate instructions, a removed demonstration, and a stated reason changed the output by zero
+  replies. The lesson is not about fences: it is that "say it more clearly" is a hypothesis like any
+  other, and it can be tested cheaply and be false.
+- What we tried: recorded both zeros, kept v2 rather than iterating the wording a third time, and
+  wrote down what the remaining options actually cost — strip the fence before `parse()` (contradicts
+  the contract, because the server hands the reply over unchanged), constrain the reply with
+  `output_config.format` (rejected on purpose, it makes C1 true by construction), or score a different
+  model (answers a different question). All three are decisions for the reviewer rather than a third
+  rewording, so none is in the PR.
+- What we learned: two things, and the second is the one worth keeping. First, a negative result for
+  the cost of one evaluation is cheap, and the splice is what made it a result at all — because
+  exactly one section differed, "wording cannot fix this" is a conclusion rather than a guess.
+  Second, the run also re-tested the v1 diagnostic by deliberately *not* fixing the five non-fence
+  failures: **T10, T16, T17 and T20 failed identically in both runs**, which is what makes the
+  fence-stripped figure trustworthy enough to brief a later version on. T24 improved and T06 and T14
+  regressed, so the diagnostic moved 21 → 20 while the recorded score stayed 0 → 0. A version that
+  cannot be parsed is worth nothing whatever its content does.
+- Related branch / PR: `prompt/constraint-translation-v2-output-format`, #12.
+
+---
+
+## 2026-10-01 — A worked example taught more than it was shown
+
+- What happened: `v4_few_shot` added four worked examples to v3's prompt, one per `unresolved` failure.
+  The Total moved 21/26 → 22/26. Underneath that: **T20 and T14 were fixed, T13 was broken, and T10,
+  T16 and T17 did not move at all.** T13 had passed every criterion on v3.
+- Why: Example 1 shows a compound sentence — one half names a real item, the other names something
+  absent — and teaches "translate the real half, report the absent half, bind nothing to it". That is
+  T20's exact shape and T20 was fixed. The model also drew the wider lesson "answer the resolvable
+  part of any doubtful sentence", and applied it to T13, where there is no resolvable part: "the
+  fragile stuff" is an ambiguous reference, so the contract wants an `unresolved` entry and an empty
+  `constraints` list. v4 reports the ambiguity correctly and emits `on_top` for `B2` and `B5` anyway.
+  An example teaches the decision it shows *and* whatever generalisation the reader draws from it, and
+  the second is not the author's to choose.
+- What we tried: kept the regression and recorded it per sentence rather than reporting +1 and moving
+  on. The headline is the least informative number in the result: two fixed, one broken and three
+  untouched is four different findings, and only the per-sentence table shows them. Also recorded that
+  Examples 2 and 3 had **no measurable effect** — T10 still guesses kilograms and T16/T17 still answer
+  `out_of_scope` where the contract wants `ambiguous` — so few-shot is not a general lever here. It
+  moved what matched an example's shape and left the rest.
+- What we learned: a prompt change is not one intervention with one number. v4 was four examples and
+  produced at least four separate effects, two of them in opposite directions, and a Total that
+  averages them hides all of it. The three-runs rule and the per-sentence table are what made this
+  legible — without them this is "+1, few-shot helps a bit", which is the wrong conclusion in both
+  directions. Next time, an experiment with four independent changes should expect to be read as four
+  results.
+- Related branch / PR: `prompt/constraint-translation-v4-few-shot`, #12.
+
+---
+
+## 2026-10-01 — Worked examples narrow what the model thinks an answer can look like
+
+- What happened: v4 broke T13 by over-generalising one example. v5 fixed that precisely — a
+  counter-example placed beside the rule, labelled as its limit — and **T13 passed again on all three
+  runs**. In the same run, **T06 and T24 failed for the first time**, and both had passed in v3 (no
+  examples) and in v4 (four examples). The Total went 22 back down to 21.
+- Why: all three of v5's examples produce a non-empty `unresolved`, and two pair it with an empty
+  `constraints`. T06 is a clear sentence with a reason attached — "Load the toolbox last, I need it
+  first on site" — and v5 emits the right `load_last` and then reports the *reason* as
+  `out_of_scope`, manufacturing doubt that is not there. T24 matches none of the three examples and
+  comes back as two empty lists, the failure v1 had. The examples stopped being illustrations of
+  decisions and became the space of permitted answers.
+- What we tried: kept the result and reported it per sentence against both ancestors rather than as a
+  Total, because the Total says "21, no better than v3" and the per-sentence table says three
+  different things: the bound worked, two new sentences broke in the same direction, and three
+  sentences have now resisted prose, four examples and three bounded examples alike.
+- What we learned: an example is not an additive instruction. v4's lesson was that an example teaches
+  the decision it shows *plus* whatever generalisation the reader draws; v5's is the other half —
+  the set of examples also tells the model what an answer is allowed to look like, so a case covered
+  by none of them gets answered in the nearest shape rather than from the contract. Adding an example
+  changes the sentences it does not mention. Both regressions were invisible in the Total and obvious
+  in the per-sentence diff, which is the second time that table has been the whole value of a run.
+- Related branch / PR: `prompt/constraint-translation-v5-bounded-examples`, #12.
+
+- **Decision, 2026-10-01 (`Lpk78`, AI-layer owner): example-based iteration stops here.** v5 is
+  recorded as it stands — 21/26 is a result, and *each example fixes its target and breaks something
+  else* is the finding. **v4 (22/26) remains the version `POST /constraints` (#19) uses in
+  production.** The evidence is the per-sentence table across the three versions that could be
+  scored, which no Total shows:
+
+  | | v3 | v4 | v5 |
+  |---|---|---|---|
+  | T13 "Put the fragile stuff on top." | pass | **C2, C3** | pass |
+  | T20 "…don't stack the microwave" | **C2, C3** | pass | pass |
+  | T14 "the heavy things on the light ones" | **C5** | pass | pass |
+  | T06 "Load the toolbox last, I need it first on site." | pass | pass | **C5** |
+  | T24 "What's the weather in Rouen tomorrow?" | pass | pass | **C1, C5** |
+  | T10, T16, T17 | fail | fail | fail |
+  | **Total** | **21** | **22** | **21** |
+
+  Read down the columns rather than along the bottom row: every example-based version fixed the
+  sentences its examples depicted and broke sentences they did not. v4 bought T20 and T14 with T13;
+  v5 bought T13 back with T06 and T24. Three sentences moved for nobody. A sixth version would be a
+  fourth draw from the same distribution, and the next example's side effects are not predictable
+  from the last one's.
+
+
+---
+
+## 2026-10-01 — The wiring we specified for `load_last` would have done nothing at all
+
+- What happened: `SA-16` was specified as "reorder that item to the end of the boxes list passed to
+  the solver (the solver places in list order, so this achieves loaded last)". The solver does not
+  place in list order. `solve()` places `loading_order(boxes, constraints)`, and `loading_order`
+  always sorts — by stop, then `load_last`, then descending volume, then id. Passing the list in a
+  different order was checked against the real solver: reversing the input gave a **byte-identical
+  plan**, and moving the box to the end of the list left its x unchanged at 0. The feature would have
+  shipped, passed a careless test, and done nothing.
+- Why: the premise was about a solver that does not exist. Worse, `load_last` is already in the
+  solver's `HONOURED` set and already implemented in `loading_order` via `last_group` — the work was
+  not to build the behaviour but to open a door to it. Three lines of wiring through
+  `quai.constraints.parse()` move the box from x=0 (loaded first, back wall) to x=70 (loaded last,
+  nearer the doors), which is the whole visible effect that was asked for.
+- What we tried: the premise was tested before it was built, which is the only reason this entry is
+  not a bug report. Two checks, both against `quai.solver` rather than against a reading of it:
+  reorder the input list and compare the plan (identical), then pass a `load_last` constraint through
+  `parse()` and compare (changed). The first attempt at the *test* was wrong in the same family — it
+  used a box that the volume tie-break was already loading last, so it asserted nothing; and the
+  first container was a 100 cm cube, where every box stacks at x=0 and "nearer the doors" cannot be
+  observed even when the ordering is correct. Both are now chosen deliberately, with the reason in a
+  comment.
+- What we learned: a task that says "the solver does X, so do Y" is two claims, and the cheap one to
+  check is the first. The reorder was plausible — plenty of packers do consume list order — and
+  nothing about the specification looked wrong until `loading_order` was read. For a solver this
+  layer does not own, read the function before wiring to its supposed behaviour.
+- Related branch / PR: `feature/plan-constraints`, `SA-16`.
+
+---
+
+## 2026-10-01 — Scanning one small parcel ejected two cartons already loaded
+
+- What happened: the demo fixture (`SA-15`) loads eighteen boxes at 77.8% fill, then adds the parcel
+  scanned on stage. With that parcel assigned to stop 4 (Retiro), the plan came back **17 of 19
+  placed**: the parcel went in and `B15` and `B18` — two cartons that fit before it existed — came
+  out. The fill rate fell from 77.8% to 74.4%. Adding one 40 x 30 x 25 box made the load worse.
+- Why: `quai.solver` is first fit over candidate corners, and `loading_order` sorts by stop before
+  volume. A parcel for stop 4 is loaded in the middle of the round, so it takes a corner the boxes
+  for stops 3, 2 and 1 were going to use, and the corners it creates in exchange are the wrong shape
+  for them. Nothing is wrong with any single placement; the greedy choice is simply not reversible,
+  and the heuristic never reconsiders a box it has already placed.
+- What we tried: the parcel at every plausible stop. Stop 1 placed all nineteen (78.4%), stops 2 and
+  8 lost one carton, stops 3 and 4 lost two. Shortening the lamp carton `B18` from 45 to 40 cm then
+  let the parcel go to stop 2 — Chamberí, the first real delivery — with **19 of 19 placed** and the
+  fill rate rising to 78.2%, which is the fixture as committed. So the fix was a centimetre of
+  clearance, not a change of stop.
+- What we learned: "the solver found a place for it" and "the load is still as good" are different
+  questions, and only the second one matters to an operator watching a screen. A live-scan feature
+  that re-plans has to compare the new plan against the old one and say what moved — which is the
+  layer roadmap row 12 (`feature/constraint-solving`) will own, since that is where constraints
+  accumulate across sentences and the plan is recomputed. Worth remembering before the demo: the
+  cascade is real, it is reachable with one parcel, and it is invisible unless the unplaced list is
+  on screen.
+- Related branch / PR: `feature/demo-fixtures`, `SA-15`.
+
+---
+
+## 2026-10-01 — The phone demo and the camera cannot both work over `http://`
+
+- What happened: `LP-20` asked for two things that turn out to contradict each other. Reaching the
+  dev servers from a phone means serving them on the LAN over plain `http://`, at
+  `http://192.168.1.201:5173`. Scanning an operator card means `getUserMedia`, which browsers only
+  expose in a *secure context* — HTTPS, or `localhost`. A LAN IP over `http://` is neither, so on the
+  phone `navigator.mediaDevices` is not merely blocked, it is `undefined`.
+- Why: the two halves of the task were specified against different assumptions about where the app
+  runs. Nothing in either half is wrong on its own; the conflict only exists once they are the same
+  deployment. `localhost` is a special case in the spec precisely so that development works without
+  certificates, and it does not extend to the machine's other addresses.
+- What we tried: measured rather than assumed, with one vite server bound to both names on the same
+  port so only the host differed. At `http://localhost:5174`, `isSecureContext` is `true` and
+  `navigator.mediaDevices.getUserMedia` exists. At `http://192.168.1.201:5174`, `isSecureContext` is
+  `false` and `navigator.mediaDevices` is absent. Same build, same port, same browser.
+- What we learned: the screen was built so that the absent camera is a state and not a crash — the
+  same shape the dictate screen already uses when speech recognition is missing. `/login` detects it
+  and offers the code typed in instead, so the phone demo still signs in either way. That fallback is
+  what made the finding survivable rather than fatal, and it is still the behaviour on any machine
+  without a certificate.
+- **Resolved the same evening (`LP-21`).** mkcert issues a certificate for the Mac's LAN address,
+  `vite.config.js` picks it up when `.certs/` exists, and both servers run over HTTPS. Measured
+  again at `https://192.168.1.201:5173`: `isSecureContext` is now `true`, `getUserMedia` exists, and
+  the scanner reaches its `scanning` state — the camera opens. The remaining manual step is on the
+  device and not in the repository: the phone trusts the Mac's CA only once its root is installed
+  *and* enabled there, which the README now spells out.
+- Related branch / PR: `feature/phone-demo-login`, `LP-20`; fixed by `feature/https-lan`, `LP-21`.
+
+---
+
+## 2026-10-02 — An unhandled exception told the operator the server was unreachable
+
+- What happened: `POST /constraints` caught `llm.CallFailed` and nothing else. `_translate` calls
+  `llm.from_env()`, which raises `MissingKey`, `MissingModel` or a bare `NotConfigured` when `.env`
+  has no key, no model, or the `anthropic` package is absent — and `Translator.translate` raises
+  `FatalCall` when the API rejects the request, which is what a key that is *present but wrong* does.
+  **Four of the five ways that call can fail were unhandled**, and each answered a bare `500`.
+- Why the `500` was the smaller half of the problem: FastAPI's default exception handler sits
+  **outside** `CORSMiddleware`, so its response carries no `access-control-allow-origin`. The browser
+  refuses to let the page read it, `fetch` throws, and `web/src/api.js` maps a thrown fetch to
+  `kind: "unreachable"`. The screen then says *"Could not reach the solver at
+  http://127.0.0.1:8000"* — about a server that is running, listening, and answering. Measured rather
+  than reasoned: the same endpoint's handled `422` carries the header, and the same request shape
+  tripping `MissingKey` came back `500` with no header at all. Same server, same origin, only the
+  exception type differing.
+- What we tried: catching `NotConfigured` by its **base class** rather than naming `MissingKey` and
+  `MissingModel`. That covers the "anthropic is not installed" case, which is raised directly as
+  `NotConfigured` and which neither of the two reports of this bug had noticed, and it covers whatever
+  `from_env` learns to require next without anyone remembering to come back here. `FatalCall` is caught
+  separately as a `502`: the model answered, just not usably, which is what the existing `502` for a
+  reply that fails validation already means.
+- What we learned: on an endpoint a browser calls, an unhandled exception is not "a 500 instead of a
+  nice message" — it is a *different error class* by the time it reaches the user, because the handler
+  that produces it is outside the middleware that makes it readable. The wrong diagnosis was the real
+  cost: "could not reach the solver" sends an operator to restart a healthy process, which is the one
+  action that cannot help. Worth asking of every `except` on this layer: what does the browser see for
+  the exceptions this does *not* name?
+- Found in end-to-end retesting the evening before the demo, independently by `MORHI11` and by
+  `Lpk78`, which is the argument for retesting a path end to end after the screens around it change
+  rather than trusting that each piece still works.
+- Related branch / PR: `fix/constraints-config-errors`, `SA-18`.
 
 ---
 

@@ -10,10 +10,10 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
 | 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
-| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | To do |
+| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | In review (#27) |
 | 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
 | 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | In review (#33) |
-| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
+| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `SamDana-maker` | `MORHI11` | Plan screen in review (#45); 3D view next |
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
 
 Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` wrote the v1 solver,
@@ -27,12 +27,14 @@ starting with row 2.
 | 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | Done (#14) |
 | 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | In review (#21) |
 | 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | In review (#22) |
-| 10 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
-| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON → solver, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | To do |
+| 10 | #12 | `prompt/constraint-translation-v5-bounded-examples` | The `constraint-translation` family, v1 to v5, each with real scores; v4 stays in production (`documentation/failures.md`) | `Lpk78` | `SamDana-maker` | In review (#43) |
+| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | In review (#46) |
+| 12 | #19 | `feature/constraint-solving` | Constraints accumulated across sentences and handed to the solver | `Lpk78` | `SamDana-maker` | To do |
 
-Row 11 is the feature the whole AI layer builds towards; rows 7 to 10 are what make it possible. It is
-where the prompt, the schema and the solver become one path, behind `POST /constraints` on the server
-from row 3. #10 points at this row.
+Row 11 is the translation step: one operator sentence into validated constraint JSON, over
+`POST /constraints` on the server from row 3; rows 7 to 10 are what make it possible, and #10 points
+at this row. Row 12 is the feature the whole AI layer builds towards — it is where the prompt, the
+schema and the solver become one path, consuming what row 11 produces.
 
 Row 9 is branched off row 8 rather than off `main`: C1 of the rubric is `quai.constraints.parse()`,
 so #22 has to be merged after #21.
@@ -46,7 +48,7 @@ so #22 has to be merged after #21.
 | `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | In review (#35) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
-| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Now part of #17 |
+| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done in #17 |
 
 A dash means nobody has claimed it yet, not that it has no natural owner.
 
@@ -58,11 +60,17 @@ than forgotten.
 
 | Limitation | What happens today | Why it matters |
 |---|---|---|
-| Stacking ignores weight and fragility | Boxes are ordered by volume only, so a heavy box may sit on a light or fragile one | A washing machine on cartons is a broken load even when the geometry checks out |
+| Stacking only knows the weight it was told about | The solver enforces a `max_weight_on` over the whole stack (#17), but a box nobody gave a limit for still carries anything that fits | A washing machine on cartons is a broken load even when the geometry checks out, and the operator has to say so for the solver to know |
 | First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load) |
 
-Weight-aware stacking is now issue #17 (`feature/solver-v2`, row 2). The greedy first-fit stays open,
-for after phase 1 works end to end.
+Weight-aware stacking was issue #17 (`feature/solver-v2`, row 2): a stated limit is now enforced, and
+what is left of that row is fragility the operator never states. The greedy first-fit stays open, for
+after phase 1 works end to end — and #17 made it worse rather than better, since the route now decides
+what goes in first and size only breaks the ties: the demo load drops from 39 % to 21 % once its boxes
+are dealt round-robin over three stops. Both figures are pinned by `TestTheDemoLoad` in
+`tests/test_solver.py`, because the drop belongs to the split that produced it and other splits of the
+same boxes go lower still. That is the right trade (a load nobody can unload is not a good load), but
+it is the strongest argument yet for revisiting first fit.
 
 ## Course checkpoints
 

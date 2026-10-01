@@ -15,12 +15,21 @@ function at(path) {
 describe("routing", () => {
   it("shows the landing page at /", () => {
     at("/");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("People talk. We load.");
+    // The headline is broken over two lines, as the mockup sets it, so textContent has no space.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(/People talk\./);
+    expect(heading).toHaveTextContent(/We load\./);
   });
 
-  it("shows the application shell at /app", () => {
+  it("shows the application home at /app", () => {
     at("/app");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Plan a load");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Good morning. Let’s load.");
+  });
+
+  it("shows the dictate screen at /app/dictate, inside the same shell", () => {
+    at("/app/dictate");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell QUAI your loading rules");
+    expect(screen.getByAltText("QUAI")).toBeInTheDocument();
   });
 
   it("shows a plain page for an address that does not exist", () => {
@@ -28,17 +37,20 @@ describe("routing", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Nothing at this address");
   });
 
-  it("lets the landing page reach the application", () => {
+  it("lets the landing page reach the application, through /login", () => {
     at("/");
-    expect(screen.getAllByRole("link", { name: /open the app/i }).length).toBeGreaterThan(0);
+    const toLogin = screen
+      .getAllByRole("link")
+      .filter((a) => a.getAttribute("href") === "/login");
+    expect(toLogin.length).toBeGreaterThan(0);
+    expect(toLogin.some((a) => /get started/i.test(a.textContent))).toBe(true);
+    // /login is the way in, so no call to action skips it.
+    expect(screen.queryAllByRole("link", { name: /open the app|log in|get started/i })
+      .every((a) => a.getAttribute("href") === "/login")).toBe(true);
   });
-});
 
-describe("the application shell is deliberately empty", () => {
-  it("names what will fill it rather than pretending it is there", () => {
-    at("/app");
-    expect(screen.getByText("#7")).toBeInTheDocument();
-    expect(screen.getByText("#8")).toBeInTheDocument();
-    expect(screen.getByText(/nothing to show yet/i)).toBeInTheDocument();
+  it("shows the login screen at /login", () => {
+    at("/login");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Scan your operator card");
   });
 });

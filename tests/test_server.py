@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import httpx  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from quai import routing  # noqa: E402
+import server  # noqa: E402
+from quai import llm, routing  # noqa: E402
 from quai.checks import find_problems  # noqa: E402
 from quai.models import Box, Container, Placement  # noqa: E402
 from server import app  # noqa: E402
@@ -66,8 +67,10 @@ class TestPlanEndpoint(unittest.TestCase):
 
     def test_empty_box_list_gives_an_empty_plan(self):
         body = self.post([]).json()
+        # `not_applied` is always present, empty when every constraint reached the solver — so the
+        # web app can read its length without first checking the key exists (SA-16).
         self.assertEqual(body, {"placements": [], "unplaced": [], "fill_rate": 0.0,
-                                "total_weight": 0.0})
+                                "total_weight": 0.0, "not_applied": []})
 
     def test_zero_sized_container_is_rejected(self):
         # A zero volume would divide by zero in Plan.fill_rate (issue #15).
@@ -108,6 +111,26 @@ class TestCrossOrigin(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
 
+    def test_the_phone_on_the_local_network_is_allowed(self):
+        # The demo is driven from a phone on the same WiFi, which reaches vite at this Mac's LAN
+        # address and not at localhost. `server.LAN_ORIGIN` is the origin the README tells the
+        # operator to open, so it is the one asserted here rather than a repeated literal.
+        response = client.options(
+            "/plan",
+            headers={"Origin": server.LAN_ORIGIN,
+                     "Access-Control-Request-Method": "POST",
+                     "Access-Control-Request-Headers": "content-type"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], server.LAN_ORIGIN)
+
+    def test_the_lan_origin_is_a_private_address(self):
+        # A LAN origin that is not on a private range means the fallback was replaced by something
+        # public, which would widen the allowlist past the WiFi the demo runs on.
+        host = server.LAN_ORIGIN.removeprefix("http://").split(":")[0]
+        self.assertTrue(host.startswith(("192.168.", "10.", "172.")) or host.endswith(".local"),
+                        f"{host} is not a private LAN address")
+
     def test_an_unknown_origin_is_not_allowed(self):
         # Not a wildcard: this API is the only place the Claude key lives, so any page in the
         # operator's browser must not be able to call it.
@@ -115,6 +138,295 @@ class TestCrossOrigin(unittest.TestCase):
                                headers={"Origin": "https://example.com"})
         self.assertNotIn("access-control-allow-origin", response.headers)
 
+
+MANIFEST_ITEM = {"id": "B1", "label": "washing machine", "length": 60, "width": 60, "height": 85,
+                 "weight": 70}
+STOP = {"id": "S1", "name": "Rouen"}
+
+
+class TestConstraintsEndpoint(unittest.TestCase):
+    def body(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
+        return {
+            "text": text,
+            "manifest": [MANIFEST_ITEM] if manifest is None else manifest,
+            "stops": [STOP] if stops is None else stops,
+        }
+
+    def post(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
+        return client.post("/constraints", json=self.body(text, manifest, stops))
+
+    def test_the_validated_model_output_is_returned(self):
+        with mock.patch.object(server, "_translate",
+                               return_value='{"constraints": [{"type": "at_bottom", "item": "B1"}], '
+                                            '"unresolved": []}'):
+            response = self.post()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "constraints": [{"type": "at_bottom", "item": "B1"}], "unresolved": []})
+
+    def test_empty_text_is_rejected(self):
+        self.assertEqual(self.post(text="   ").status_code, 422)
+
+    def test_duplicate_manifest_ids_are_rejected(self):
+        response = self.post(manifest=[MANIFEST_ITEM, MANIFEST_ITEM])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("B1", response.json()["detail"])
+
+    def test_duplicate_stop_ids_are_rejected(self):
+        response = self.post(stops=[STOP, STOP])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("S1", response.json()["detail"])
+
+    def test_a_reply_that_fails_validation_is_a_502(self):
+        with mock.patch.object(server, "_translate", return_value='{"not": "the right shape"}'):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("did not validate", response.json()["detail"])
+
+    def test_a_reply_that_is_not_json_is_a_502(self):
+        with mock.patch.object(server, "_translate", return_value="not json at all"):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+
+    def test_a_lost_call_is_a_503(self):
+        with mock.patch.object(server, "_translate", side_effect=llm.CallFailed("no reply")):
+            response = self.post()
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("no reply", response.json()["detail"])
+
+    def test_an_unconfigured_server_says_so_instead_of_raising(self):
+        """`SA-18`. Every one of these used to be an unhandled exception.
+
+        FastAPI's default handler answers a bare 500, and it sits outside `CORSMiddleware`, so that
+        response carries no `access-control-allow-origin`. The browser cannot read it, `fetch` throws,
+        and `web/src/api.js` reports `unreachable` — the operator is told the solver cannot be reached
+        about a server that is running and answering, which points them at restarting it.
+
+        Caught by the `NotConfigured` base class, so the third case below is covered without being
+        named, and so is whatever `from_env` learns to require next.
+        """
+        for label, error in (
+            ("no key", llm.MissingKey("ANTHROPIC_API_KEY is not set in .env")),
+            ("no model", llm.MissingModel("LLM_MODEL is not set in .env")),
+            ("no anthropic package", llm.NotConfigured("the anthropic package is not installed")),
+        ):
+            with self.subTest(label):
+                with mock.patch.object(server, "_translate", side_effect=error):
+                    response = self.post()
+                self.assertEqual(response.status_code, 503)
+                detail = response.json()["detail"]
+                self.assertIn("not configured", detail)
+                # The two names an operator has to go and look at, in the message itself.
+                self.assertIn("ANTHROPIC_API_KEY", detail)
+                self.assertIn("LLM_MODEL", detail)
+
+    def test_a_key_that_is_present_but_wrong_is_a_502_not_a_500(self):
+        # `from_env` is satisfied by a key that exists, so a wrong one gets past it and the API
+        # refuses the call: `FatalCall`, not `NotConfigured`. This is the likelier of the two on a
+        # machine that has an .env at all, and it was the other unhandled path.
+        with mock.patch.object(server, "_translate",
+                               side_effect=llm.FatalCall("the API rejected the request (401)")):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+        detail = response.json()["detail"]
+        self.assertIn("refused the request", detail)
+        self.assertIn("(401)", detail)
+
+    def test_every_failure_still_carries_the_cors_header(self):
+        # The point of the fix, asserted where it can regress: a handled error is readable by the web
+        # app, an unhandled one is not. If one of these ever answers without the header again, the
+        # screen will say "could not reach the solver" and mean something else entirely.
+        for label, error in (
+            ("not configured", llm.MissingKey("no key")),
+            ("refused", llm.FatalCall("rejected (401)")),
+            ("unreachable model", llm.CallFailed("timeout")),
+        ):
+            with self.subTest(label):
+                with mock.patch.object(server, "_translate", side_effect=error):
+                    response = client.post("/constraints", json=self.body(),
+                                           headers={"Origin": "http://localhost:5173"})
+                self.assertEqual(response.headers["access-control-allow-origin"],
+                                 "http://localhost:5173")
+
+    def test_the_vite_dev_server_is_allowed(self):
+        with mock.patch.object(server, "_translate",
+                               return_value='{"constraints": [], "unresolved": []}'):
+            response = client.post("/constraints", json={
+                "text": "ok", "manifest": [MANIFEST_ITEM], "stops": [STOP]},
+                headers={"Origin": "http://localhost:5173"})
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
+
+
+class TestTranslateSeam(unittest.TestCase):
+    """Every test above mocks `_translate` itself; these cover what it does before that seam."""
+
+    def test_constraint_prefill_is_loaded_from_the_version_file(self):
+        self.assertEqual(server.CONSTRAINT_PREFILL, "{")
+
+    def test_translate_wires_the_version_prefill_into_the_translator(self):
+        stub = llm.Translator(model="stub-model")
+        with mock.patch.object(llm, "from_env", return_value=stub) as from_env, \
+             mock.patch.object(llm.Translator, "translate", autospec=True,
+                               return_value="{}") as translate:
+            server._translate("the sentence", "the manifest")
+        from_env.assert_called_once_with(server.CONSTRAINT_MODEL)
+        translator = translate.call_args.args[0]
+        self.assertEqual(translator.prefill, server.CONSTRAINT_PREFILL)
+
+# A van rather than the 100 cm cube the tests above use, because the claim being tested is
+# geometric: in a 100 cm container these boxes stack in y and z and every x stays 0, so "nearer the
+# doors" could not be observed even when the ordering is right.
+#
+# The toolbox is the largest box on purpose. Without a constraint the solver loads largest first, so
+# it goes in at x=0 — the back wall. `load_last` has to move it to the far end, and a test built on a
+# box that was already going to be loaded last would pass while asserting nothing.
+VAN = {"length": 300, "width": 170, "height": 170, "max_weight": 1200}
+TOOLBOX = {"id": "toolbox", "length": 100, "width": 85, "height": 85, "weight": 20}
+OTHERS = [{"id": "b1", "length": 85, "width": 85, "height": 85, "weight": 30},
+          {"id": "b2", "length": 70, "width": 85, "height": 85, "weight": 25}]
+
+
+class TestPlanConstraints(unittest.TestCase):
+    """`POST /plan` taking constraints, the one wired type being `load_last` (SA-16)."""
+
+    def post(self, constraints=None):
+        body = {"container": VAN, "boxes": [TOOLBOX] + OTHERS}
+        if constraints is not None:
+            body["constraints"] = constraints
+        return client.post("/plan", json=body)
+
+    def order(self, response):
+        return [p["id"] for p in response.json()["placements"]]
+
+    def toolbox_x(self, response):
+        return next(p["x"] for p in response.json()["placements"] if p["id"] == "toolbox")
+
+    def test_a_request_without_constraints_plans_exactly_as_before(self):
+        response = self.post()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[0], "toolbox")
+        self.assertEqual(self.toolbox_x(response), 0)
+        self.assertEqual(response.json()["not_applied"], [])
+
+    def test_load_last_moves_the_item_to_the_end_of_the_load(self):
+        before, after = self.post(), self.post([{"type": "load_last", "item": "toolbox"}])
+        self.assertEqual(after.status_code, 200)
+        self.assertEqual(self.order(before)[0], "toolbox", "the baseline loads it first")
+        self.assertEqual(self.order(after)[-1], "toolbox", "load_last must load it last")
+        self.assertEqual(after.json()["not_applied"], [])
+
+    def test_load_last_moves_the_item_away_from_the_back_wall(self):
+        # The visible effect, and the one the demo shows: x is the distance from the back wall, so a
+        # box loaded last sits further forward — nearer the doors the operator opens.
+        before, after = self.post(), self.post([{"type": "load_last", "item": "toolbox"}])
+        self.assertGreater(self.toolbox_x(after), self.toolbox_x(before))
+
+    def test_the_rest_of_the_plan_is_still_valid(self):
+        response = self.post([{"type": "load_last", "item": "toolbox"}])
+        body = response.json()
+        self.assertEqual(body["unplaced"], [])
+        boxes = {b["id"]: b for b in [TOOLBOX] + OTHERS}
+        container = Container(VAN["length"], VAN["width"], VAN["height"], VAN["max_weight"])
+        placements = [Placement(Box(p["id"], boxes[p["id"]]["length"], boxes[p["id"]]["width"],
+                                    boxes[p["id"]]["height"], boxes[p["id"]]["weight"]),
+                                p["x"], p["y"], p["z"], p["dx"], p["dy"], p["dz"])
+                      for p in body["placements"]]
+        self.assertEqual(find_problems(placements, container), [])
+
+    def test_a_type_the_solver_cannot_honour_is_reported_not_dropped(self):
+        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 200)
+        not_applied = response.json()["not_applied"]
+        self.assertEqual([e["type"] for e in not_applied], ["on_top"])
+        self.assertEqual(not_applied[0]["item"], "toolbox")
+        self.assertIn("#29", not_applied[0]["reason"])
+
+    def test_a_type_the_solver_honours_but_this_endpoint_does_not_pass_is_reported(self):
+        # 50 kg against a 75 kg load: had the cap been applied, the solver would have left `b2` out.
+        # Asserting nothing was unplaced is what proves the constraint was reported, not quietly used.
+        response = self.post([{"type": "max_total_weight", "limit_kg": 50}])
+        self.assertEqual(response.status_code, 200)
+        not_applied = response.json()["not_applied"]
+        self.assertEqual([e["type"] for e in not_applied], ["max_total_weight"])
+        self.assertIn("#19", not_applied[0]["reason"])
+        self.assertEqual(response.json()["unplaced"], [])
+        self.assertEqual(response.json()["total_weight"], 75)
+
+    def test_unload_at_says_why_a_route_is_missing(self):
+        response = self.post([{"type": "unload_at", "item": "toolbox", "stop": "S2"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no route", response.json()["not_applied"][0]["reason"])
+
+    def test_a_wired_and_an_unwired_constraint_in_one_call(self):
+        response = self.post([{"type": "load_last", "item": "toolbox"},
+                              {"type": "at_bottom", "item": "b1"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[-1], "toolbox", "the wired one still applies")
+        self.assertEqual([e["type"] for e in response.json()["not_applied"]], ["at_bottom"])
+
+    def test_a_type_outside_the_contract_is_refused(self):
+        response = self.post([{"type": "teleport", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("teleport", response.json()["detail"])
+
+    def test_a_malformed_constraint_is_refused_even_when_it_is_not_wired(self):
+        """The whole list is validated before any of it is applied *or reported*.
+
+        Reporting a `max_weight_on` that carries no `limit_kg` back as "honoured but not passed yet"
+        would be saying something false about it: it is not a constraint at all. Found by MORHI11 in
+        review of #51, where `not_applied` was the one path that reported instead of refusing.
+        """
+        for label, constraint in (
+            ("missing field", {"type": "max_weight_on", "item": "toolbox"}),
+            ("undeclared field", {"type": "on_top", "item": "toolbox", "bogus_field": 123}),
+            ("item not in the load", {"type": "at_bottom", "item": "does-not-exist"}),
+            ("limit not a number", {"type": "max_total_weight", "limit_kg": "heavy"}),
+            ("limit not positive", {"type": "max_total_weight", "limit_kg": -5}),
+            ("stop not a string", {"type": "unload_at", "item": "toolbox", "stop": 123}),
+        ):
+            with self.subTest(label):
+                response = self.post([constraint])
+                self.assertEqual(response.status_code, 422)
+                self.assertIn("did not validate", response.json()["detail"])
+
+    def test_the_three_faults_in_one_constraint_are_all_refused(self):
+        # MORHI11's payload verbatim: no `limit_kg`, an item that is not in the load, and a field the
+        # type does not declare. It used to come back 200 with the whole thing echoed into
+        # `not_applied`.
+        response = self.post([{"type": "max_weight_on", "item": "does-not-exist",
+                               "bogus_field": 123}])
+        self.assertEqual(response.status_code, 422)
+        detail = response.json()["detail"]
+        self.assertIn("limit_kg", detail)
+        self.assertIn("does-not-exist", detail)
+        self.assertIn("bogus_field", detail)
+
+    def test_a_well_formed_unload_at_is_still_reported_rather_than_refused(self):
+        # The line to hold: validation must not turn an unwired-but-valid constraint into an error.
+        # This endpoint has no route, so the stop cannot be checked against one — only that it is a
+        # stop id at all.
+        response = self.post([{"type": "unload_at", "item": "toolbox", "stop": "S7"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([e["type"] for e in response.json()["not_applied"]], ["unload_at"])
+
+    def test_one_bad_constraint_refuses_the_whole_request(self):
+        # Not "apply the good one and report the bad one": a caller who sent something malformed gets
+        # told, rather than a plan built from the half that parsed.
+        response = self.post([{"type": "load_last", "item": "toolbox"},
+                              {"type": "max_weight_on", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 422)
+
+    def test_load_last_naming_a_box_not_in_the_load_is_refused(self):
+        response = self.post([{"type": "load_last", "item": "ghost"}])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("ghost", response.json()["detail"])
+
+    def test_an_empty_constraint_list_is_not_sent_through_parse(self):
+        # `parse()` refuses a payload with nothing in it, so an empty list has to mean "no
+        # constraints" rather than becoming one.
+        response = self.post([])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[0], "toolbox")
 
 class TestRouteEndpoint(unittest.TestCase):
     """`POST /route` over mocked services. The order of the stops is the thing under test."""

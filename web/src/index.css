@@ -95,7 +95,17 @@ code,
   font: inherit;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+/* A button that cannot be pressed has to look like one. Not translucency: that would drag the navy
+   below the contrast the palette guarantees. A flat surface and muted text instead, both tokens
+   that are already proven against the background. */
+.button:disabled {
+  background: rgba(16, 34, 56, 0.08);
+  color: var(--quai-text-muted);
+  cursor: not-allowed;
 }
 
 .button:hover {
@@ -143,47 +153,6 @@ code,
 
 .muted {
   color: var(--quai-text-muted);
-}
-
-/* --- landing ------------------------------------------------------------------------------ */
-
-.hero {
-  padding: 3rem 0 3.5rem;
-}
-
-.slogan {
-  color: var(--quai-navy);
-}
-
-.hero p {
-  max-width: 40rem;
-  margin-top: 1.25rem;
-  font-size: 1.125rem;
-}
-
-.hero .actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 2rem;
-}
-
-.section {
-  padding: 2.5rem 0;
-}
-
-.section > .wrap > h2 {
-  margin-bottom: 1.25rem;
-}
-
-.note {
-  margin-top: 1.5rem;
-  font-size: 0.95rem;
-}
-
-/* The one place orange is allowed to be text: the darkened token, at 4.79:1. */
-.note strong {
-  color: var(--quai-orange-text);
 }
 
 /* --- app shell ---------------------------------------------------------------------------- */

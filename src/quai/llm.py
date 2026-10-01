@@ -126,6 +126,7 @@ class Translator:
     model: str
     max_tokens: int = MAX_TOKENS
     temperature: float | None = TEMPERATURE
+    prefill: str | None = None
     attempts: int = ATTEMPTS
     base_delay: float = BASE_DELAY
     max_delay: float = MAX_DELAY
@@ -144,12 +145,17 @@ class Translator:
         delay = self.base_delay
         for attempt in range(1, self.attempts + 1):
             last = attempt == self.attempts
+            messages = [{"role": "user", "content": user_message(sentence, manifest)}]
+            if self.prefill is not None:
+                # The model continues this turn instead of starting one, so the reply cannot open
+                # with a code fence: the first characters of the answer are already decided here.
+                messages.append({"role": "assistant", "content": self.prefill})
             try:
                 reply = self._client.messages.create(
                     model=self.model,
                     max_tokens=self.max_tokens,
                     system=prompt,
-                    messages=[{"role": "user", "content": user_message(sentence, manifest)}],
+                    messages=messages,
                     **sampling(self.temperature),
                 )
             except anthropic.APIStatusError as error:
@@ -168,7 +174,9 @@ class Translator:
                                      f"attempts: {error}") from error
                 self._sleep(delay)
             else:
-                return read_reply(reply)
+                # With a prefill the model's turn began before the reply, so the text it sends is a
+                # continuation: what the solver would receive is the prefill followed by it.
+                return (self.prefill or "") + read_reply(reply)
             delay = min(delay * 2, self.max_delay)
         raise CallFailed("the call was never made")  # unreachable: the loop returns or raises
 
