@@ -2,12 +2,13 @@
 
    A scan is two steps that fail for different reasons: getting characters off a label, and deciding
    what those characters mean. Only the second one is here. `readCode` takes a string from anywhere —
-   a text field today, camera frames once `LP-20` has chosen a QR library — and the screen above it
+   a text field today, decoded camera frames tomorrow — and the screen above it
    does not change when the source does.
 
-   That seam is the reason there is no QR dependency in `package.json` yet: `LP-20` owns that choice
-   and had not landed when this was written, so guessing at it would have meant a library to rip out.
-   Whatever it decodes, it hands to `readCode`. */
+   That seam is the reason there is no QR dependency added here: `LP-20` owned that choice and had not
+   landed when this was written, so guessing at it would have meant a library to rip out. It has since
+   landed on #55 with `jsqr`, and its camera loop sits inline in `pages/Login.jsx` reading
+   `QUAI:OPERATOR:` codes. Whatever decodes a frame, it hands the string to `readCode`. */
 
 /* The label QUAI prints: a fixed prefix, then the box id the manifest knows it by. Anchored at both
    ends, because a code that merely *contains* ours is not ours. */

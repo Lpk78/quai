@@ -7,9 +7,10 @@ import { identify } from "../scan/scanCode.js";
 /* The step before dictating: read the label on the package in the operator's hands, so the sentence
    they say next is about something QUAI can name.
 
-   The camera is not here yet. `LP-20` chooses the QR library, and had not landed when this was
-   written, so rather than guess at a dependency and rip it out later the code arrives through
-   `identify()` from whatever feeds it — a typed field today, decoded frames tomorrow. The field is
+   The camera is not here yet. `LP-20` chose the QR library and had not landed when this was written,
+   so rather than guess at a dependency and rip it out later the code arrives through `identify()` from
+   whatever feeds it — a typed field today, decoded frames once #55's `jsqr` loop is shared out of
+   `Login.jsx`. The field is
    not a placeholder for the demo's sake either: it is the fallback a dock needs when a label is
    scuffed, wet, or the phone has no camera permission.
 
