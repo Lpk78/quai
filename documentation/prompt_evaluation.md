@@ -54,6 +54,13 @@ solver. Several items loaded last at one stop are *not* such a case — see the 
 { "constraints": [], "unresolved": [] }
 ```
 
+**The reply is parsed exactly as it arrives, and the whole reply has to be the object.** A code fence,
+a preamble, a closing sentence or any other prose around it is a C1 failure whatever the JSON inside
+says. This is not a formatting preference: `POST /constraints` (#19) hands the reply to `parse()`
+unchanged, so an output that needs something stripped off it first is an output the solver never
+receives. C1 asks "would this reach the solver?", and for a fenced reply the answer is no. A sentence
+that fails C1 fails the other seven with it, because there is no object left to check.
+
 Both keys are always present, even when empty. A sentence that yields nothing usable gives an empty
 `constraints` list and at least one `unresolved` entry — never an invented constraint.
 
@@ -113,7 +120,7 @@ nothing is scored by impression: a criterion is Yes for a sentence or it is not.
 
 | # | Criterion | Yes when |
 |---|---|---|
-| C1 | Valid JSON matching the contract | Both keys present, every constraint a declared type with exactly its fields |
+| C1 | Valid JSON matching the contract | The whole reply is the object: both keys present, every constraint a declared type with exactly its fields |
 | C2 | Items are real | Every `item` is in the manifest, and anything named but absent is reported as `unknown_item` rather than bound to the nearest match |
 | C3 | Nothing invented | No constraint the operator did not say, including facts already in the manifest restated as constraints |
 | C4 | Units normalised | Every length in cm and every weight in kg, whatever the operator used |
@@ -344,6 +351,14 @@ How a version is run — fixed for every version, so that the scores stay compar
   only be measured honestly if the harness itself never mixes speech with instructions.
 - **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
   which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
+- **The reply is parsed exactly as it arrives**, with nothing trimmed, unwrapped or extracted first,
+  because that is what `POST /constraints` will do with it. A code fence or a line of prose around
+  the object is therefore a C1 failure — see the *Output contract* above. v1 scored 0/26 on this
+  alone, which is the rule working rather than the harness surprising us.
+- **Only the prompt is sent, not the version file.** A version file carries its task, its expected
+  output and its change log, and a change log names the sentences a version found hard. The script
+  sends what lies between `<!-- PROMPT START -->` and `<!-- PROMPT END -->`; a file without markers
+  is sent whole. Without this a version would be scored having been shown the test set.
 - **`temperature 0` is sent** — and recorded as what was sent, not as what makes a score
   repeatable. See *On the temperature column* below.
 - **Three calls per sentence.** The same question asked twice does not always get the same answer,
@@ -388,4 +403,38 @@ sentence rather than recording anything (see `documentation/failures.md`).
 
 | Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total /26 | Model | Temp. | Date | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| v1_zero_shot | | | | | | | | | | | | | Not run yet (#12) |
+| v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
+
+**Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
+for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
+reply exactly as it arrives, so every one of them failed C1 before any field was looked at, and a
+sentence that fails C1 fails the rest — there is no object to check.
+
+Stripping the fence from the stored transcript and re-scoring the same replies gives **C1 25/26, C2
+24/26, C3 24/26, C4 26/26, C5 22/26, C6 26/26, C7 26/26, C8 26/26, Total 21/26**. That number is a
+**diagnostic, not a score**: it was not produced by a run, no version is credited with it, and it never
+appears in the table.
+
+**Where it comes from, and what that costs.** It is the 78 replies of the 2026-10-01 run, re-scored
+with the fence stripped — the same checks, no new calls. Those replies live in
+`outputs/evaluations/v1_zero_shot_20261001-121819.json`, which is **Git-ignored**, so this figure is
+not reproducible from the repository: anyone without that file has to take it on trust, and it is the
+one number here that a reviewer cannot check. It is recorded anyway because a table of zeros alone
+would read as a prompt that understood nothing, which is false and would send v2 after the wrong
+problem. The honest fix is a `--from-transcript` flag on `src/evaluate_prompt.py`, which would let
+anyone holding the file re-derive both the row and this diagnostic; it is tracked in #31. It is recorded because it says where the next version's work is — one formatting
+habit is worth 21 sentences, and the remaining five failures are almost all in `unresolved`:
+
+- **T10** "nothing heavier than 50" — assumed kilograms and emitted `max_weight_on`, where the contract
+  wants `unit_missing`. The prompt says not to guess a unit that cannot be worked out; the model decided
+  it could be worked out.
+- **T20** "don't stack the microwave" — reported `unknown_item` *and* bound the request to `B2`, the
+  flat-screen TV, anyway. It did both things at once, which is exactly what C2 forbids.
+- **T24** "what's the weather in Rouen tomorrow?" — returned two empty lists. The contract says a
+  sentence that yields nothing gets at least one `unresolved` entry, so empty/empty is a C1 failure.
+- **T16** and **T17** — reported the doubt with the wrong `reason` (`out_of_scope` for an ambiguity),
+  and T17 collapsed its two separate faults into one entry.
+
+The constraint half of the contract came back essentially correct (C4, C6, C7 and C8 all 26/26, and C6
+held on T25, the injection case). The `unresolved` half is where instruction-only prose did not carry
+the distinctions. That is the evidence for what v2 tries, rather than a guess about it.

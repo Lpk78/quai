@@ -302,3 +302,34 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   contradiction of the one architectural rule the project is built on. Reference images now get read for
   what they assert, not just looked at.
 - Related branch / PR: `docs/brand-kit`, `HY-10`.
+
+---
+
+## 2026-10-01 — The first prompt version scored zero on a code fence
+
+- What happened: `v1_zero_shot`, the first version of the constraint-translation family, scored **0 on
+  all eight criteria and 0/26 Total**. Not one of the 78 replies failed on its content. All 78 came back
+  wrapped in a ```json code fence, and `quai.evaluation` calls `json.loads` on the reply exactly as it
+  arrives, so every one of them failed C1 before a single field was examined — and a sentence that fails
+  C1 fails the other seven, because there is no object left to check. The prompt contains the sentence
+  "No prose before or after it, no code fence, no explanation". The model fenced every time anyway.
+- Why: a fence is what a chat model does with JSON, and one line of prose asking it not to does not
+  outweigh that. The deeper point is about the rubric rather than the model: C1 is `parse()`, and
+  `parse()` is a door, not a critic. It has no opinion about whether the content is good, so "right
+  answer, wrong envelope" and "wrong answer" are the same event to it. That is the decision taken
+  deliberately in #22, and this is the first run where it cost a version everything it knew.
+- What we tried: recorded the zeros. The temptation was to add one line to the prompt and re-run before
+  anyone saw the row, which would have taken about four minutes and produced a respectable first score.
+  It was refused: v1 exists to be the number v2 is compared against, and a baseline quietly tuned until
+  it looked acceptable measures nothing. Instead the stored transcript was re-scored with the fence
+  stripped — **21/26** — and that figure is written into `documentation/prompt_evaluation.md` as an
+  explicitly labelled diagnostic that no version is credited with and that never enters the table.
+- What we learned: separate what a prompt *knows* from how it *delivers*, because one rubric column can
+  hide the difference and a table of zeros looks like a prompt that understood nothing. The diagnostic
+  is what makes the row readable, and it has to be derivable from a stored artefact rather than from
+  memory — the transcript is why `outputs/evaluations/` exists, and this is the first time it earned its
+  place. Second lesson, cheaper: the evaluation script was sending the *whole version file* as the system
+  prompt, and `/prompt-version` requires that file to carry a change log. v1's names the sentences it
+  expected to find hard, so the family's first recorded score would have been a prompt shown its own test
+  set. Caught before the run; the script now sends only what sits between the prompt markers.
+- Related branch / PR: `prompt/constraint-translation-v1-zero-shot`, #12.
