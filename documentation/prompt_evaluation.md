@@ -404,6 +404,9 @@ sentence rather than recording anything (see `documentation/failures.md`).
 | Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total /26 | Model | Temp. | Date | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
+| v2_output_format | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Same inputs, model and temperature as v1. Output section rewritten, everything else byte-identical. **78 of 78 replies fenced again** — the change made no difference at all |
+| v3_response_prefill | 26 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | **21** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Prompt byte-identical to v2; the request ends with an assistant turn `{`. **78 of 78 replies parsed.** 3 runs per sentence; same answer every time on 25/26 |
+| v4_few_shot | 26 | 24 | 24 | 26 | 23 | 26 | 26 | 26 | **22** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | v3's prompt with four worked examples appended, same delivery. 3 runs per sentence; same answer every time on 26/26 |
 
 **Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
 for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
@@ -438,3 +441,120 @@ habit is worth 21 sentences, and the remaining five failures are almost all in `
 The constraint half of the contract came back essentially correct (C4, C6, C7 and C8 all 26/26, and C6
 held on T25, the injection case). The `unresolved` half is where instruction-only prose did not carry
 the distinctions. That is the evidence for what v2 tries, rather than a guess about it.
+
+**Reading the v2 row: the hypothesis was wrong.** v2 changed the *Output* section and nothing else —
+the rest of the prompt was spliced from v1 byte for byte. The reasoning was that v1 forbade a code
+fence and then demonstrated the output shape inside one, so the instruction and the example
+disagreed. v2 contains no fenced block anywhere, states the rule as a property the model can check
+while writing ("the first character you emit is `{` and the last is `}`"), and gives the reason.
+
+**78 of 78 replies came back fenced again, byte-identically.** Not fewer, not sometimes: the same
+```json wrapper on every sentence on every run, and `Same answer on every run: 26/26` for both
+versions. Whatever produces the fence on this model is not reachable by instruction in the system
+prompt, and the demonstration in v1 was not the cause.
+
+That is the finding, and it is worth more than the score. Two versions have now spent 156 calls
+establishing that the envelope cannot be fixed by wording. **v3 should not be a third attempt at
+asking.** The options that remain are mechanical rather than rhetorical, and each costs something
+the project has already decided once:
+
+- **Strip the fence before `parse()`.** Cheapest, and it contradicts the contract: `POST /constraints`
+  hands the reply over unchanged, so the harness would stop measuring what the server does. If this
+  is the answer, the server has to strip it too, and that is a contract change, not a harness tweak.
+- **Constrain the reply with `output_config.format`.** The API can force the shape. *Running an
+  evaluation* rejects this on purpose — it would make C1 true by construction and measure nothing —
+  so taking it means C1 stops being a criterion and becomes a guarantee, and the rubric loses a
+  column.
+- **Score a different model.** `LLM_MODEL` is configurable and the row records it. This tests whether
+  the fence is the model's habit rather than the prompt's failure, and it is the only option that
+  costs no decision — but it answers a different question from "is this prompt good".
+
+The first two are the reviewer's call, not mine, which is why neither is in this PR.
+
+**The fence-stripped diagnostic, for v2 and against v1.** Same caveat as before: re-scored from the
+stored transcript in `outputs/evaluations/` (Git-ignored), not reproducible from the repository, and
+credited to no version.
+
+| | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total |
+|---|---|---|---|---|---|---|---|---|---|
+| v1 fence-stripped | 25 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | 21/26 |
+| v2 fence-stripped | **26** | 24 | 24 | 26 | **21** | 26 | 26 | 26 | **20/26** |
+
+The second half of the experiment was whether the v1 diagnostic measured anything real: the five
+non-fence failures were deliberately left untouched. **T10, T16, T17 and T20 fail identically in both
+runs** — the same sentences, the same criteria — so that part of the diagnostic was sound and the
+`unresolved` brief for a later version stands. T24 moved the other way and now passes C1 and C5: the
+stronger *Output* section made the weather question produce an `unresolved` entry instead of two empty
+lists, which is the one thing v2 did achieve. T06 and T14 regressed into C5, which v1 passed.
+
+Net, the diagnostic went 21 → 20 while the recorded score stayed 0 → 0. A version that cannot be
+parsed is worth nothing whatever its content does, which is the whole point of C1 and the reason both
+rows read zero.
+
+**Reading the v3 row: the envelope is solved, and the diagnostic was right.** v3's prompt is
+byte-identical to v2's — the only change is that the request ends with an assistant turn containing
+`{`, so the model continues its own reply instead of starting one. **78 of 78 replies came back as
+bare JSON.** Not one fence, where v1 and v2 produced 156 out of 156.
+
+| | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total |
+|---|---|---|---|---|---|---|---|---|---|
+| v1 fence-stripped *(diagnostic)* | 25 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | 21/26 |
+| v2 fence-stripped *(diagnostic)* | 26 | 24 | 24 | 26 | 21 | 26 | 26 | 26 | 20/26 |
+| **v3 — a real score** | **26** | **24** | **24** | **26** | **22** | **26** | **26** | **26** | **21/26** |
+
+The third row is a measurement; the first two were not. They agree on six criteria out of eight and
+on the Total exactly. That retrospectively settles the one number in this document a reviewer could
+not check: the fence-stripped figure was not an artefact of the stripping, and a later version can be
+briefed on it. It also cost nothing to find out, because the five failures it pointed at were left
+untouched through three versions on purpose.
+
+**What is actually wrong with the translation, now that it can be measured.** All five remaining
+failures are in `unresolved`, which is where the diagnostic said they would be:
+
+- **T10** "nothing heavier than 50 on the toolbox" — C2, C3 and C5. Still assumes kilograms and emits
+  `max_weight_on` where the contract wants `unit_missing`.
+- **T20** "don't stack the microwave" — C2 and C3, and **the only sentence whose three runs disagreed**.
+  It reports `unknown_item` correctly and then invents a `not_stackable` anyway, on `B3` twice and on
+  `B1` once. The invention is not even stable, which is worth knowing: a version can be wrong in a way
+  that a single run would not reveal.
+- **T14, T16, T17** — C5 only. Doubt reported with the wrong `reason`, or two faults collapsed into one
+  entry.
+
+C1, C4, C6, C7 and C8 are 26/26. C6 holds on T25, the injection case. The constraint half of the
+contract is solved; `unresolved` is the whole of what is left, and v4 has an evidenced brief rather
+than a guess.
+
+**Reading the v4 row: +1, and the +1 is the least interesting part.** v4 is v3's prompt with four
+worked examples appended — v3's text is a strict prefix of v4's — targeting the five `unresolved`
+failures one decision at a time. The Total moved 21 → 22. Underneath that, **two sentences were fixed,
+one was broken, and three did not move at all**:
+
+| | v3 | v4 | |
+|---|---|---|---|
+| **T20** "…don't stack the microwave" | C2, C3 | **all eight** | fixed — reports `unknown_item` and no longer binds a constraint to it |
+| **T14** "the heavy things on the light ones" | C5 | **all eight** | fixed |
+| **T13** "Put the fragile stuff on top." | all eight | **C2, C3** | **broken** |
+| **T10** "Nothing heavier than 50" | C2, C3, C5 | C2, C3, C5 | unchanged |
+| **T16**, **T17** | C5 | C5 | unchanged |
+
+**The regression is the useful finding.** Example 1 shows a compound sentence — one half names a real
+item, the other names something absent — and teaches: translate the real half, report the absent half,
+bind nothing to it. That fixed T20, which is exactly that shape. It also taught the model to answer
+the resolvable part of *any* doubtful sentence, and T13 has no resolvable part: "the fragile stuff" is
+an ambiguous reference, so the correct answer is an `unresolved` entry and an empty `constraints`
+list. v4 reports the ambiguity correctly **and** emits `on_top` for `B2` and `B5` anyway.
+
+An example teaches the decision it shows and the generalisation the reader draws from it, and the
+second is not under the author's control. v4 bought T20 at the price of T13 — the same class of
+failure, moved to a different sentence.
+
+**Two examples had no effect whatsoever.** T10 still emits `max_weight_on 50` despite Example 2 being
+a bare number with no unit, and T16 and T17 still answer `out_of_scope` where the contract wants
+`ambiguous`, despite Example 3 being precisely that distinction. Few-shot is not a general lever here:
+it moved the sentences that closely matched an example's shape and left the rest where they were.
+
+**What this says about v5.** Three versions of prose and one of examples have now failed to move T10,
+T16 and T17. The remaining `unresolved` failures may not be a prompting problem at all — T16's reply
+is a defensible reading of "load the appliances together", and T17 collapses two faults into one entry
+that is not wrong so much as incomplete. Before a fifth version, the rubric's expectations for those
+three are worth re-reading against what a careful operator would actually accept.

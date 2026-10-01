@@ -6,8 +6,10 @@ white-on-orange button copied back out of the mockups, breaks a test here rather
 
 Run from the repository root:  python3 -m unittest discover tests
 """
+import hashlib
 import importlib.util
 import json
+import os
 import re
 import tempfile
 import unittest
@@ -17,6 +19,20 @@ ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "assets" / "brand"
 TOKENS = json.loads((BRAND / "tokens.json").read_text())
 DESIGN = (ROOT / "documentation" / "design.md").read_text()
+
+# What the logo is made of: the sheet it is traced from, the script that traces it, and the files
+# that come out. The trace is only re-run when one of these moves.
+TRACED = ["logo/quai-logo-v2-sheet.png", "logo/build_logo.py", "logo/quai-logo-light.svg",
+          "logo/quai-logo-dark.svg", "logo/quai-app-icon.svg", "logo/quai-logo-on-navy.svg"]
+FINGERPRINT_FILE = BRAND / "logo" / "traced.sha256"
+
+
+def fingerprint() -> str:
+    digest = hashlib.sha256()
+    for name in TRACED:
+        digest.update(name.encode())
+        digest.update((BRAND / name).read_bytes())
+    return digest.hexdigest()
 
 # Read from the tokens, never hardcoded: the contrast rules below are only a guarantee about the
 # palette if they are computed from the same file the interface will be built from.
@@ -186,14 +202,33 @@ class TestBrandFiles(unittest.TestCase):
     def test_the_committed_svgs_match_their_generator(self):
         """design.md says the three files are traced from the sheet. This is what makes that true.
 
-        The tracer needs numpy, pillow and potracer. They are build-time tools for a brand asset
-        rather than runtime dependencies, so they are not in requirements.txt and this check skips
-        where they are absent — including CI. It runs for whoever edits the logo, which is the
-        person it is for.
+        **Hard in CI, soft locally.** The hand-edited SVG this guards against reaches `main` through a
+        Pull Request, and `tests.yml` installs the tracer, so CI catches it every time. Enforcing it
+        locally as well adds nothing against that case and costs every teammate a red suite on work
+        that has nothing to do with the logo — `README.md` and `CONTRIBUTING.md` both document
+        `pip install -r requirements.txt` alone. So: assert under CI, skip with a sentence elsewhere.
+
+        **Only when something moved — locally.** Tracing takes about six seconds, and a suite run
+        after every coherent change has to stay quick, so the fingerprint of the sheet, the
+        generator and the SVGs is committed beside them and the trace is skipped when it matches.
+
+        That shortcut is **local only**, and the reason is worth keeping: the two problems it and
+        the CI split solve are both local ones. In CI the tracer is installed, the suite runs once
+        per Pull Request, and six seconds is nothing — applying the fingerprint skip there bought
+        nothing and removed the only place the trace ever ran, leaving "these bytes match the
+        fingerprint", which is integrity rather than reproducibility (#34). So under CI it always
+        traces.
         """
-        for module in ("numpy", "PIL", "potrace"):
-            if importlib.util.find_spec(module) is None:
-                self.skipTest(f"{module} is not installed; the logo tracer cannot run here")
+        missing = [m for m in ("numpy", "PIL", "potrace") if importlib.util.find_spec(m) is None]
+        if missing and not os.environ.get("CI"):
+            self.skipTest(f"the logo tracer needs {', '.join(missing)} — "
+                          "pip install -r requirements-dev.txt to run this check locally")
+        self.assertEqual(missing, [],
+                         "CI must install requirements-dev.txt: the logo drift check needs the tracer")
+
+        if not os.environ.get("CI") and fingerprint() == FINGERPRINT_FILE.read_text().strip():
+            self.skipTest("the sheet, the generator and the SVGs are all as last traced; "
+                          "CI traces them anyway, on every Pull Request")
 
         spec = importlib.util.spec_from_file_location(
             "build_logo", BRAND / "logo" / "build_logo.py")
@@ -206,6 +241,15 @@ class TestBrandFiles(unittest.TestCase):
                     self.assertEqual((Path(tmp) / name).read_text(),
                                      (BRAND / "logo" / name).read_text(),
                                      f"{name} was edited by hand; re-run build_logo.py instead")
+
+    def test_the_fingerprint_is_up_to_date(self):
+        """The cheap half of the check above, and the one that always runs.
+
+        If this fails, the sheet, the generator or an SVG changed without the trace being re-run and
+        the fingerprint re-recorded — which is exactly the hand-edit case, caught in milliseconds.
+        """
+        self.assertEqual(fingerprint(), FINGERPRINT_FILE.read_text().strip(),
+                         "run: python3 assets/brand/logo/build_logo.py")
 
     def test_the_retired_logo_rasters_are_gone(self):
         # Two earlier marks were drawn before this one. Keeping a retired logo next to the live one

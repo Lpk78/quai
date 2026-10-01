@@ -356,3 +356,65 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   expected to find hard, so the family's first recorded score would have been a prompt shown its own test
   set. Caught before the run; the script now sends only what sits between the prompt markers.
 - Related branch / PR: `prompt/constraint-translation-v1-zero-shot`, #12.
+
+---
+
+## 2026-10-01 — Two prompt versions, 156 calls, and the fence did not move
+
+- What happened: `v1_zero_shot` scored **0/26** because all 78 replies arrived inside a ```json fence
+  and `parse()` reads the reply as it comes. `v2_output_format` changed the *Output* section and
+  nothing else — the rest of the prompt was spliced from v1 byte for byte — removing the fenced
+  example v1 had demonstrated while forbidding fences, stating the rule as a property the model can
+  check while writing ("the first character you emit is `{`"), and giving the reason. It scored
+  **0/26**: 78 of 78 replies fenced again, byte-identically, `Same answer on every run: 26/26` both
+  times.
+- Why: the hypothesis was that v1's instruction and its example disagreed and the example won. It was
+  a good hypothesis — 78 out of 78 is far too consistent for reluctance — and it was wrong. Whatever
+  produces the fence on `claude-haiku-4-5-20251001` is not reachable from the system prompt. Three
+  separate instructions, a removed demonstration, and a stated reason changed the output by zero
+  replies. The lesson is not about fences: it is that "say it more clearly" is a hypothesis like any
+  other, and it can be tested cheaply and be false.
+- What we tried: recorded both zeros, kept v2 rather than iterating the wording a third time, and
+  wrote down what the remaining options actually cost — strip the fence before `parse()` (contradicts
+  the contract, because the server hands the reply over unchanged), constrain the reply with
+  `output_config.format` (rejected on purpose, it makes C1 true by construction), or score a different
+  model (answers a different question). All three are decisions for the reviewer rather than a third
+  rewording, so none is in the PR.
+- What we learned: two things, and the second is the one worth keeping. First, a negative result for
+  the cost of one evaluation is cheap, and the splice is what made it a result at all — because
+  exactly one section differed, "wording cannot fix this" is a conclusion rather than a guess.
+  Second, the run also re-tested the v1 diagnostic by deliberately *not* fixing the five non-fence
+  failures: **T10, T16, T17 and T20 failed identically in both runs**, which is what makes the
+  fence-stripped figure trustworthy enough to brief a later version on. T24 improved and T06 and T14
+  regressed, so the diagnostic moved 21 → 20 while the recorded score stayed 0 → 0. A version that
+  cannot be parsed is worth nothing whatever its content does.
+- Related branch / PR: `prompt/constraint-translation-v2-output-format`, #12.
+
+---
+
+## 2026-10-01 — A worked example taught more than it was shown
+
+- What happened: `v4_few_shot` added four worked examples to v3's prompt, one per `unresolved` failure.
+  The Total moved 21/26 → 22/26. Underneath that: **T20 and T14 were fixed, T13 was broken, and T10,
+  T16 and T17 did not move at all.** T13 had passed every criterion on v3.
+- Why: Example 1 shows a compound sentence — one half names a real item, the other names something
+  absent — and teaches "translate the real half, report the absent half, bind nothing to it". That is
+  T20's exact shape and T20 was fixed. The model also drew the wider lesson "answer the resolvable
+  part of any doubtful sentence", and applied it to T13, where there is no resolvable part: "the
+  fragile stuff" is an ambiguous reference, so the contract wants an `unresolved` entry and an empty
+  `constraints` list. v4 reports the ambiguity correctly and emits `on_top` for `B2` and `B5` anyway.
+  An example teaches the decision it shows *and* whatever generalisation the reader draws from it, and
+  the second is not the author's to choose.
+- What we tried: kept the regression and recorded it per sentence rather than reporting +1 and moving
+  on. The headline is the least informative number in the result: two fixed, one broken and three
+  untouched is four different findings, and only the per-sentence table shows them. Also recorded that
+  Examples 2 and 3 had **no measurable effect** — T10 still guesses kilograms and T16/T17 still answer
+  `out_of_scope` where the contract wants `ambiguous` — so few-shot is not a general lever here. It
+  moved what matched an example's shape and left the rest.
+- What we learned: a prompt change is not one intervention with one number. v4 was four examples and
+  produced at least four separate effects, two of them in opposite directions, and a Total that
+  averages them hides all of it. The three-runs rule and the per-sentence table are what made this
+  legible — without them this is "+1, few-shot helps a bit", which is the wrong conclusion in both
+  directions. Next time, an experiment with four independent changes should expect to be read as four
+  results.
+- Related branch / PR: `prompt/constraint-translation-v4-few-shot`, #12.
