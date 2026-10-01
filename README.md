@@ -121,10 +121,10 @@ curl -X POST http://127.0.0.1:8000/constraints -H "Content-Type: application/jso
  "unresolved": []}
 ```
 
-`text` left empty or blank is a `422`. A reply from the model that is not valid JSON, or that does not match the contract, never
-reaches the caller: it is a `502` with the validation problem. A lost call (rate limit, refusal, network
-error, after retries) is a `503`. CORS uses the same allowlist as `/plan` — not authentication; tracked
-as a gap on issue #19.
+`text` left empty or blank is a `422`. A reply from the model that is not valid JSON, or that does
+not match the contract, never reaches the caller: it is a `502` with the validation problem. A lost
+call (rate limit, refusal, network error, after retries) is a `503`. CORS uses the same allowlist as
+`/plan` — not authentication; tracked as a gap on issue #19.
 
 ### Prompt evaluation
 
