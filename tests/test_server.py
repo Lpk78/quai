@@ -333,12 +333,23 @@ class TestPlanConstraints(unittest.TestCase):
         self.assertEqual(find_problems(placements, container), [])
 
     def test_a_type_the_solver_cannot_honour_is_reported_not_dropped(self):
-        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        # `at_bottom` rather than `on_top`: `SA-19` taught the solver `on_top`, so it is no longer an
+        # example of a type refused at the solver — it is now one this endpoint simply does not pass.
+        response = self.post([{"type": "at_bottom", "item": "toolbox"}])
         self.assertEqual(response.status_code, 200)
         not_applied = response.json()["not_applied"]
-        self.assertEqual([e["type"] for e in not_applied], ["on_top"])
+        self.assertEqual([e["type"] for e in not_applied], ["at_bottom"])
         self.assertEqual(not_applied[0]["item"], "toolbox")
         self.assertIn("#29", not_applied[0]["reason"])
+
+    def test_on_top_is_now_a_type_the_solver_honours(self):
+        # It moved from the "#29, the solver refuses it" bucket to the "#19, this endpoint does not
+        # pass it yet" one. Worth pinning, because the distinction is the whole point of `not_applied`.
+        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 200)
+        reason = response.json()["not_applied"][0]["reason"]
+        self.assertIn("#19", reason)
+        self.assertNotIn("#29", reason)
 
     def test_a_type_the_solver_honours_but_this_endpoint_does_not_pass_is_reported(self):
         # 50 kg against a 75 kg load: had the cap been applied, the solver would have left `b2` out.
