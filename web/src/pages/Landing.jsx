@@ -5,12 +5,12 @@ import {
   FinalCta,
   Hero,
   HowItWorks,
+  IconStrip,
   LandingFooter,
   Nav,
   WhyQuai,
 } from "../landing/sections.jsx";
 import "../landing.css";
-import "../phone.css";
 
 export default function Landing() {
   return (
@@ -21,6 +21,7 @@ export default function Landing() {
         <HowItWorks />
         <Features />
         <Band />
+        <IconStrip />
         <WhyQuai />
         <DayOnTheDock />
         <FinalCta />

@@ -30,6 +30,12 @@ JOBS = [
     ("quai-logo-light.svg", (281, 97, 1126, 377), "light"),
     ("quai-logo-dark.svg", (227, 424, 1221, 762), "dark"),
     ("quai-app-icon.svg", (380, 805, 590, 1011), "dark"),
+    # The same dark lockup without its navy plaque: white mark and wordmark on transparency, for
+    # placing on a navy surface that is already there (the band on the landing page). Keeping the
+    # plaque would show its own traced edge against an identical navy.
+    # Inset by 12 px so the plaque's own rounded edge falls outside the crop: those boundary pixels
+    # are neither navy nor paper, so they would otherwise be traced as a white outline.
+    ("quai-logo-on-navy.svg", (239, 436, 1209, 750), "on-navy"),
 ]
 
 
@@ -92,8 +98,15 @@ def files() -> dict[str, str]:
     out = {}
     for name, box, kind in JOBS:
         navy, orange, white, art = _masks(box)
-        paths = ([(_to_path(navy), NAVY), (_to_path(orange), ORANGE)] if kind == "light"
-                 else [(_to_path(art), NAVY), (_to_path(white), WHITE), (_to_path(orange), ORANGE)])
+        if kind == "light":
+            paths = [(_to_path(navy), NAVY), (_to_path(orange), ORANGE)]
+        elif kind == "on-navy":
+            # The crop is inside the plaque, so anything that is neither navy nor orange is a white
+            # letter. The usual `white` mask cannot be used: white letters are within tolerance of
+            # the sheet's own paper colour and would be dropped as background.
+            paths = [(_to_path(~(navy | orange)), WHITE), (_to_path(orange), ORANGE)]
+        else:
+            paths = [(_to_path(art), NAVY), (_to_path(white), WHITE), (_to_path(orange), ORANGE)]
         out[name] = _svg(box, paths)
     return out
 
