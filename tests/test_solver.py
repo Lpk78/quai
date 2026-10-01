@@ -156,9 +156,35 @@ class TestContainer(unittest.TestCase):
         with self.assertRaises(ValueError):
             Container(100, 100, 100, max_weight=-1)
 
+    def test_a_nan_max_weight_is_refused(self):
+        """`NaN < 0` is False, so the old check accepted it — and then the solver's
+        `weight > max_weight` was False for every box, so the limit was silently gone. A limit that
+        quietly does not apply is worse than one that is rejected (#26)."""
+        with self.assertRaises(ValueError):
+            Container(100, 100, 100, max_weight=float("nan"))
+
+    def test_a_nan_max_weight_would_otherwise_remove_the_limit(self):
+        """What the refusal above is protecting: this is the plan NaN used to produce."""
+        heavy = [Box("heavy", 50, 50, 50, weight=99_999)]
+        self.assertEqual(solve(heavy, Container(100, 100, 100, max_weight=0)).placements, [])
+        with self.assertRaises(ValueError):
+            solve(heavy, Container(100, 100, 100, max_weight=float("nan")))
+
+    def test_an_infinite_max_weight_is_still_the_default(self):
+        self.assertEqual(Container(100, 100, 100).max_weight, float("inf"))
+        self.assertEqual(Container(100, 100, 100, max_weight=float("inf")).max_weight, float("inf"))
+
+    def test_a_negative_infinite_max_weight_is_refused(self):
+        with self.assertRaises(ValueError):
+            Container(100, 100, 100, max_weight=float("-inf"))
+
     def test_error_names_the_field_and_the_value(self):
         with self.assertRaisesRegex(ValueError, "length must be greater than 0, got 0"):
             Container(0, 200, 200)
+
+    def test_the_max_weight_error_names_the_value(self):
+        with self.assertRaisesRegex(ValueError, "max_weight must be a number that is not negative"):
+            Container(100, 100, 100, max_weight=float("nan"))
 
     def test_valid_container_is_still_accepted(self):
         self.assertEqual(Container(100, 40, 100).volume, 400_000)
