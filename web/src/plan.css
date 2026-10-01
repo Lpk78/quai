@@ -47,10 +47,9 @@
   margin: 1.5rem 0 0.5rem;
 }
 
+/* `.card` (index.css) supplies the surface: background, radius, padding, shadow — the same shell
+   Home.jsx's and Dictate.jsx's cards use, so a "card" looks like a card wherever it appears. */
 .plan-summary {
-  background: var(--quai-surface);
-  border-radius: 0.875rem;
-  padding: 1rem;
   margin-top: 0.75rem;
 }
 
@@ -80,7 +79,11 @@
   padding: 0;
 }
 
-/* Each row is one box. At 390px the id and size sit on one line and the position wraps under it. */
+/* Each row is one box: the swatch, order number and id share the first line (id right-aligned in
+   the "auto" column); size and position each get their own full-width line below. `.plan-dims` and
+   `.plan-at` are both pinned past the first column on purpose — left on `auto`, a 5th grid item
+   auto-places into the 1.75rem swatch column and wraps one character at a time. Found live: a box's
+   "60 × 60 × 85" rendered as five lines, one token each. */
 .plan-item {
   display: grid;
   grid-template-columns: 1.75rem 1fr auto;
@@ -99,26 +102,39 @@
 }
 
 .plan-id { font-weight: 600; }
-.plan-dims { font-size: 0.8125rem; }
+
+.plan-dims {
+  grid-column: 2 / -1;
+  font-size: 0.8125rem;
+}
 
 .plan-at {
   grid-column: 2 / -1;
   font-size: 0.75rem;
 }
 
-/* Not placed is a statement, not a warning: the box did not fit, nothing went wrong. */
+/* Not placed is a statement, not a warning: the box did not fit, nothing went wrong.
+   `minmax(0, 1fr)` rather than `1fr`: a bare `1fr` track won't shrink past its content's own width,
+   so a long id would push "did not fit" out of the card instead of truncating under it. */
 .plan-item--unplaced {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   border-left: 3px solid var(--quai-warning);
+}
+
+.plan-item--unplaced .plan-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-item--unplaced .muted {
+  white-space: nowrap;
 }
 
 .plan-unplaced { margin-top: 1.5rem; }
 
 .plan-failure {
-  background: var(--quai-surface);
-  border-radius: 0.875rem;
   border-left: 3px solid var(--quai-error);
-  padding: 1rem;
   margin-top: 1rem;
 }
 
@@ -127,14 +143,16 @@
 
 @media (min-width: 40rem) {
   .plan-item { grid-template-columns: 2rem 1fr auto auto; }
-  .plan-at { grid-column: auto; }
+  /* The 4th column now exists, so size rejoins order and id on the first line; position still gets
+     its own line — the 5th item on a 4-column grid, same reasoning as the comment above. */
+  .plan-dims { grid-column: auto; }
 }
 
 /* The 3D view. A fixed height rather than an aspect ratio: on a phone the scene must leave room for
    the list under it, and a square canvas pushes everything below the fold. */
 .plan-scene {
   height: 15rem;
-  border-radius: 0.875rem;
+  border-radius: 1.4rem; /* matches .card, same as the summary and failure surfaces below it */
   overflow: hidden;
   background: var(--quai-surface);
   margin-top: 0.75rem;
