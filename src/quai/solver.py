@@ -15,7 +15,8 @@ What the operator asked for reaches the solver only as a `ConstraintSet` built b
 `quai.constraints.parse`: the solver never reads raw model output, and it reads a validated set
 through its accessors rather than by digging into the constraint dictionaries.
 """
-from .checks import MIN_SUPPORT, is_inside, overlaps, stack_problems, support_ratio
+from .checks import (MIN_SUPPORT, find_problems, is_inside, overlaps, stack_problems,
+                     support_ratio)
 from .constraints import CONSTRAINT_FIELDS, ConstraintSet
 from .models import Box, Container, Placement, Plan
 
@@ -29,6 +30,10 @@ HONOURED: frozenset[str] = frozenset(["unload_at", "load_last", "max_weight_on",
                                       "max_total_weight"])
 
 
+class ImpossibleStart(ValueError):
+    """The vehicle state the caller described cannot exist, so no plan is built on top of it."""
+
+
 class UnsupportedConstraint(ValueError):
     """The set carries a constraint the solver cannot honour yet.
 
@@ -38,8 +43,15 @@ class UnsupportedConstraint(ValueError):
 
 
 def solve(boxes: list[Box], container: Container,
-          constraints: ConstraintSet | None = None) -> Plan:
+          constraints: ConstraintSet | None = None,
+          fixed: list[Placement] | None = None) -> Plan:
     """Place the boxes, honouring the constraints this solver knows how to honour.
+
+    `fixed` is what is already in the vehicle and may not move — the boxes an operator has
+    physically loaded. They are not replanned and not reordered: the plan is built around them, they
+    count against the weight cap, and anything stacked on them counts against their own limits. The
+    returned `Plan` carries them alongside the new placements, because a plan describing only half
+    the vehicle would not be a plan of the vehicle.
 
     The set's `unresolved` entries are deliberately not read here. They are the things the operator
     said that the model could not translate, and nothing about them is a placement rule — whether an
@@ -48,10 +60,16 @@ def solve(boxes: list[Box], container: Container,
     it cannot honour and ignores what was never a constraint; surfacing that is the caller's.
     """
     refuse_unhandled(constraints)
-    placements: list[Placement] = []
+    already = list(fixed or [])
+    refuse_impossible_start(already, boxes, container, constraints)
+    placements: list[Placement] = list(already)
     unplaced: list[Box] = []
     corners: set[tuple[int, int, int]] = {(0, 0, 0)}
-    weight = 0.0
+    for placed in already:
+        corners.update({(placed.x2, placed.y, placed.z),
+                        (placed.x, placed.y2, placed.z),
+                        (placed.x, placed.y, placed.z2)})
+    weight = sum(placed.box.weight for placed in already)
     cap = weight_cap(container, constraints)
     limits = stack_limits(constraints)
 
@@ -104,6 +122,33 @@ def refuse_unhandled(constraints: ConstraintSet | None) -> None:
             "this solver cannot honour " + ", ".join(kinds) + " yet, so it will not plan with "
             "them: a dropped constraint would come back as a plan the checks call valid. "
             "See issue #29.")
+
+
+def refuse_impossible_start(fixed: list[Placement], boxes: list[Box], container: Container,
+                            constraints: ConstraintSet | None = None) -> None:
+    """Refuse a starting state that is not a state the vehicle could be in.
+
+    Planning around boxes that overlap, float or hang out of the container would produce a plan that
+    looks valid and describes a vehicle that cannot exist, so the checks run on what the caller says
+    is already loaded before anything is added to it. A box that is both already loaded and waiting
+    to be loaded is the same kind of impossibility, one list over.
+
+    The stack limits are part of that question and not a separate one. A box already carrying more
+    than the operator allowed is a state that should not exist, exactly like an overlap — and if it
+    is let through, `overloads()` finds that same violation in every candidate plan, so nothing can
+    be placed and the operator is handed an empty plan with no cause named. Refusing here turns that
+    silence into a sentence naming the box. Found by `MORHI11` reviewing #36.
+    """
+    if not fixed:
+        return
+    problems = find_problems(fixed, container, max_weight_on=stack_limits(constraints))
+    if problems:
+        raise ImpossibleStart("the boxes said to be already loaded do not make a valid load: "
+                              + "; ".join(problems))
+    loaded_ids = [placed.box.id for placed in fixed]
+    clash = sorted(set(loaded_ids) & {box.id for box in boxes})
+    if clash:
+        raise ImpossibleStart(f"{', '.join(clash)} cannot be both already loaded and still to load")
 
 
 def loading_order(boxes: list[Box], constraints: ConstraintSet | None) -> list[Box]:

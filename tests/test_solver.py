@@ -9,7 +9,7 @@ from quai import checks, solver as solver_module  # noqa: E402
 from quai.checks import find_problems, overlaps, weight_above  # noqa: E402
 from quai.constraints import Manifest, parse  # noqa: E402
 from quai.models import Box, Container, Placement, Plan  # noqa: E402
-from quai.solver import UnsupportedConstraint, solve, unhandled  # noqa: E402
+from quai.solver import ImpossibleStart, UnsupportedConstraint, solve, unhandled  # noqa: E402
 
 CONTAINER = Container(100, 100, 100, max_weight=500)
 
@@ -457,6 +457,101 @@ class TestTheDemoLoad(unittest.TestCase):
         self.assertEqual(len(plan.placements), 9)
         self.assertEqual(round(plan.fill_rate, 2), 0.21)
         self.assertEqual(sorted(b.id for b in plan.unplaced), ["fridge", "sofa"])
+
+
+class TestPlanningAroundWhatIsAlreadyLoaded(unittest.TestCase):
+    """`fixed` is what the operator has physically put in the van. It never moves."""
+
+    def slab(self, box_id: str, z: int, weight: float = 5.0):
+        return Placement(Box(box_id, 100, 100, 20, weight), 0, 0, z, 100, 100, 20)
+
+    def test_a_fixed_box_keeps_its_exact_position(self):
+        fixed = [self.slab("a", 0)]
+        plan = solve([Box("b", 100, 100, 20, 5)], CONTAINER, fixed=fixed)
+        placed = {p.box.id: (p.x, p.y, p.z) for p in plan.placements}
+        self.assertEqual(placed["a"], (0, 0, 0))
+
+    def test_the_new_box_goes_on_top_of_it(self):
+        plan = solve([Box("b", 100, 100, 20, 5)], CONTAINER, fixed=[self.slab("a", 0)])
+        self.assertEqual({p.box.id: p.z for p in plan.placements}["b"], 20)
+
+    def test_the_plan_describes_the_whole_vehicle(self):
+        """Not only the half that changed: an operator reads this to load the rest."""
+        plan = solve([Box("b", 100, 100, 20, 5)], CONTAINER, fixed=[self.slab("a", 0)])
+        self.assertEqual(sorted(p.box.id for p in plan.placements), ["a", "b"])
+
+    def test_a_fixed_box_counts_against_the_weight_cap(self):
+        """400 kg already aboard of the container's 500, so a 200 kg box no longer fits."""
+        heavy = Container(100, 100, 100, max_weight=500)
+        plan = solve([Box("b", 100, 100, 20, 200)], heavy, fixed=[self.slab("a", 0, weight=400)])
+        self.assertEqual([b.id for b in plan.unplaced], ["b"])
+
+    def test_a_fixed_box_s_stack_limit_is_honoured(self):
+        boxes = [Box("b", 100, 100, 20, 40)]
+        fixed = [self.slab("a", 0)]
+        limited = constraint_set([fixed[0].box, *boxes], ("S1",),
+                                 {"type": "max_weight_on", "item": "a", "limit_kg": 10})
+        plan = solve(boxes, CONTAINER, limited, fixed=fixed)
+        self.assertEqual([b.id for b in plan.unplaced], ["b"])
+
+    def test_nothing_is_placed_inside_a_fixed_box(self):
+        fixed = [self.slab("a", 0)]
+        plan = solve([Box("b", 10, 10, 10, 1)], CONTAINER, fixed=fixed)
+        self.assertEqual(find_problems(plan.placements, CONTAINER), [])
+
+    def test_the_route_still_orders_what_is_left(self):
+        boxes = [crate("x", 30), crate("y", 20)]
+        fixed = [self.slab("a", 0)]
+        route = constraint_set([fixed[0].box, *boxes], ("S1", "S2"),
+                               {"type": "unload_at", "item": "x", "stop": "S1"},
+                               {"type": "unload_at", "item": "y", "stop": "S2"})
+        plan = solve(boxes, Container(100, 100, 200), route, fixed=fixed)
+        new = [p.box.id for p in plan.placements if p.box.id != "a"]
+        self.assertEqual(new, ["y", "x"])
+
+    def test_an_invalid_starting_state_is_refused(self):
+        """Two boxes in the same space is not a vehicle, so no plan is built on top of it."""
+        overlapping = [self.slab("a", 0), self.slab("b", 10)]
+        with self.assertRaises(ImpossibleStart) as refused:
+            solve([], CONTAINER, fixed=overlapping)
+        self.assertIn("valid load", str(refused.exception))
+
+    def test_a_start_that_already_breaks_a_stack_limit_is_refused(self):
+        """Silent before: `overloads()` finds a pre-existing violation in every candidate plan, so
+        nothing could be placed and the operator got an empty plan with no cause (#36 review)."""
+        base = Box("base", 100, 100, 20, 5)
+        heavy = Box("heavy", 100, 100, 20, 30)
+        waiting = [Box("new", 100, 100, 20, 1)]
+        fixed = [Placement(base, 0, 0, 0, 100, 100, 20),
+                 Placement(heavy, 0, 0, 20, 100, 100, 20)]
+        limited = constraint_set([base, heavy, *waiting], ("S1",),
+                                 {"type": "max_weight_on", "item": "base", "limit_kg": 10})
+        with self.assertRaises(ImpossibleStart) as refused:
+            solve(waiting, Container(200, 100, 100, max_weight=500), limited, fixed=fixed)
+        self.assertIn("base", str(refused.exception))
+        self.assertIn("10 kg limit", str(refused.exception))
+
+    def test_the_same_start_is_fine_when_the_limit_allows_it(self):
+        """The refusal is the pre-existing violation, not the geometry: only the limit changes."""
+        base = Box("base", 100, 100, 20, 5)
+        heavy = Box("heavy", 100, 100, 20, 30)
+        waiting = [Box("new", 100, 100, 20, 1)]
+        fixed = [Placement(base, 0, 0, 0, 100, 100, 20),
+                 Placement(heavy, 0, 0, 20, 100, 100, 20)]
+        allowed = constraint_set([base, heavy, *waiting], ("S1",),
+                                 {"type": "max_weight_on", "item": "base", "limit_kg": 50})
+        plan = solve(waiting, Container(200, 100, 100, max_weight=500), allowed, fixed=fixed)
+        self.assertEqual(plan.unplaced, [])
+
+    def test_a_box_cannot_be_both_loaded_and_waiting(self):
+        with self.assertRaises(ImpossibleStart) as refused:
+            solve([Box("a", 10, 10, 10, 1)], CONTAINER, fixed=[self.slab("a", 0)])
+        self.assertIn("a", str(refused.exception))
+
+    def test_no_fixed_boxes_is_the_plan_from_scratch(self):
+        boxes = cubes(4)
+        self.assertEqual(solve(boxes, CONTAINER, fixed=[]).placements,
+                         solve(boxes, CONTAINER).placements)
 
 
 if __name__ == "__main__":
