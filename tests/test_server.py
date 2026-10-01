@@ -177,5 +177,22 @@ class TestConstraintsEndpoint(unittest.TestCase):
         self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
 
 
+class TestTranslateSeam(unittest.TestCase):
+    """Every test above mocks `_translate` itself; these cover what it does before that seam."""
+
+    def test_constraint_prefill_is_loaded_from_the_version_file(self):
+        self.assertEqual(server.CONSTRAINT_PREFILL, "{")
+
+    def test_translate_wires_the_version_prefill_into_the_translator(self):
+        stub = llm.Translator(model="stub-model")
+        with mock.patch.object(llm, "from_env", return_value=stub) as from_env, \
+             mock.patch.object(llm.Translator, "translate", autospec=True,
+                               return_value="{}") as translate:
+            server._translate("the sentence", "the manifest")
+        from_env.assert_called_once_with(server.CONSTRAINT_MODEL)
+        translator = translate.call_args.args[0]
+        self.assertEqual(translator.prefill, server.CONSTRAINT_PREFILL)
+
+
 if __name__ == "__main__":
     unittest.main()
