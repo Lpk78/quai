@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { postConstraints } from "../api.js";
+import { ApiError, postConstraints } from "../api.js";
 import { BOXES, STOPS } from "../data/manifest.js";
 import { IconMic } from "../landing/icons.jsx";
 
@@ -80,7 +80,9 @@ export default function Dictate() {
       setResult(data);
       setStep("result");
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof ApiError
+        ? err
+        : new ApiError("server", "QUAI could not translate that sentence.", String(err)));
       setStep("error");
     }
   }
@@ -116,16 +118,31 @@ export default function Dictate() {
         <ResultStep result={result} onEdit={handleEdit} />
       )}
 
-      {step === "error" && (
-        <div className="card status-card">
-          <p>QUAI could not reach the solver just now.</p>
-          <p className="muted">{error}</p>
-          <button type="button" className="button button--quiet" onClick={handleEdit}>
-            Edit
-          </button>
-        </div>
-      )}
+      {step === "error" && <Failure error={error} onEdit={handleEdit} />}
     </>
+  );
+}
+
+function Failure({ error, onEdit }) {
+  // Same read as PlanScreen.jsx's Failure: `message` already carries the server's own words when
+  // it had any (see `api.js`'s `post()`), so printing `detail` again only adds something for a
+  // "server" failure, where the two can differ.
+  const unreachable = error.kind === "unreachable";
+  return (
+    <div className="card status-card" role="alert">
+      <p>{error.message}</p>
+      {unreachable && (
+        <p className="muted">
+          The solver runs separately: <code className="data">uvicorn server:app --app-dir src</code>
+        </p>
+      )}
+      {error.detail && !unreachable && error.detail !== error.message && (
+        <p className="muted data">{error.detail}</p>
+      )}
+      <button type="button" className="button button--quiet" onClick={onEdit}>
+        Edit
+      </button>
+    </div>
   );
 }
 

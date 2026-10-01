@@ -3,9 +3,12 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../App.jsx";
-import { postConstraints } from "../api.js";
+import { ApiError, postConstraints } from "../api.js";
 
-vi.mock("../api.js", () => ({ postConstraints: vi.fn() }));
+vi.mock("../api.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  postConstraints: vi.fn(),
+}));
 
 function at(path) {
   return render(
@@ -73,8 +76,28 @@ describe("dictate, with no speech recognition in this environment", () => {
     expect(screen.getByText(/which parcel do you mean/i)).toBeInTheDocument();
   });
 
-  it("shows a calm message on a failed request, and edit keeps the transcript", async () => {
-    postConstraints.mockRejectedValue(new Error("the server answered 500"));
+  it("shows the server's own reason when the sentence is refused, and edit keeps the transcript",
+    async () => {
+      postConstraints.mockRejectedValue(
+        new ApiError("refused", "text must not be empty", "text must not be empty"),
+      );
+      at("/app/dictate");
+      fireEvent.change(screen.getByLabelText(/transcript/i), {
+        target: { value: "Keep it upright" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+      expect(await screen.findByText("text must not be empty")).toBeInTheDocument();
+      expect(screen.queryByText(/could not reach the solver/i)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /edit/i }));
+      expect(screen.getByLabelText(/transcript/i)).toHaveValue("Keep it upright");
+    });
+
+  it("names the solver when it cannot be reached at all", async () => {
+    postConstraints.mockRejectedValue(
+      new ApiError("unreachable", "Could not reach the solver at http://127.0.0.1:8000."),
+    );
     at("/app/dictate");
     fireEvent.change(screen.getByLabelText(/transcript/i), {
       target: { value: "Keep it upright" },
@@ -82,8 +105,6 @@ describe("dictate, with no speech recognition in this environment", () => {
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
 
     expect(await screen.findByText(/could not reach the solver/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /edit/i }));
-    expect(screen.getByLabelText(/transcript/i)).toHaveValue("Keep it upright");
+    expect(screen.getByText(/uvicorn server:app/)).toBeInTheDocument();
   });
 });
