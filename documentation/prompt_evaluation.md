@@ -404,6 +404,7 @@ sentence rather than recording anything (see `documentation/failures.md`).
 | Version | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total /26 | Model | Temp. | Date | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
+| v2_output_format | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Same inputs, model and temperature as v1. Output section rewritten, everything else byte-identical. **78 of 78 replies fenced again** — the change made no difference at all |
 
 **Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
 for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
@@ -438,3 +439,52 @@ habit is worth 21 sentences, and the remaining five failures are almost all in `
 The constraint half of the contract came back essentially correct (C4, C6, C7 and C8 all 26/26, and C6
 held on T25, the injection case). The `unresolved` half is where instruction-only prose did not carry
 the distinctions. That is the evidence for what v2 tries, rather than a guess about it.
+
+**Reading the v2 row: the hypothesis was wrong.** v2 changed the *Output* section and nothing else —
+the rest of the prompt was spliced from v1 byte for byte. The reasoning was that v1 forbade a code
+fence and then demonstrated the output shape inside one, so the instruction and the example
+disagreed. v2 contains no fenced block anywhere, states the rule as a property the model can check
+while writing ("the first character you emit is `{` and the last is `}`"), and gives the reason.
+
+**78 of 78 replies came back fenced again, byte-identically.** Not fewer, not sometimes: the same
+```json wrapper on every sentence on every run, and `Same answer on every run: 26/26` for both
+versions. Whatever produces the fence on this model is not reachable by instruction in the system
+prompt, and the demonstration in v1 was not the cause.
+
+That is the finding, and it is worth more than the score. Two versions have now spent 156 calls
+establishing that the envelope cannot be fixed by wording. **v3 should not be a third attempt at
+asking.** The options that remain are mechanical rather than rhetorical, and each costs something
+the project has already decided once:
+
+- **Strip the fence before `parse()`.** Cheapest, and it contradicts the contract: `POST /constraints`
+  hands the reply over unchanged, so the harness would stop measuring what the server does. If this
+  is the answer, the server has to strip it too, and that is a contract change, not a harness tweak.
+- **Constrain the reply with `output_config.format`.** The API can force the shape. *Running an
+  evaluation* rejects this on purpose — it would make C1 true by construction and measure nothing —
+  so taking it means C1 stops being a criterion and becomes a guarantee, and the rubric loses a
+  column.
+- **Score a different model.** `LLM_MODEL` is configurable and the row records it. This tests whether
+  the fence is the model's habit rather than the prompt's failure, and it is the only option that
+  costs no decision — but it answers a different question from "is this prompt good".
+
+The first two are the reviewer's call, not mine, which is why neither is in this PR.
+
+**The fence-stripped diagnostic, for v2 and against v1.** Same caveat as before: re-scored from the
+stored transcript in `outputs/evaluations/` (Git-ignored), not reproducible from the repository, and
+credited to no version.
+
+| | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | Total |
+|---|---|---|---|---|---|---|---|---|---|
+| v1 fence-stripped | 25 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | 21/26 |
+| v2 fence-stripped | **26** | 24 | 24 | 26 | **21** | 26 | 26 | 26 | **20/26** |
+
+The second half of the experiment was whether the v1 diagnostic measured anything real: the five
+non-fence failures were deliberately left untouched. **T10, T16, T17 and T20 fail identically in both
+runs** — the same sentences, the same criteria — so that part of the diagnostic was sound and the
+`unresolved` brief for a later version stands. T24 moved the other way and now passes C1 and C5: the
+stronger *Output* section made the weather question produce an `unresolved` entry instead of two empty
+lists, which is the one thing v2 did achieve. T06 and T14 regressed into C5, which v1 passed.
+
+Net, the diagnostic went 21 → 20 while the recorded score stayed 0 → 0. A version that cannot be
+parsed is worth nothing whatever its content does, which is the whole point of C1 and the reason both
+rows read zero.
