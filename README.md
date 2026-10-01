@@ -185,6 +185,60 @@ cannot read becomes "could not reach the solver" on screen — the one diagnosis
 restart a server that is working.
 
 
+`POST /route` takes the stops of a delivery list as addresses, **in the order they will be driven**, and
+returns what a map needs: each stop geocoded, the road geometry, the driving time to each stop, and the
+totals. `departure_time` is optional; give it and each stop also carries an absolute `eta`.
+
+```bash
+curl -X POST http://127.0.0.1:8000/route -H "Content-Type: application/json" -d '{
+  "stops": [
+    {"id": "S1", "address": "8 boulevard du Port, Amiens"},
+    {"id": "S2", "address": "1 rue de la Paix, Paris"}
+  ],
+  "departure_time": "2026-10-02T08:00:00+02:00"
+}'
+```
+
+```json
+{"stops": [{"id": "S1", "address": "8 boulevard du Port, Amiens",
+            "label": "8 Boulevard du Port 80000 Amiens", "lon": 2.290084, "lat": 49.897442,
+            "eta_seconds": 0.0, "eta": "2026-10-02T08:00:00+02:00"},
+           {"id": "S2", "address": "1 rue de la Paix, Paris", "label": "1 Rue de la Paix 75002 Paris",
+            "lon": 2.33031, "lat": 48.868546,
+            "eta_seconds": 6179.4, "eta": "2026-10-02T09:42:59.400000+02:00"}],
+ "geometry": {"type": "LineString", "coordinates": [[2.290021, 49.897463], "… 3421 more …"]},
+ "total_distance_m": 140494.9, "total_duration_s": 6179.4}
+```
+
+That response is a real one, run against both services on 2026-10-01. The figures will drift as the
+road data behind OSRM changes, so treat them as the shape of the answer rather than as constants.
+
+**QUAI never reorders the stops.** The order arrives with the delivery list and the solver loads the
+vehicle against it, so a route drawn in any other order would describe a journey the van was not packed
+for. The router is asked for `/route`, which drives the points as given — not `/trip`, which would return
+a shorter journey in an order of its own choosing.
+
+#### The two services this uses, and what they cost us
+
+Neither is ours, both are free, and both are called at request time with no caching.
+
+| Service | What it does | Limits that matter |
+|---|---|---|
+| [`api-adresse.data.gouv.fr`](https://adresse.data.gouv.fr/api-doc/adresse) (Base Adresse Nationale) | address → point | **France only.** An address anywhere else returns no match and the request is refused naming it. Rate-limited at 50 requests/second per IP. One call per stop. |
+| [`router.project-osrm.org`](https://project-osrm.org/) (OSRM demo server) | points → road geometry, distance, duration | A **demo** server with no uptime promise and no support: fine for a student project, not for production. Driving profile only. One call per route. |
+
+Consequences worth knowing before relying on it:
+
+- **Estimated arrival times are driving time only.** Nothing in QUAI knows yet how long a stop takes to
+  unload, so the ETA of the last stop of a long round will be optimistic.
+- **Traffic is not modelled.** OSRM's durations come from road speeds, not from conditions on the day.
+- **A stop that fails to geocode fails the whole request** (`422`, naming the address), because a route
+  through an unknown point is not a route.
+- **When a service is slow or down**, the request fails rather than hanging: `504` if it did not answer in
+  time, `502` if it answered badly. Both carry a sentence saying which service and why.
+- The tests mock both services, so the suite neither needs the network nor tests somebody else's uptime.
+
+
 ### The web app
 
 ```bash

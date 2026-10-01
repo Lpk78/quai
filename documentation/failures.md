@@ -591,6 +591,52 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 
 ---
 
+## 2026-10-01 — The order test that could not fail
+
+- What happened: `SA-12` adds `POST /route`, and the one rule it exists to protect is that QUAI never
+  reorders stops — OSRM's `/trip` would happily return a shorter journey in a different order. Two tests
+  asserted the order, and both passed. Then the guard was mutation-tested by replacing the stop list with
+  `sorted(points, key=lambda q: q.lon)`: the whole suite still passed. The fixture drove Amiens → Paris →
+  Lille, which is already in ascending longitude, so sorting it was a no-op and the assertion compared a
+  list to itself.
+- Why: the addresses were picked for being real and far apart, not for being in an awkward order. The
+  test looked like it was about sequence while the data made sequence irrelevant — so it asserted a
+  property the fixture guaranteed regardless of the code.
+- What we tried: reordered the fixture to Lille → Amiens → Paris, which differs from sorting by longitude,
+  by latitude *and* alphabetically, and re-ran the mutations. All four now fail the suite: sort by
+  longitude, sort by latitude, reverse, and swapping `/route` for `/trip`. The reason the order was chosen
+  is written into the fixture's docstring so the next person does not "tidy" it back.
+- What we learned: this is the second time the same shape has caught us — #14 had a parser test that
+  passed because the regex matched the wrong table, and both were found by changing the code to see
+  whether the test noticed. A test that has never been seen to fail is a claim, not evidence. Where a test
+  protects a rule, write the fixture so that breaking the rule changes the answer.
+- Related branch / PR: `feature/route-display`, `SA-12`.
+
+---
+
+## 2026-10-01 — Valid Python locally, a syntax error in CI
+
+- What happened: `SA-12` pushed with 290 tests passing locally and CI went red immediately. The whole
+  `test_server` module failed to import on a `SyntaxError` in `src/server.py`:
+  `f"duplicate stop ids: {", ".join(duplicates)}"`. Nesting the same quote character inside an f-string
+  expression is legal from Python 3.12 (PEP 701) and a syntax error before it. The machine this was
+  written on runs 3.14; `tests.yml` pins 3.11, which is also what the README promises.
+- Why: the language version was the one part of the environment never checked. The rule we already wrote
+  after the last one of these — "a green local run proves nothing if the working directory holds
+  untracked leftovers" — was about *files*; this is the same lesson about the *interpreter*, and nothing
+  in the local run could have surfaced it.
+- What we tried: used `', '` inside the f-string, and then checked the whole repository rather than the
+  one line, by parsing every file under `src/` and `tests/` with
+  `ast.parse(source, feature_version=(3, 11))`. That compiles against the 3.11 grammar without needing
+  3.11 installed, and it reported the rest of the tree clean. Worth running before a push whenever
+  something new is written on a machine ahead of CI.
+- What we learned: "it runs here" is a statement about this machine, and the gap that matters is usually
+  the one nobody chose — here, a minor version that silently permits newer syntax. CI caught it in
+  fifteen seconds, which is the system working; the cost is a red build on a reviewer's notification.
+- Related branch / PR: `feature/route-display`, #35.
+
+---
+
 ## 2026-10-02 — The constraint we wired for the demo changes nothing on the demo load
 
 - What happened: `SA-20` added `on_top` to what `POST /plan` passes the solver, so that the dictated
