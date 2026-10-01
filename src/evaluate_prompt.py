@@ -32,16 +32,40 @@ TRANSCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "outputs" / "evaluat
 PROMPT_START = "<!-- PROMPT START -->"
 PROMPT_END = "<!-- PROMPT END -->"
 
+# Where a documented version file lives. Anything under here must carry the markers: these files are
+# required to have a change log, and a change log names the sentences a version found hard.
+VERSIONS = pathlib.Path(__file__).resolve().parents[1] / "prompts"
+
+
+def is_version_file(path: pathlib.Path) -> bool:
+    """Whether `path` is a product prompt version — `prompts/<family>/v2_output_format.md`.
+
+    `prompts/dev/` is excluded: those are development task records, never sent to a model.
+    """
+    try:
+        inside = path.resolve().relative_to(VERSIONS)
+    except ValueError:
+        return False
+    return len(inside.parts) == 2 and inside.parts[0] != "dev"
+
 
 def prompt_text(path: pathlib.Path) -> str:
     """The system prompt inside a version file: what lies between the markers.
 
-    A file with no markers is sent whole, which is what a bare prompt file is. A file with an opening
-    marker and no closing one is refused rather than guessed at — silently sending the rest of the
-    document would be the exact failure the markers exist to prevent.
+    A file under `prompts/<family>/` must carry both markers. It is required to document its own task
+    and change log, so sending it whole would score a prompt that had been shown the sentences it was
+    written against — and unlike a half-open marker that fails loudly, a file with no markers at all
+    would do it silently and produce a plausible score. Suggested by the review of #30.
+
+    A file anywhere else with no markers is sent whole, which is what a bare prompt file is. An
+    opening marker with no closing one is always refused rather than guessed at.
     """
     text = path.read_text(encoding="utf-8")
     if PROMPT_START not in text:
+        if is_version_file(path):
+            raise SystemExit(
+                f"{path}: a version file must mark its prompt with {PROMPT_START} and {PROMPT_END}, "
+                "so that its change log is not sent to the model")
         return text
     body = text.split(PROMPT_START, 1)[1]
     if PROMPT_END not in body:

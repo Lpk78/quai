@@ -140,3 +140,46 @@ class TestWhatIsSentAsThePrompt(unittest.TestCase):
         self.assertIn("You convert what a loading operator says", sent)
         self.assertNotIn("Change log", sent)
         self.assertNotIn("Known risks", sent)
+
+
+class TestAVersionFileMustMarkItsPrompt(unittest.TestCase):
+    """Sam's point on #30: a half-open marker fails loudly, no markers at all fails silently."""
+
+    FAMILY = ROOT / "prompts" / "constraint-translation"
+
+    def test_a_version_file_without_markers_stops_the_run(self):
+        path = self.FAMILY / "v99_unmarked.md"
+        path.write_text("# v99\n\nPrompt.\n\n## Change log\nT13 is the hard one.\n", encoding="utf-8")
+        self.addCleanup(path.unlink)
+        with self.assertRaises(SystemExit) as stopped:
+            evaluate_prompt.prompt_text(path)
+        self.assertIn("change log", str(stopped.exception))
+
+    def test_a_bare_prompt_file_elsewhere_is_still_sent_whole(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "scratch.md"
+        path.write_text("You convert speech.\n", encoding="utf-8")
+        self.assertEqual(evaluate_prompt.prompt_text(path), "You convert speech.\n")
+
+    def test_what_counts_as_a_version_file(self):
+        cases = {
+            self.FAMILY / "v1_zero_shot.md": True,
+            ROOT / "prompts" / "dev" / "LP-07_constraint-translation-v1.md": False,
+            ROOT / "prompts" / "README.md": False,
+            ROOT / "documentation" / "design.md": False,
+        }
+        for path, expected in cases.items():
+            with self.subTest(path.name):
+                self.assertEqual(evaluate_prompt.is_version_file(path), expected)
+
+    def test_every_committed_version_file_carries_its_markers(self):
+        """The rule is only worth having if the files on this branch actually satisfy it."""
+        for family in (ROOT / "prompts").iterdir():
+            if not family.is_dir() or family.name == "dev":
+                continue
+            for path in sorted(family.glob("*.md")):
+                with self.subTest(f"{family.name}/{path.name}"):
+                    sent = evaluate_prompt.prompt_text(path)          # raises if unmarked
+                    self.assertNotIn("Change log", sent)
+                    self.assertLess(len(sent), len(path.read_text(encoding="utf-8")))
