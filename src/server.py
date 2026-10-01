@@ -5,12 +5,31 @@ Run from the repository root:  uvicorn server:app --app-dir src --reload
 from collections import Counter
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from quai.models import Box, Container
 from quai.solver import solve
 
 app = FastAPI(title="QUAI")
+
+# The web app runs on its own origin in development (Vite serves it on :5173), so the browser treats
+# every call to this API as cross-origin and blocks it before the handler runs. The allowed origins
+# are listed rather than opened with "*": this API is the only place the Claude key lives, and a
+# wildcard would let any page in the operator's browser call it.
+DEV_ORIGINS = [
+    "http://localhost:5173",   # vite dev server
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",   # vite preview, the production build served locally
+    "http://127.0.0.1:4173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=DEV_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class BoxIn(BaseModel):
