@@ -186,14 +186,15 @@ class TestBrandFiles(unittest.TestCase):
     def test_the_committed_svgs_match_their_generator(self):
         """design.md says the three files are traced from the sheet. This is what makes that true.
 
-        The tracer needs numpy, pillow and potracer. They are build-time tools for a brand asset
-        rather than runtime dependencies, so they are not in requirements.txt and this check skips
-        where they are absent — including CI. It runs for whoever edits the logo, which is the
-        person it is for.
+        The person this guards against is the one who opens `quai-logo-light.svg`, nudges a path by
+        hand and commits it *instead of* running the generator — so they did not run the tracer and
+        may not have it installed. Skipping where the tracer is absent would turn the check off in
+        exactly that case, which is why `requirements-dev.txt` exists and why `tests.yml` installs
+        it: this runs on every Pull Request, for everyone.
         """
-        for module in ("numpy", "PIL", "potrace"):
-            if importlib.util.find_spec(module) is None:
-                self.skipTest(f"{module} is not installed; the logo tracer cannot run here")
+        missing = [m for m in ("numpy", "PIL", "potrace") if importlib.util.find_spec(m) is None]
+        self.assertEqual(missing, [],
+                         "install requirements-dev.txt: the logo drift check needs the tracer")
 
         spec = importlib.util.spec_from_file_location(
             "build_logo", BRAND / "logo" / "build_logo.py")

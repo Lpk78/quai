@@ -1,0 +1,9 @@
+# Build-time tools, not runtime dependencies of QUAI. Installed by the tests workflow so the checks
+# that need them run on every Pull Request; `requirements.txt` stays to what the product itself uses.
+#
+# These three are needed by assets/brand/logo/build_logo.py, which traces the logo SVGs from
+# assets/brand/logo/quai-logo-v2-sheet.png, and therefore by the drift check in tests/test_brand.py.
+
+numpy      # array maths for the colour-layer masks
+pillow     # reads the sheet and upscales each crop before tracing
+potracer   # pure-Python potrace: turns a mask into SVG path data
