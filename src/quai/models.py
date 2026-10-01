@@ -46,8 +46,14 @@ class Container:
             value = getattr(self, name)
             if value <= 0:
                 raise ValueError(f"container: {name} must be greater than 0, got {value}")
-        if self.max_weight < 0:
-            raise ValueError(f"container: max_weight cannot be negative, got {self.max_weight}")
+        # Written as `not >= 0` rather than `< 0` so that NaN is refused: every comparison with
+        # NaN is False, so `NaN < 0` would accept it and the solver's `weight > max_weight` would
+        # then be False for every box, removing the limit instead of enforcing it. That is the one
+        # invalid input that produces a plan which looks valid, which is what #15 and #23 exist to
+        # prevent. `inf` (the default, no limit) and `0` (nothing may be loaded) both pass.
+        if not self.max_weight >= 0:
+            raise ValueError(f"container: max_weight must be a number that is not negative, got "
+                             f"{self.max_weight}")
 
     @property
     def volume(self) -> int:
