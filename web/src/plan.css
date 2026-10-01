@@ -129,3 +129,43 @@
   .plan-item { grid-template-columns: 2rem 1fr auto auto; }
   .plan-at { grid-column: auto; }
 }
+
+/* The 3D view. A fixed height rather than an aspect ratio: on a phone the scene must leave room for
+   the list under it, and a square canvas pushes everything below the fold. */
+.plan-scene {
+  height: 15rem;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  background: var(--quai-surface);
+  margin-top: 0.75rem;
+  touch-action: none; /* the canvas handles the gestures; the page must not scroll under them */
+}
+
+.plan-inspector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: var(--quai-surface);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.plan-hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.plan-swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.1875rem;
+  flex: none;
+}
+
+.plan-item { cursor: pointer; }
+.plan-item--selected { outline: 2px solid var(--quai-orange); }
+
+.plan-item .plan-swatch { align-self: center; }
