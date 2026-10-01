@@ -161,6 +161,31 @@ describe("dictate, with speech recognition available", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("decorates the mic with sound-wave bars that stay out of the accessibility tree", async () => {
+    class MockSpeechRecognition {
+      start() {}
+      stop() {}
+    }
+    vi.stubGlobal("SpeechRecognition", MockSpeechRecognition);
+    vi.resetModules();
+    const { default: FreshApp } = await import("../App.jsx");
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/app/dictate"]}>
+        <FreshApp />
+      </MemoryRouter>,
+    );
+
+    // HY-17: the bars are decoration either side of the mic, not information — a screen reader
+    // user must still reach the same one control the sighted layout has.
+    const waves = container.querySelectorAll(".sound-wave");
+    expect(waves).toHaveLength(2);
+    for (const wave of waves) expect(wave).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("button", { name: /tap and speak/i })).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
 });
 
 describe("confirm sends the dictated constraints to /plan and shows what it returns", () => {

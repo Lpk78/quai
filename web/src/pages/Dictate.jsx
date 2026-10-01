@@ -192,6 +192,20 @@ function Failure({ error, onEdit }) {
   );
 }
 
+// Decorative only: a fixed waveform either side of the mic, not a visualisation of the audio
+// level, which `SpeechRecognitionImpl` does not expose. Five bars, height set in CSS.
+function SoundWave() {
+  return (
+    <span className="sound-wave" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function TalkStep({
   transcript,
   onTranscriptChange,
@@ -213,15 +227,19 @@ function TalkStep({
 
       {speechSupported ? (
         <div className="mic-wrap">
-          <button
-            type="button"
-            className={`mic${listening ? " mic--active" : ""}`}
-            onClick={onToggleListening}
-            aria-pressed={listening}
-            aria-label={listening ? "Stop talking" : "Tap and speak"}
-          >
-            <IconMic />
-          </button>
+          <div className="mic-panel">
+            <SoundWave />
+            <button
+              type="button"
+              className={`mic${listening ? " mic--active" : ""}`}
+              onClick={onToggleListening}
+              aria-pressed={listening}
+              aria-label={listening ? "Stop talking" : "Tap and speak"}
+            >
+              <IconMic />
+            </button>
+            <SoundWave />
+          </div>
           <p className="muted">{listening ? "Listening…" : "Tap and speak"}</p>
           <p className="mic-example">
             “Keep the pallet of tiles upright and load the toolbox last.”
