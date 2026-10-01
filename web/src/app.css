@@ -1,0 +1,155 @@
+/* The operator app: /app and /app/dictate. Mobile-first — a phone column that stays centred on a
+   wider screen, per design.md's "phone first" rule. Colours come from tokens.css, never typed. */
+
+.wrap--app {
+  max-width: 26rem;
+}
+
+.shell-main .wrap--app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.back-link {
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+/* --- home ----------------------------------------------------------------------------------- */
+
+.van-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.box-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.box-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.box-row__label {
+  flex: 1;
+}
+
+.button--block {
+  width: 100%;
+  justify-content: center;
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+}
+
+/* --- dictate ---------------------------------------------------------------------------------- */
+
+.mic-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+/* The largest target on the screen, per design.md's interface rules. Navy on orange, like .button:
+   an icon drawn on the primary fill follows the same contrast rule as text does. */
+.mic {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+  cursor: pointer;
+}
+
+.mic svg {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.mic--active {
+  box-shadow: 0 0 0 6px rgba(255, 138, 0, 0.25);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field__label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.field textarea {
+  font: inherit;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  border: 2px solid rgba(16, 34, 56, 0.12);
+  background: var(--quai-surface);
+  color: var(--quai-text);
+  resize: vertical;
+}
+
+.status-card {
+  text-align: center;
+}
+
+.constraint-list,
+.unresolved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.constraint-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+/* .constraint-card__icon: matched by the styles test's icon allowance, so the success colour can
+   mark a resolved rule without becoming body text (design.md: status colours are fill/icon only). */
+.constraint-card__icon {
+  color: var(--quai-success);
+  font-weight: 700;
+}
+
+.unresolved-card {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.badge--warning {
+  align-self: flex-start;
+  background: rgba(245, 158, 11, 0.18);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.actions .button {
+  flex: 1;
+  justify-content: center;
+}
