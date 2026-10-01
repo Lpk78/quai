@@ -25,8 +25,8 @@ export default function Home() {
         </ul>
       </section>
 
-      <Link className="button button--block" to="/app/dictate">
-        Dictate rules <span aria-hidden="true">→</span>
+      <Link className="button button--block" to="/app/scan">
+        Scan a package <span aria-hidden="true">→</span>
       </Link>
     </>
   );
