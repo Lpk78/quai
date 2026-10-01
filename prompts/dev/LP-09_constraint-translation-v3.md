@@ -16,7 +16,7 @@ model accepts an assistant prefill; if it does not, stop and tell me.
 
 ## Outcome
 
-- **PR:** (filled when opened; reviewer `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/39 (reviewer: `SamDana-maker`)
 - **What the AI produced:** `prompts/constraint-translation/v3_response_prefill.md`, the prefill
   mechanism in `src/quai/llm.py` and `src/evaluate_prompt.py` with nine tests, and the results row
   and comparison in `documentation/prompt_evaluation.md`.
