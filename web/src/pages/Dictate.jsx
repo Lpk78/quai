@@ -218,11 +218,11 @@ function TalkStep({
             className={`mic${listening ? " mic--active" : ""}`}
             onClick={onToggleListening}
             aria-pressed={listening}
-            aria-label={listening ? "Stop talking" : "Tap to talk"}
+            aria-label={listening ? "Stop talking" : "Tap and speak"}
           >
             <IconMic />
           </button>
-          <p className="muted">{listening ? "Listening…" : "Tap to talk"}</p>
+          <p className="muted">{listening ? "Listening…" : "Tap and speak"}</p>
           <p className="mic-example">
             “Keep the pallet of tiles upright and load the toolbox last.”
           </p>
