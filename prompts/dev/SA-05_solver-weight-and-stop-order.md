@@ -46,3 +46,30 @@ of max_total_weight and Container.max_weight; with tests
 - **Known cost, recorded rather than hidden:** ordering by the route drops the demo load's fill rate from
   39 % to 21 % once its boxes are spread over three stops, because size no longer decides what goes in
   first. That is in `documentation/roadmap.md` under the greedy first-fit limitation.
+
+## Outcome of the review round (#27)
+
+- **What the review asked for:** one blocking point and three optional ones from `MORHI11`. `solve()`
+  took a whole `ConstraintSet` and honoured four of the nine types, dropping the five placement
+  constraints in silence — and `find_problems()` then called the result a valid plan. I reproduced it
+  before fixing it: `at_bottom` on a box put that box *on top* of another and the independent check
+  answered `valid plan`, which is the one answer this layer must never give.
+- **What the AI produced:** `HONOURED` and `UnsupportedConstraint` in `src/quai/solver.py`, with
+  `unhandled()` reading the contract's own `CONSTRAINT_FIELDS` rather than a second hand-written list,
+  so a type added to the schema refuses itself here until the solver learns it; three tests, one of
+  which walks every type in the contract and asserts it is either honoured or refused, since falling
+  between the two is exactly how the five were lost. Also `TestTheDemoLoad`, pinning 39 % unrouted and
+  21 % round-robin over three stops, and issue #29 for the five.
+- **What was changed by hand:** the choice between the two fixes the review offered. `MORHI11` would
+  have accepted an `ignored` list on `Plan`; I refused instead, because a list still hands back a plan
+  the checks certify as valid unless every caller remembers to read it, and "refused, never repaired"
+  is already the rule `parse()` follows one layer up. The journal entry was reverted rather than
+  rebased out — it sits before this branch's merge of `main`, so dropping it by rebase would replay
+  the merge commit.
+- **Verified:** 139 tests pass. Removing the refusal fails five of them. The merge result keeps the
+  journal entry `main` gained from #22 and adds none of its own — checked with `git merge-tree`, not
+  assumed, because #2 had just shown me a merge that silently deleted 30 lines of `main`.
+- **Not changed, and why:** the whole-stop no-op stays implicit in the sort key (`MORHI11` agreed a
+  special case no test can distinguish is dead weight), `overloads()` keeps correctness over speed,
+  and `loading_order()` still raises on a box outside the manifest rather than defaulting it to the
+  last stop.
