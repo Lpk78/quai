@@ -30,3 +30,22 @@ dependencies, buildable today), **SA-14b** the 3D scene stacked on it with boxes
 
 ## Outcome
 
+- **PR:** https://github.com/Lpk78/quai/pull/45 (reviewer: `MORHI11`) — first half of #7
+- **What the AI produced:** `web/src/api.js` (the first API client in the app), `PlanScreen.jsx` with
+  `plan.css` and the `/app/plan` route, the demo load and a solver-generated fixture, 13 tests, the
+  network guard in `test-setup.js`, the README and roadmap entries, and two screenshots at 390px.
+- **What was changed by hand:** three things.
+  The split itself. The brief asked for a 3D view with boxes coloured by stop and a tap panel showing
+  the constraints applied; the survey found `POST /plan` returns no stop and `Plan` records no
+  constraint provenance, so those are API and solver work. Raised before writing code and agreed with
+  the product owner; written up on #7 so the reason survives.
+  The duplicated failure message: a test caught the screen printing the same sentence twice when a
+  refused load has its detail equal to its message. Fixed in the component rather than in the test.
+  The network guard: while checking that the copy rules covered the new page, a `fetch` spy showed
+  that rendering `/app/plan` in a test called `http://127.0.0.1:8000/plan` for real. It passed only
+  because nothing was listening. Unmocked `fetch` now fails loudly.
+- **Verified:** 310 Python tests and 38 web tests pass, `npm run build` is clean, and the screen was
+  run against the live solver at 390px — 10 of 11 placed, 39 % fill, 276 kg, mattress not placed,
+  which is exactly what `src/demo.py` produces. The fixture is a real response, not an invented one.
+- **Ownership:** #7 was `MORHI11`'s. `Lpk78` reassigned it; the comment on #7 says so, tags
+  `MORHI11` so nobody builds it twice, and records that he remains the reviewer.
