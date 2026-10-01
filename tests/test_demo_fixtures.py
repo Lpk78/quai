@@ -37,12 +37,38 @@ class TestLoadedVan(unittest.TestCase):
 
 
 class TestScannedParcel(unittest.TestCase):
-    def test_scanning_places_it_and_moves_nothing(self):
+    # The two stop-1 cartons. Stop 1 comes off first, so it is loaded last — after the parcel, which
+    # goes in 17th of 19 — and these two end up on different corners once it is in. They are pinned
+    # rather than tolerated: until issue #36 lets the solver plan around what is already in the van,
+    # two boxes moving is a fact of this fixture, and a solver change that moved a third should turn
+    # this red rather than surprise anyone mid-demo.
+    SHIFTED_BY_THE_SCAN = {"B15", "B18"}
+
+    @staticmethod
+    def coordinates(plan):
+        return {p.box.id: (p.x, p.y, p.z, p.dx, p.dy, p.dz) for p in plan.placements}
+
+    def test_scanning_places_it_without_ejecting_anything(self):
         before, after = demo_fixtures.plan(), demo_fixtures.plan(include_scanned=True)
         self.assertEqual(after.unplaced, [], "scanning the parcel ejected a box already loaded")
         self.assertEqual(len(after.placements), len(before.placements) + 1)
         self.assertIn(demo_fixtures.SCANNED_ITEM["code"],
                       [p.box.id for p in after.placements])
+
+    def test_scanning_moves_exactly_the_two_stop_one_cartons(self):
+        before = self.coordinates(demo_fixtures.plan())
+        after = self.coordinates(demo_fixtures.plan(include_scanned=True))
+        moved = {box for box, place in before.items() if after[box] != place}
+        self.assertEqual(moved, self.SHIFTED_BY_THE_SCAN)
+
+    def test_every_other_box_keeps_its_coordinates(self):
+        # The half of the claim that does hold, and the one the demo depends on: sixteen of the
+        # eighteen do not budge when the parcel goes in.
+        before = self.coordinates(demo_fixtures.plan())
+        after = self.coordinates(demo_fixtures.plan(include_scanned=True))
+        for box in sorted(set(before) - self.SHIFTED_BY_THE_SCAN):
+            with self.subTest(box):
+                self.assertEqual(after[box], before[box])
 
     def test_it_starts_outside_the_load(self):
         self.assertNotIn(demo_fixtures.SCANNED_ITEM["code"],
