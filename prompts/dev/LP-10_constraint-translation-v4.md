@@ -18,7 +18,7 @@ test that checks no example matches a test sentence. Change nothing else from v3
 
 ## Outcome
 
-- **PR:** (filled when opened; reviewer `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/40 (reviewer: `SamDana-maker`)
 - **What the AI produced:** `prompts/constraint-translation/v4_few_shot.md`,
   `tests/test_prompt_examples.py`, the results row and the per-sentence analysis in
   `documentation/prompt_evaluation.md`, and the `documentation/failures.md` entry.
