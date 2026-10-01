@@ -47,3 +47,25 @@ refuses the certificate and there is still no camera. That is a step on the devi
 repository, so it is documented rather than automated.
 
 ## Outcome
+
+- **PR:** https://github.com/Lpk78/quai/pull/58 (reviewer: `SamDana-maker`), based on
+  `feature/phone-demo-login` / #55 rather than on `main`
+- **What the AI produced:** `httpsIfAvailable()` and the `server.https` wiring in `vite.config.js`,
+  the rewritten "Phone demo" section of the README, the `.gitignore` entry, the "Resolved the same
+  evening" paragraph in `documentation/failures.md`, and the corrected header comment in
+  `Login.jsx`. The mkcert commands themselves were the user's; `mkcert -install` was run by them,
+  since it writes a root CA into the system trust store.
+- **How it was checked:** `python3 -m unittest discover tests` (349, 1 skipped — no key), `npm test`
+  (73) and `npm run build`, the last two run twice — once with `.certs/` present and once with it
+  moved aside, which is the state of CI and of every other machine. Then the actual claim:
+  `curl --cacert "$(mkcert -CAROOT)/rootCA.pem"` reached both servers over HTTPS with no `-k`, the
+  CORS preflight from `https://…:5173` answered 200 while the old `http://` origin answered 400, and
+  `isSecureContext` / `getUserMedia` / the scanner's state were read in a real browser at
+  `https://192.168.1.201:5173/login`: `true`, present, `scanning`. The camera opens.
+- **What was changed by hand:** the decisions, and two corrections to text this change falsified.
+  `failures.md` still described the camera problem as unsolved and `Login.jsx`'s header still said
+  the phone demo "cannot scan" — both were rewritten in the same commit as the change that made them
+  wrong, rather than left for a reviewer to catch. `import.meta.dirname` was the first thing written
+  for the certificate path and was replaced: it only exists from Node 20.11, and the README asks for
+  Node 20 or later. No test was added, because what changed is dev-server configuration that the
+  suites do not reach; that is stated in the PR rather than papered over.
