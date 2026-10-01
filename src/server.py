@@ -304,8 +304,30 @@ def constraints(request: ConstraintsRequest) -> ConstraintsResponse:
         {s.id: s.name for s in request.stops},
     )
 
+    # Every way `_translate` can fail is answered here, because the one that is not becomes a bare 500
+    # from FastAPI's default handler — and that handler sits outside `CORSMiddleware`, so the response
+    # carries no `access-control-allow-origin`. The browser then cannot read it, `fetch` throws, and
+    # `web/src/api.js` reports `unreachable`: the operator is told "could not reach the solver" about a
+    # server that is running and answering. That sends them to restart uvicorn, which fixes nothing.
+    #
+    # `NotConfigured` is caught by its base class on purpose: it covers `MissingKey`, `MissingModel`
+    # and the "anthropic is not installed" case, and a new setting added to `from_env` is covered the
+    # day it is added rather than the day someone remembers this list.
     try:
         raw = _translate(request.text, manifest_text)
+    except llm.NotConfigured as missing:
+        raise HTTPException(status_code=503,
+                            detail=f"the constraint translation model is not configured on the "
+                                   f"server — check {llm.KEY_VARIABLE} and {llm.MODEL_VARIABLE} in "
+                                   f".env: {missing}") from missing
+    except llm.FatalCall as rejected:
+        # A key that is present but wrong reaches this, not `NotConfigured`: `from_env` is satisfied
+        # and the API refuses the call. 502 rather than 503 — the model answered, just not usably,
+        # which is the same thing a reply that fails validation means below.
+        raise HTTPException(status_code=502,
+                            detail=f"the constraint translation model refused the request, which "
+                                   f"usually means the key or the model name is wrong: "
+                                   f"{rejected}") from rejected
     except llm.CallFailed as failed:
         raise HTTPException(status_code=503,
                             detail=f"the constraint translation model could not be reached: "

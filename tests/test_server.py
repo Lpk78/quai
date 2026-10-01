@@ -144,12 +144,15 @@ STOP = {"id": "S1", "name": "Rouen"}
 
 
 class TestConstraintsEndpoint(unittest.TestCase):
-    def post(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
-        return client.post("/constraints", json={
+    def body(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
+        return {
             "text": text,
             "manifest": [MANIFEST_ITEM] if manifest is None else manifest,
             "stops": [STOP] if stops is None else stops,
-        })
+        }
+
+    def post(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
+        return client.post("/constraints", json=self.body(text, manifest, stops))
 
     def test_the_validated_model_output_is_returned(self):
         with mock.patch.object(server, "_translate",
@@ -189,6 +192,60 @@ class TestConstraintsEndpoint(unittest.TestCase):
             response = self.post()
         self.assertEqual(response.status_code, 503)
         self.assertIn("no reply", response.json()["detail"])
+
+    def test_an_unconfigured_server_says_so_instead_of_raising(self):
+        """`SA-18`. Every one of these used to be an unhandled exception.
+
+        FastAPI's default handler answers a bare 500, and it sits outside `CORSMiddleware`, so that
+        response carries no `access-control-allow-origin`. The browser cannot read it, `fetch` throws,
+        and `web/src/api.js` reports `unreachable` — the operator is told the solver cannot be reached
+        about a server that is running and answering, which points them at restarting it.
+
+        Caught by the `NotConfigured` base class, so the third case below is covered without being
+        named, and so is whatever `from_env` learns to require next.
+        """
+        for label, error in (
+            ("no key", llm.MissingKey("ANTHROPIC_API_KEY is not set in .env")),
+            ("no model", llm.MissingModel("LLM_MODEL is not set in .env")),
+            ("no anthropic package", llm.NotConfigured("the anthropic package is not installed")),
+        ):
+            with self.subTest(label):
+                with mock.patch.object(server, "_translate", side_effect=error):
+                    response = self.post()
+                self.assertEqual(response.status_code, 503)
+                detail = response.json()["detail"]
+                self.assertIn("not configured", detail)
+                # The two names an operator has to go and look at, in the message itself.
+                self.assertIn("ANTHROPIC_API_KEY", detail)
+                self.assertIn("LLM_MODEL", detail)
+
+    def test_a_key_that_is_present_but_wrong_is_a_502_not_a_500(self):
+        # `from_env` is satisfied by a key that exists, so a wrong one gets past it and the API
+        # refuses the call: `FatalCall`, not `NotConfigured`. This is the likelier of the two on a
+        # machine that has an .env at all, and it was the other unhandled path.
+        with mock.patch.object(server, "_translate",
+                               side_effect=llm.FatalCall("the API rejected the request (401)")):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+        detail = response.json()["detail"]
+        self.assertIn("refused the request", detail)
+        self.assertIn("(401)", detail)
+
+    def test_every_failure_still_carries_the_cors_header(self):
+        # The point of the fix, asserted where it can regress: a handled error is readable by the web
+        # app, an unhandled one is not. If one of these ever answers without the header again, the
+        # screen will say "could not reach the solver" and mean something else entirely.
+        for label, error in (
+            ("not configured", llm.MissingKey("no key")),
+            ("refused", llm.FatalCall("rejected (401)")),
+            ("unreachable model", llm.CallFailed("timeout")),
+        ):
+            with self.subTest(label):
+                with mock.patch.object(server, "_translate", side_effect=error):
+                    response = client.post("/constraints", json=self.body(),
+                                           headers={"Origin": "http://localhost:5173"})
+                self.assertEqual(response.headers["access-control-allow-origin"],
+                                 "http://localhost:5173")
 
     def test_the_vite_dev_server_is_allowed(self):
         with mock.patch.object(server, "_translate",
