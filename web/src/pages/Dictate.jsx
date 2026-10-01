@@ -76,7 +76,7 @@ export default function Dictate() {
     setStep("sending");
     setError(null);
     try {
-      const data = await postConstraints(transcript, { items: BOXES, stops: STOPS });
+      const data = await postConstraints(transcript, BOXES, STOPS);
       setResult(data);
       setStep("result");
     } catch (err) {
