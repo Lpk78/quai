@@ -333,3 +333,36 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   expected to find hard, so the family's first recorded score would have been a prompt shown its own test
   set. Caught before the run; the script now sends only what sits between the prompt markers.
 - Related branch / PR: `prompt/constraint-translation-v1-zero-shot`, #12.
+
+---
+
+## 2026-10-01 — Two prompt versions, 156 calls, and the fence did not move
+
+- What happened: `v1_zero_shot` scored **0/26** because all 78 replies arrived inside a ```json fence
+  and `parse()` reads the reply as it comes. `v2_output_format` changed the *Output* section and
+  nothing else — the rest of the prompt was spliced from v1 byte for byte — removing the fenced
+  example v1 had demonstrated while forbidding fences, stating the rule as a property the model can
+  check while writing ("the first character you emit is `{`"), and giving the reason. It scored
+  **0/26**: 78 of 78 replies fenced again, byte-identically, `Same answer on every run: 26/26` both
+  times.
+- Why: the hypothesis was that v1's instruction and its example disagreed and the example won. It was
+  a good hypothesis — 78 out of 78 is far too consistent for reluctance — and it was wrong. Whatever
+  produces the fence on `claude-haiku-4-5-20251001` is not reachable from the system prompt. Three
+  separate instructions, a removed demonstration, and a stated reason changed the output by zero
+  replies. The lesson is not about fences: it is that "say it more clearly" is a hypothesis like any
+  other, and it can be tested cheaply and be false.
+- What we tried: recorded both zeros, kept v2 rather than iterating the wording a third time, and
+  wrote down what the remaining options actually cost — strip the fence before `parse()` (contradicts
+  the contract, because the server hands the reply over unchanged), constrain the reply with
+  `output_config.format` (rejected on purpose, it makes C1 true by construction), or score a different
+  model (answers a different question). All three are decisions for the reviewer rather than a third
+  rewording, so none is in the PR.
+- What we learned: two things, and the second is the one worth keeping. First, a negative result for
+  the cost of one evaluation is cheap, and the splice is what made it a result at all — because
+  exactly one section differed, "wording cannot fix this" is a conclusion rather than a guess.
+  Second, the run also re-tested the v1 diagnostic by deliberately *not* fixing the five non-fence
+  failures: **T10, T16, T17 and T20 failed identically in both runs**, which is what makes the
+  fence-stripped figure trustworthy enough to brief a later version on. T24 improved and T06 and T14
+  regressed, so the diagnostic moved 21 → 20 while the recorded score stayed 0 → 0. A version that
+  cannot be parsed is worth nothing whatever its content does.
+- Related branch / PR: `prompt/constraint-translation-v2-output-format`, #12.
