@@ -95,7 +95,9 @@ followed in the evening.
 **What we built**
 
 - **Solver v1** (#3) is on `main`: boxes and container model, a deterministic first-fit placement and an
-  independent validity check. #5 was closed as completed by it.
+  independent validity check. #5 was closed by hand at 09:44:19, an hour and a half after #3 merged at
+  08:11:08 — #3 never carried a `Closes`, so nothing closed it automatically (see
+  `prompts/dev/LP-02_solver.md` and the `LP-16` backfill).
 - **Team automation** (#4): the `/task`, `/review`, `/fix-review` and `/prompt-version` skills, the
   permission file and the `tests.yml` workflow, which now runs the tests on every PR.
 - **Evaluation material** (#14): the reference manifest, the output contract, 25 test sentences with their
