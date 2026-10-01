@@ -40,9 +40,67 @@ def support_ratio(p: Placement, others: list[Placement]) -> float:
     return supported / (p.dx * p.dy)
 
 
+def resting_on(p: Placement, placements: list[Placement]) -> list[Placement]:
+    """The placements `p` sits on directly: their top face is its base, footprints overlapping."""
+    return [o for o in placements
+            if o is not p and o.z2 == p.z
+            and min(p.x2, o.x2) > max(p.x, o.x)
+            and min(p.y2, o.y2) > max(p.y, o.y)]
+
+
+def stack_below(p: Placement, placements: list[Placement]) -> list[Placement]:
+    """Everything `p` bears on, directly or through the boxes in between.
+
+    The contract reads `max_weight_on` as the whole stack above an item, so a box counts against
+    every box under it and not only against the one it rests on.
+    """
+    below: list[Placement] = []
+    seen = {id(p)}
+    queue = list(resting_on(p, placements))
+    while queue:
+        other = queue.pop()
+        if id(other) in seen:
+            continue
+        seen.add(id(other))
+        below.append(other)
+        queue += resting_on(other, placements)
+    return below
+
+
+def weight_above(p: Placement, placements: list[Placement]) -> float:
+    """Total weight of the whole stack resting on `p`, at any height above it."""
+    return sum(o.box.weight for o in placements
+               if any(under is p for under in stack_below(o, placements)))
+
+
+def stack_problems(placements: list[Placement],
+                   max_weight_on: dict[str, float] | None) -> list[str]:
+    """Every box carrying more than the limit the operator gave it.
+
+    The solver calls this on the plan a candidate placement would produce, so the rule it packs by
+    and the rule this module judges by are one definition. Asking it of the finished plan is what
+    makes it right: a box placed later can slide under one already loaded and pick up its weight,
+    which no check of the candidate alone would see.
+    """
+    problems = []
+    for p in placements:
+        limit = (max_weight_on or {}).get(p.box.id)
+        if limit is None:
+            continue
+        carried = weight_above(p, placements)
+        if carried > limit:
+            problems.append(f"{p.box.id} carries {carried:g} kg, more than its {limit:g} kg limit")
+    return problems
+
+
 def find_problems(placements: list[Placement], container: Container,
-                  min_support: float = MIN_SUPPORT) -> list[str]:
-    """List every physical problem in a plan. An empty list means the plan is valid."""
+                  min_support: float = MIN_SUPPORT,
+                  max_weight_on: dict[str, float] | None = None) -> list[str]:
+    """List every physical problem in a plan. An empty list means the plan is valid.
+
+    `max_weight_on` maps a box id to the weight its whole stack may not exceed, as the operator
+    stated it; boxes with no limit are left out of it.
+    """
     problems = []
     for p in placements:
         if (p.dx, p.dy, p.dz) not in p.box.orientations():
@@ -60,6 +118,7 @@ def find_problems(placements: list[Placement], container: Container,
     for a, b in combinations(placements, 2):
         if overlaps(a, b):
             problems.append(f"{a.box.id} overlaps {b.box.id}")
+    problems += stack_problems(placements, max_weight_on)
     total = sum(p.box.weight for p in placements)
     if total > container.max_weight:
         problems.append(f"total weight {total} kg exceeds {container.max_weight} kg")

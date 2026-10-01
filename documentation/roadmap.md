@@ -10,7 +10,7 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
 | 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
-| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | To do |
+| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | In review (#27) |
 | 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
 | 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | In review (#33) |
 | 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
@@ -45,7 +45,7 @@ so #22 has to be merged after #21.
 | `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
-| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Now part of #17 |
+| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done in #17 |
 
 A dash means nobody has claimed it yet, not that it has no natural owner.
 
@@ -57,11 +57,17 @@ than forgotten.
 
 | Limitation | What happens today | Why it matters |
 |---|---|---|
-| Stacking ignores weight and fragility | Boxes are ordered by volume only, so a heavy box may sit on a light or fragile one | A washing machine on cartons is a broken load even when the geometry checks out |
+| Stacking only knows the weight it was told about | The solver enforces a `max_weight_on` over the whole stack (#17), but a box nobody gave a limit for still carries anything that fits | A washing machine on cartons is a broken load even when the geometry checks out, and the operator has to say so for the solver to know |
 | First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load) |
 
-Weight-aware stacking is now issue #17 (`feature/solver-v2`, row 2). The greedy first-fit stays open,
-for after phase 1 works end to end.
+Weight-aware stacking was issue #17 (`feature/solver-v2`, row 2): a stated limit is now enforced, and
+what is left of that row is fragility the operator never states. The greedy first-fit stays open, for
+after phase 1 works end to end — and #17 made it worse rather than better, since the route now decides
+what goes in first and size only breaks the ties: the demo load drops from 39 % to 21 % once its boxes
+are dealt round-robin over three stops. Both figures are pinned by `TestTheDemoLoad` in
+`tests/test_solver.py`, because the drop belongs to the split that produced it and other splits of the
+same boxes go lower still. That is the right trade (a load nobody can unload is not a good load), but
+it is the strongest argument yet for revisiting first fit.
 
 ## Course checkpoints
 

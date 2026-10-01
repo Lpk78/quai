@@ -95,3 +95,8 @@ class Plan:
     @property
     def total_weight(self) -> float:
         return sum(p.box.weight for p in self.placements)
+
+    @property
+    def loading_order(self) -> list[str]:
+        """The boxes that were loaded, in the order they went in: first loaded first."""
+        return [p.box.id for p in self.placements]
