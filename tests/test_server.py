@@ -206,6 +206,8 @@ class TestRecomputeEndpoint(unittest.TestCase):
                          "unresolved": []})
         self.assertEqual(response.status_code, 422)
         self.assertIn("manifest", response.json()["detail"])
+        # ...and why it is being asked now, which is the part the operator cannot infer.
+        self.assertIn("the load has changed", response.json()["detail"])
 
     def test_constraints_without_the_route_are_refused(self):
         response = self.post(

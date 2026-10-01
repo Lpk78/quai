@@ -192,7 +192,13 @@ def _constraints(request: RecomputeRequest, loaded: list[Placement], waiting: li
     try:
         return parse(request.constraints, Manifest(tuple(ids), tuple(request.stops)))
     except (ConstraintError, ValueError) as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        # Say why the rules are being questioned now. Without this the operator reads a rule they
+        # wrote earlier being refused and has no way to know what moved under it — the incident did.
+        raise HTTPException(
+            status_code=422,
+            detail=(f"{error} — the load has changed since these rules were written, so they were "
+                    "checked again against it"),
+        ) from error
 
 
 def _plan_response(plan) -> PlanResponse:
