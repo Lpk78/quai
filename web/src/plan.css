@@ -47,10 +47,9 @@
   margin: 1.5rem 0 0.5rem;
 }
 
+/* `.card` (index.css) supplies the surface: background, radius, padding, shadow — the same shell
+   Home.jsx's and Dictate.jsx's cards use, so a "card" looks like a card wherever it appears. */
 .plan-summary {
-  background: var(--quai-surface);
-  border-radius: 0.875rem;
-  padding: 1rem;
   margin-top: 0.75rem;
 }
 
@@ -135,10 +134,7 @@
 .plan-unplaced { margin-top: 1.5rem; }
 
 .plan-failure {
-  background: var(--quai-surface);
-  border-radius: 0.875rem;
   border-left: 3px solid var(--quai-error);
-  padding: 1rem;
   margin-top: 1rem;
 }
 
@@ -156,7 +152,7 @@
    the list under it, and a square canvas pushes everything below the fold. */
 .plan-scene {
   height: 15rem;
-  border-radius: 0.875rem;
+  border-radius: 1.4rem; /* matches .card, same as the summary and failure surfaces below it */
   overflow: hidden;
   background: var(--quai-surface);
   margin-top: 0.75rem;
