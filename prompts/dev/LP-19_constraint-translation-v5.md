@@ -1,6 +1,6 @@
-# LP-11 — Fifth constraint-translation prompt (v5 bounded examples)
+# LP-19 — Fifth constraint-translation prompt (v5 bounded examples)
 
-- **ID**: LP-11
+- **ID**: LP-19
 - **Author**: `Lpk78` (Léo-Paul)
 - **Date**: 2026-10-01
 - **Branch**: `prompt/constraint-translation-v5-bounded-examples`

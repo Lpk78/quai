@@ -444,3 +444,26 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   changes the sentences it does not mention. Both regressions were invisible in the Total and obvious
   in the per-sentence diff, which is the second time that table has been the whole value of a run.
 - Related branch / PR: `prompt/constraint-translation-v5-bounded-examples`, #12.
+
+- **Decision, 2026-10-01 (`Lpk78`, AI-layer owner): example-based iteration stops here.** v5 is
+  recorded as it stands — 21/26 is a result, and *each example fixes its target and breaks something
+  else* is the finding. **v4 (22/26) remains the version `POST /constraints` (#19) uses in
+  production.** The evidence is the per-sentence table across the three versions that could be
+  scored, which no Total shows:
+
+  | | v3 | v4 | v5 |
+  |---|---|---|---|
+  | T13 "Put the fragile stuff on top." | pass | **C2, C3** | pass |
+  | T20 "…don't stack the microwave" | **C2, C3** | pass | pass |
+  | T14 "the heavy things on the light ones" | **C5** | pass | pass |
+  | T06 "Load the toolbox last, I need it first on site." | pass | pass | **C5** |
+  | T24 "What's the weather in Rouen tomorrow?" | pass | pass | **C1, C5** |
+  | T10, T16, T17 | fail | fail | fail |
+  | **Total** | **21** | **22** | **21** |
+
+  Read down the columns rather than along the bottom row: every example-based version fixed the
+  sentences its examples depicted and broke sentences they did not. v4 bought T20 and T14 with T13;
+  v5 bought T13 back with T06 and T24. Three sentences moved for nobody. A sixth version would be a
+  fourth draw from the same distribution, and the next example's side effects are not predictable
+  from the last one's.
+
