@@ -21,6 +21,10 @@ The images in `reference/` are renderings, not specifications. Their swatches ar
 compressed: sampling a pixel out of `colour-palette.png` gives values a few units away from the real
 token (`#FB830C` where the token is `#FF8A00`). **Never eyedrop a mockup — read `tokens.json`.**
 
+Because they are references and not assets, the four largest are stored as JPEG rather than PNG — 7.6 MB
+of PNG became 1.3 MB of JPEG at the same pixel sizes, and nothing is read off them that survives lossy
+compression anyway. Anything that must stay exact is vector or text: the logo SVGs and `tokens.json`.
+
 The 4.8 MB brand guide PDF from the original pack is deliberately not in this repository. It is a
 rendering of everything above and would be the largest file we own.
 
@@ -205,7 +209,7 @@ never an error page.
 This is not hypothetical. The two newest reference sheets were checked against the rules above and they
 fail them, which is exactly why the rules are written down. Treat both as mood images.
 
-`reference/website-mockup.png`:
+`reference/website-mockup.jpg`:
 
 - Two invented slogans — "Smart loading. Delivery confidence." and "Smart logistics for a smoother day" —
   where there is one: *People talk. We load.*
@@ -215,7 +219,7 @@ fail them, which is exactly why the rules are written down. Treat both as mood i
 - A **Pricing** item in the navigation, for a product with no pricing.
 - "Get started" and "Start loading" drawn as **white text on orange**.
 
-`reference/brand-applications.png`:
+`reference/brand-applications.jpg`:
 
 - Two more slogans: "Smarter Delivery Ahead." on the van and "People. Parcels. Forward." on the van and
   the business card.
@@ -247,7 +251,7 @@ Every image in the product comes from one world, the way a stop-motion film has 
 - **Environments** (`reference/environments.png`): warehouse interiors, loading docks, suburban delivery
   streets. Always mid-morning.
 
-`reference/delivery-story.png` and `reference/brand-applications.png` extend the world to the delivery
+`reference/delivery-story.jpg` and `reference/brand-applications.jpg` extend the world to the delivery
 itself and to vans, signage, packaging and stationery. Same material, same light, same cast.
 
 The film storyboard runs: parcels arrive → the operator scans → the operator talks → the AI understands →
@@ -257,7 +261,7 @@ and it is the one a screenshot should show.
 
 ## Interface rules
 
-The mockups in `reference/mobile-ui.png`, `reference/app-mockups.png` and `reference/website-mockup.png`
+The mockups in `reference/mobile-ui.png`, `reference/app-mockups.jpg` and `reference/website-mockup.jpg`
 set the shape of the interface. Where they conflict with the accessibility rules or the copy rules above,
 those rules win — and they do conflict, in the ways listed under *Copy rules*.
 

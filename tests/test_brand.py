@@ -8,6 +8,7 @@ Run from the repository root:  python3 -m unittest discover tests
 """
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -197,6 +198,23 @@ class TestBrandFiles(unittest.TestCase):
 
     def test_design_md_forbids_claiming_the_ai_plans_the_load(self):
         self.assertIn("Never say the AI plans the load or orders the stops", DESIGN)
+
+    def test_every_brand_file_design_md_names_exists(self):
+        """design.md points at files by name; renaming one without the other is the easy mistake."""
+        named = set(re.findall(r"`(?:assets/brand/)?((?:logo|reference)/[\w.-]+\.(?:svg|png|jpg|json|py))`",
+                               DESIGN))
+        self.assertGreater(len(named), 8, "the reference list in design.md looks truncated")
+        for rel in sorted(named):
+            with self.subTest(rel):
+                self.assertTrue((BRAND / rel).is_file(), f"design.md names {rel}, which does not exist")
+
+    def test_no_reference_image_is_oversized(self):
+        """References are mood, not assets. The repository is graded; it should not carry 2 MB mockups."""
+        limit = 1_200_000
+        too_big = [p.relative_to(BRAND).as_posix() for p in (BRAND / "reference").iterdir()
+                   if p.is_file() and p.stat().st_size > limit
+                   and p.name != "master-brand-board.png"]
+        self.assertEqual(too_big, [], "store these as JPEG, as design.md explains")
 
     def test_the_heavy_brand_guide_pdf_is_not_in_the_repository(self):
         self.assertEqual(list(ROOT.rglob("*.pdf")), [])
