@@ -1,8 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 300 300">
-<rect width="300" height="300" rx="66" fill="#102238"/>
-<g transform="translate(22 28) scale(.95)">
-<path d="M102 32 C52 32 24 63 24 112 V164 C24 205 49 230 87 236 L87 198 C70 193 61 181 61 163 V113 C61 85 77 69 104 69 H153 C181 69 197 85 197 113 V151 L234 130 V111 C234 62 204 32 154 32 Z" fill="#FFFFFF"/>
-<path d="M104 88 H151 C166 88 176 98 176 113 V159 L126 188 L82 169 V113 C82 98 90 88 104 88 Z" fill="#F7F6F3"/>
-<path d="M126 105 L169 124 V161 L126 185 Z" fill="#FF8A00"/>
-<path d="M82 169 L126 188 L176 159 L230 215 L172 215 L139 194 L104 216 L63 201 Z" fill="#FFFFFF"/>
-</g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="QUAI">
+<title>QUAI</title>
+<rect width="512" height="512" rx="114" fill="#102238"/>
+<g transform="translate(94 110) scale(1.06)"><path d="M0,108 A108,108 0 0 1 108,0 L180,0 A108,108 0 0 1 288,108 L288,204 A46,46 0 0 1 242,250 L46,250 A46,46 0 0 1 0,204 Z" fill="#FFFFFF"/><path d="M66,92 Q66,70 88,74 L198,96 Q216,100 216,122 L216,210 L66,210 Z" fill="#102238"/><path d="M94,116 Q94,98 110,101 L174,118 Q190,122 190,138 L190,206 L94,206 Z" fill="#FF8A00"/><path d="M66,204 L240,194 L308,264 L142,278 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/></g>
+</svg>
