@@ -19,7 +19,7 @@ function textOf(path) {
 
 /* The plan screen is a page like any other, so the same copy rules apply to it — including
    the ones about not claiming the AI plans the load or chooses the route. */
-const PAGES = ["/", "/app", "/app/dictate", "/app/plan"];
+const PAGES = ["/", "/login", "/app", "/app/dictate", "/app/plan"];
 const SLOGAN = "People talk. We load.";
 
 describe("one slogan", () => {
