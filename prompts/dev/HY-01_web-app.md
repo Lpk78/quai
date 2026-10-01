@@ -11,18 +11,15 @@
 HY-01 #18 Create the React + Vite web app in a web/ folder: landing page at / and empty application page at /app, styled from documentation/design.md and following its copy rules (slogan "People talk. We load."), installable as a PWA on a phone, with a README section on how to run it; also add CORSMiddleware to src/server.py so the Vite dev server can call the API
 ```
 
-## Branch base, decided before writing any code
+## Branch base
 
-This branch is cut from `docs/brand-kit` (#28), **not** from `main`, and its Pull Request targets that
-branch rather than `main`.
+This branch was cut from `docs/brand-kit` (#28) rather than `main`, because the task says to style the
+app from `documentation/design.md` and the PWA needs the brand app icon — and neither was on `main` at
+the time. Branching from `main` would have meant copying the palette by hand, the exact mistake
+`design.md` warns about, or keeping a second copy that then drifts.
 
-The task says to style the app from `documentation/design.md` and the app needs the brand app icon for
-its PWA manifest. Neither is on `main`: both arrive with #28, which is `MERGEABLE` but still waiting on
-its review. Branching from `main` would have meant either copying the token values by hand — the exact
-"eyedrop the mockup instead of reading the source" mistake `design.md` warns about — or inventing a
-second copy of the palette that would then drift.
-
-**When #28 merges, this PR is retargeted to `main`** and its diff becomes only the web app.
+**#28 merged at 10:48 while this task was being built**, so the question resolved itself: `main` now
+carries the brand kit, the branch was merged up, and the Pull Request targets `main` as normal.
 
 ## Outcome
 
