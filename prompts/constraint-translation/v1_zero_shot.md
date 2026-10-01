@@ -179,5 +179,7 @@ The row was not tuned before it was recorded. Fixing the fence and re-running wo
 first row worth looking at and destroyed what a baseline is for.
 
 See *Reading the v1 row* in `documentation/prompt_evaluation.md` for the fence-stripped diagnostic and
-the five sentences that fail for reasons other than the fence. In short: the constraint half of the
+the five sentences that fail for reasons other than the fence. That diagnostic is re-scored from the
+run's stored transcript in `outputs/evaluations/`, which is Git-ignored, so it cannot be reproduced
+from the repository alone. In short: the constraint half of the
 contract is essentially solved by instruction alone, and `unresolved` is not.

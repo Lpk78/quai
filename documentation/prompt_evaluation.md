@@ -413,7 +413,16 @@ sentence that fails C1 fails the rest — there is no object to check.
 Stripping the fence from the stored transcript and re-scoring the same replies gives **C1 25/26, C2
 24/26, C3 24/26, C4 26/26, C5 22/26, C6 26/26, C7 26/26, C8 26/26, Total 21/26**. That number is a
 **diagnostic, not a score**: it was not produced by a run, no version is credited with it, and it never
-appears in the table. It is recorded because it says where the next version's work is — one formatting
+appears in the table.
+
+**Where it comes from, and what that costs.** It is the 78 replies of the 2026-10-01 run, re-scored
+with the fence stripped — the same checks, no new calls. Those replies live in
+`outputs/evaluations/v1_zero_shot_20261001-121819.json`, which is **Git-ignored**, so this figure is
+not reproducible from the repository: anyone without that file has to take it on trust, and it is the
+one number here that a reviewer cannot check. It is recorded anyway because a table of zeros alone
+would read as a prompt that understood nothing, which is false and would send v2 after the wrong
+problem. The honest fix is a `--from-transcript` flag on `src/evaluate_prompt.py`, which would let
+anyone holding the file re-derive both the row and this diagnostic; it is tracked in #31. It is recorded because it says where the next version's work is — one formatting
 habit is worth 21 sentences, and the remaining five failures are almost all in `unresolved`:
 
 - **T10** "nothing heavier than 50" — assumed kilograms and emitted `max_weight_on`, where the contract
