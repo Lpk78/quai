@@ -175,10 +175,13 @@ call (rate limit, refusal, network error, after retries) is a `503`. CORS uses t
 cd web && npm install && npm run dev      # http://localhost:5173
 ```
 
-`/` is the landing page and `/app` the application shell. `/app/plan` asks the solver for a plan and
-shows it: where each box goes, and which ones did not fit. It needs the API running
-(`uvicorn server:app --app-dir src`), and reads its address from `VITE_API_URL`, defaulting to
-`http://127.0.0.1:8000`. Screenshots at phone width are in `documentation/screenshots/`.
+`/` is the landing page and `/login` the way into the app: it reads an operator card shaped
+`QUAI:OPERATOR:<id>` off a QR code with the camera, and signs the operator in by name. Where there
+is no camera the same code can be typed in, which is how the phone demo below signs in. `/app` is
+the application shell, and `/app/plan` asks the solver for a plan and shows it: where each box goes,
+and which ones did not fit. It needs the API running (`uvicorn server:app --app-dir src`), and reads
+its address from `VITE_API_URL`, defaulting to `http://127.0.0.1:8000`. Screenshots at phone width
+are in `documentation/screenshots/`.
 
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
@@ -199,6 +202,31 @@ once #55 has merged. And scanning does not **add** the parcel to the load: it is
 already in `web/src/data/manifest.js` alongside the eighteen loaded boxes. Modelling a box that is
 scanned *into* a van — out of the static list, into app state, marked not yet loaded — changes that
 module and the dictate screen, so it is its own task rather than a side effect of this one.
+
+### Phone demo
+
+Both servers listen on localhost by default, which a phone cannot reach, and on a phone `127.0.0.1`
+is the phone — so the app also has to be told where the API is:
+
+```bash
+LAN=$(ipconfig getifaddr en0)                                 # e.g. 192.168.1.201
+
+QUAI_LAN_ORIGIN="http://$LAN:5173" \
+  uvicorn server:app --app-dir src --host 0.0.0.0             # API: http://<LAN>:8000
+
+cd web && VITE_API_URL="http://$LAN:8000" npm run dev:phone   # app: http://<LAN>:5173
+```
+
+Then open `http://<LAN>:5173` on the phone. `QUAI_LAN_ORIGIN` is what puts that origin on the API's
+CORS allowlist (`DEV_ORIGINS` in `src/server.py`), which otherwise only knows localhost; it falls
+back to the address this was written on, so the variable is what keeps it working after DHCP hands
+out a different one.
+
+**The camera does not work over this URL.** `getUserMedia` is only available in a secure context,
+and `http://` on a LAN address is not one — so `/login` cannot reach the camera from the phone and
+offers manual code entry instead. Scanning works at `http://localhost:5173` on the Mac, where
+localhost counts as secure. Serving the LAN over HTTPS is not built; see
+`documentation/failures.md`.
 
 ### Prompt evaluation
 

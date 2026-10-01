@@ -110,6 +110,26 @@ class TestCrossOrigin(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
 
+    def test_the_phone_on_the_local_network_is_allowed(self):
+        # The demo is driven from a phone on the same WiFi, which reaches vite at this Mac's LAN
+        # address and not at localhost. `server.LAN_ORIGIN` is the origin the README tells the
+        # operator to open, so it is the one asserted here rather than a repeated literal.
+        response = client.options(
+            "/plan",
+            headers={"Origin": server.LAN_ORIGIN,
+                     "Access-Control-Request-Method": "POST",
+                     "Access-Control-Request-Headers": "content-type"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], server.LAN_ORIGIN)
+
+    def test_the_lan_origin_is_a_private_address(self):
+        # A LAN origin that is not on a private range means the fallback was replaced by something
+        # public, which would widen the allowlist past the WiFi the demo runs on.
+        host = server.LAN_ORIGIN.removeprefix("http://").split(":")[0]
+        self.assertTrue(host.startswith(("192.168.", "10.", "172.")) or host.endswith(".local"),
+                        f"{host} is not a private LAN address")
+
     def test_an_unknown_origin_is_not_allowed(self):
         # Not a wildcard: this API is the only place the Claude key lives, so any page in the
         # operator's browser must not be able to call it.

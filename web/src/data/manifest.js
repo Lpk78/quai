@@ -9,7 +9,11 @@
    Includes the scanned parcel (`QUAI-BOX-0001`) alongside the eighteen already-loaded boxes: the
    app has no scan interaction yet, so there is no before/after to model, only one manifest. */
 
+/* The operator and the card they sign in with. `card_id` in `src/demo_fixtures.py` is the same
+   string: /login reads it off a QR code shaped `QUAI:OPERATOR:<id>`, so the demo has one
+   answer to who is driving rather than one per screen. */
 export const OPERATOR_NAME = "Léo-Paul";
+export const OPERATOR_CARD_ID = "QUAI-OP-7842";
 
 export const VAN = { length: 300, width: 170, height: 170, max_weight: 1200 };
 

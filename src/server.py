@@ -4,6 +4,7 @@ Run from the repository root:  uvicorn server:app --app-dir src --reload
 """
 import dataclasses
 import logging
+import os
 import pathlib
 from collections import Counter
 
@@ -55,11 +56,19 @@ CONSTRAINT_PREFILL = prefill_of(CONSTRAINT_PROMPT_PATH)
 # computation, so that costs nothing. `POST /constraints` spends Claude API credits on every call and
 # still has no authentication of its own — it reuses this same allowlist for now, which is a known
 # gap, not a decision that it is enough. Flagged by SamDana-maker and MORHI11 on #19 and #33.
+#
+# The phone is not on localhost: it reaches the dev app at this Mac's address on the WiFi, so that
+# origin has to be allowed as well. The address is handed out by DHCP and this file is tracked, so
+# `QUAI_LAN_ORIGIN` overrides the fallback rather than anyone editing the literal — see the README's
+# "Phone demo" section for the two commands that produce it.
+LAN_ORIGIN = os.environ.get("QUAI_LAN_ORIGIN", "http://192.168.1.201:5173").strip()
+
 DEV_ORIGINS = [
     "http://localhost:5173",   # vite dev server
     "http://127.0.0.1:5173",
     "http://localhost:4173",   # vite preview, the production build served locally
     "http://127.0.0.1:4173",
+    LAN_ORIGIN,                # the phone on the same WiFi, against `vite --host`
 ]
 
 app.add_middleware(
