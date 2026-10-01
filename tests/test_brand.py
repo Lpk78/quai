@@ -208,10 +208,16 @@ class TestBrandFiles(unittest.TestCase):
         that has nothing to do with the logo — `README.md` and `CONTRIBUTING.md` both document
         `pip install -r requirements.txt` alone. So: assert under CI, skip with a sentence elsewhere.
 
-        **Only when something moved.** Tracing takes about six seconds, and a suite that is run after
-        every coherent change has to stay quick. The drift this catches can only happen when the
-        sheet, the generator or one of the SVGs changes, so the fingerprint of those files is
-        committed beside them and the trace runs only when it no longer matches.
+        **Only when something moved — locally.** Tracing takes about six seconds, and a suite run
+        after every coherent change has to stay quick, so the fingerprint of the sheet, the
+        generator and the SVGs is committed beside them and the trace is skipped when it matches.
+
+        That shortcut is **local only**, and the reason is worth keeping: the two problems it and
+        the CI split solve are both local ones. In CI the tracer is installed, the suite runs once
+        per Pull Request, and six seconds is nothing — applying the fingerprint skip there bought
+        nothing and removed the only place the trace ever ran, leaving "these bytes match the
+        fingerprint", which is integrity rather than reproducibility (#34). So under CI it always
+        traces.
         """
         missing = [m for m in ("numpy", "PIL", "potrace") if importlib.util.find_spec(m) is None]
         if missing and not os.environ.get("CI"):
@@ -220,8 +226,9 @@ class TestBrandFiles(unittest.TestCase):
         self.assertEqual(missing, [],
                          "CI must install requirements-dev.txt: the logo drift check needs the tracer")
 
-        if fingerprint() == FINGERPRINT_FILE.read_text().strip():
-            self.skipTest("the sheet, the generator and the SVGs are all as last traced")
+        if not os.environ.get("CI") and fingerprint() == FINGERPRINT_FILE.read_text().strip():
+            self.skipTest("the sheet, the generator and the SVGs are all as last traced; "
+                          "CI traces them anyway, on every Pull Request")
 
         spec = importlib.util.spec_from_file_location(
             "build_logo", BRAND / "logo" / "build_logo.py")
