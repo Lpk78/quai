@@ -39,10 +39,12 @@ describe("home", () => {
     expect(screen.getByText(/washing machine/)).toBeInTheDocument();
   });
 
-  it("has one big button to dictate rules", () => {
+  it("has one big button, now to the scan step rather than straight to dictating", () => {
+    // SA-17 put /app/scan in front of /app/dictate: the operator reads the package label first, so
+    // the sentence they dictate next is about a box QUAI can name.
     at("/app");
-    const link = screen.getByRole("link", { name: /dictate rules/i });
-    expect(link).toHaveAttribute("href", "/app/dictate");
+    const link = screen.getByRole("link", { name: /scan a package/i });
+    expect(link).toHaveAttribute("href", "/app/scan");
   });
 });
 
