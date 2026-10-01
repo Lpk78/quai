@@ -39,3 +39,23 @@ the next lease. `QUAI_LAN_ORIGIN` overrides it without editing a tracked file; t
 `http://192.168.1.201:5173`, this Mac's address today, so the demo works with nothing exported.
 
 ## Outcome
+
+- **PR:** https://github.com/Lpk78/quai/pull/55 (reviewer: `SamDana-maker`)
+- **What the AI produced:** the `QUAI_LAN_ORIGIN` handling and the two CORS tests in
+  `src/server.py` / `tests/test_server.py`, the `dev:phone` script, the README's "Phone demo" section
+  and `/login` paragraph, `web/src/pages/Login.jsx` in full, its styles in `app.css`, the
+  `.button:disabled` rule in `index.css`, `OPERATOR_CARD_ID` in `manifest.js`, the landing page's
+  rewritten calls to action, the twelve tests in `login.test.jsx`, and the `failures.md` entry.
+- **How it was checked:** `python3 -m unittest discover tests` (338, 1 skipped — no key), `npm test`
+  (73) and `npm run build`, all locally and on CI. Beyond the suites: the CORS preflight was run
+  with `curl -X OPTIONS` against the LAN address, which answered `200` with
+  `access-control-allow-origin: http://192.168.1.201:5173` while an unknown origin got `400` and no
+  header; and `isSecureContext` was read in a real browser at both origins of one vite server to
+  establish the camera finding rather than assert it.
+- **What was changed by hand:** the decisions, and two corrections the tests caught. The screen's
+  refusal copy used a straight apostrophe where the rest of the app uses a typographic one. More
+  usefully, the camera test failed because `vi.useFakeTimers()` fakes `requestAnimationFrame` as
+  well, silently replacing the stub the scan loop was being driven with — fixed by faking only
+  `setTimeout`, which is all the welcome state needs. The disabled-button rule was not asked for: the
+  first screenshot of the finished screen showed a dead button rendered as a live primary action,
+  which is the state the operator sees first.
