@@ -25,6 +25,29 @@ from quai import evaluation, llm, rubric  # noqa: E402
 
 TRANSCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "outputs" / "evaluations"
 
+# A version file carries its task, its expected output and its change log around the prompt. None of
+# that may reach the model: a change log says what a version was written against and often names the
+# test sentences it found hard, so sending the whole file would score a prompt that had been shown
+# the answers. These mark what is actually sent.
+PROMPT_START = "<!-- PROMPT START -->"
+PROMPT_END = "<!-- PROMPT END -->"
+
+
+def prompt_text(path: pathlib.Path) -> str:
+    """The system prompt inside a version file: what lies between the markers.
+
+    A file with no markers is sent whole, which is what a bare prompt file is. A file with an opening
+    marker and no closing one is refused rather than guessed at — silently sending the rest of the
+    document would be the exact failure the markers exist to prevent.
+    """
+    text = path.read_text(encoding="utf-8")
+    if PROMPT_START not in text:
+        return text
+    body = text.split(PROMPT_START, 1)[1]
+    if PROMPT_END not in body:
+        raise SystemExit(f"{path}: {PROMPT_START} is never closed by {PROMPT_END}")
+    return body.split(PROMPT_END, 1)[0].strip()
+
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -109,7 +132,7 @@ def main(argv=None) -> int:
         print(f"  {case.case_id}: {state} ({answered}{wandered})")
 
     try:
-        scored = evaluation.run(translator.translate, args.prompt.read_text(encoding="utf-8"),
+        scored = evaluation.run(translator.translate, prompt_text(args.prompt),
                                 cases, manifest, manifest_text, runs=args.runs, on_case=report)
     except llm.FatalCall as fatal:
         print(f"\nStopped: {fatal}", file=sys.stderr)

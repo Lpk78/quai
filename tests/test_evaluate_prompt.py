@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 
 import evaluate_prompt  # noqa: E402
 from quai import evaluation, llm, rubric  # noqa: E402
@@ -94,3 +95,48 @@ class TestTheTranscript(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestWhatIsSentAsThePrompt(unittest.TestCase):
+    """A version file is a document around a prompt; only the prompt may reach the model."""
+
+    def a_file(self, contents: str) -> Path:
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "v1_zero_shot.md"
+        path.write_text(contents, encoding="utf-8")
+        return path
+
+    def test_only_the_marked_section_is_sent(self):
+        path = self.a_file("# Title\n\nTask prose.\n\n"
+                           f"{evaluate_prompt.PROMPT_START}\nYou convert speech.\n"
+                           f"{evaluate_prompt.PROMPT_END}\n\n## Change log\nT13 is the hard one.\n")
+        self.assertEqual(evaluate_prompt.prompt_text(path), "You convert speech.")
+
+    def test_the_change_log_never_reaches_the_model(self):
+        """It names the sentences a version was written against — sending it would score a cheat."""
+        path = self.a_file(f"{evaluate_prompt.PROMPT_START}\nPrompt.\n{evaluate_prompt.PROMPT_END}\n"
+                           "## Known risks\nT15 and T17 carry two faults each.\n")
+        sent = evaluate_prompt.prompt_text(path)
+        for leak in ("Known risks", "T15", "T17"):
+            with self.subTest(leak):
+                self.assertNotIn(leak, sent)
+
+    def test_a_file_without_markers_is_sent_whole(self):
+        path = self.a_file("You convert speech.\n")
+        self.assertEqual(evaluate_prompt.prompt_text(path), "You convert speech.\n")
+
+    def test_an_unclosed_marker_stops_the_run(self):
+        """Falling back to the whole file here would be exactly the leak the markers prevent."""
+        path = self.a_file(f"{evaluate_prompt.PROMPT_START}\nPrompt.\n\n## Change log\nT13.\n")
+        with self.assertRaises(SystemExit):
+            evaluate_prompt.prompt_text(path)
+
+    def test_the_real_v1_file_sends_its_prompt_and_not_its_change_log(self):
+        path = ROOT / "prompts" / "constraint-translation" / "v1_zero_shot.md"
+        if not path.is_file():                      # the family may not exist on every branch
+            self.skipTest("v1_zero_shot.md is not on this branch")
+        sent = evaluate_prompt.prompt_text(path)
+        self.assertIn("You convert what a loading operator says", sent)
+        self.assertNotIn("Change log", sent)
+        self.assertNotIn("Known risks", sent)
