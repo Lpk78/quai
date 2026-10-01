@@ -430,5 +430,34 @@ class TestLoadingOrder(unittest.TestCase):
             solve(boxes + [crate("stowaway", 20)], CONTAINER, route)
 
 
+class TestTheDemoLoad(unittest.TestCase):
+    """What ordering by the route costs the greedy first fit, pinned so it is reproducible.
+
+    `documentation/roadmap.md` records the drop under the first-fit limitation. MORHI11 pointed out
+    on #27 that the number came from a split nothing in the repository wrote down — and that other
+    splits of the same boxes go lower — so the split lives here, next to the figure it produces.
+    """
+
+    def route(self, boxes, stops=("S1", "S2", "S3")):
+        """The demo boxes dealt round-robin across the stops, in manifest order."""
+        stated = [{"type": "unload_at", "item": b.id, "stop": stops[i % len(stops)]}
+                  for i, b in enumerate(boxes)]
+        return constraint_set(boxes, stops, *stated)
+
+    def test_the_demo_load_without_a_route(self):
+        from demo import BOXES, VAN
+        plan = solve(BOXES, VAN)
+        self.assertEqual(len(plan.placements), 10)
+        self.assertEqual(round(plan.fill_rate, 2), 0.39)
+
+    def test_the_same_load_dealt_round_robin_over_three_stops(self):
+        """21 %, against 39 % unrouted: size no longer decides what goes in first."""
+        from demo import BOXES, VAN
+        plan = solve(BOXES, VAN, self.route(BOXES))
+        self.assertEqual(len(plan.placements), 9)
+        self.assertEqual(round(plan.fill_rate, 2), 0.21)
+        self.assertEqual(sorted(b.id for b in plan.unplaced), ["fridge", "sofa"])
+
+
 if __name__ == "__main__":
     unittest.main()

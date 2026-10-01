@@ -61,7 +61,9 @@ Weight-aware stacking was issue #17 (`feature/solver-v2`, row 2): a stated limit
 what is left of that row is fragility the operator never states. The greedy first-fit stays open, for
 after phase 1 works end to end — and #17 made it worse rather than better, since the route now decides
 what goes in first and size only breaks the ties: the demo load drops from 39 % to 21 % once its boxes
-are spread over three stops. That is the right trade (a load nobody can unload is not a good load), but
+are dealt round-robin over three stops. Both figures are pinned by `TestTheDemoLoad` in
+`tests/test_solver.py`, because the drop belongs to the split that produced it and other splits of the
+same boxes go lower still. That is the right trade (a load nobody can unload is not a good load), but
 it is the strongest argument yet for revisiting first fit.
 
 ## Course checkpoints
