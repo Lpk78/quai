@@ -42,7 +42,7 @@ does `design.md`. The mockup is followed for layout, colour and composition only
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/PRNUM
+- **PR:** https://github.com/Lpk78/quai/pull/34
 - **What the AI produced:** the eight sections of the landing page, the four phone screens drawn in
   HTML and CSS, nine inline icons, the two stylesheets, the twelve responsive WebP images, and six
   further tests.
