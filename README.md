@@ -114,10 +114,14 @@ curl -X POST http://127.0.0.1:8000/route -H "Content-Type: application/json" -d 
             "label": "8 Boulevard du Port 80000 Amiens", "lon": 2.290084, "lat": 49.897442,
             "eta_seconds": 0.0, "eta": "2026-10-02T08:00:00+02:00"},
            {"id": "S2", "address": "1 rue de la Paix, Paris", "label": "1 Rue de la Paix 75002 Paris",
-            "lon": 2.331, "lat": 48.869, "eta_seconds": 6603.6, "eta": "2026-10-02T09:50:03+02:00"}],
- "geometry": {"type": "LineString", "coordinates": [[2.290021, 49.897463], "…"]},
- "total_distance_m": 143026.5, "total_duration_s": 6603.6}
+            "lon": 2.33031, "lat": 48.868546,
+            "eta_seconds": 6179.4, "eta": "2026-10-02T09:42:59.400000+02:00"}],
+ "geometry": {"type": "LineString", "coordinates": [[2.290021, 49.897463], "… 3421 more …"]},
+ "total_distance_m": 140494.9, "total_duration_s": 6179.4}
 ```
+
+That response is a real one, run against both services on 2026-10-01. The figures will drift as the
+road data behind OSRM changes, so treat them as the shape of the answer rather than as constants.
 
 **QUAI never reorders the stops.** The order arrives with the delivery list and the solver loads the
 vehicle against it, so a route drawn in any other order would describe a journey the van was not packed
