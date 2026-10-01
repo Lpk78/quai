@@ -63,26 +63,6 @@
   margin-bottom: 0.75rem;
 }
 
-.box-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.box-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.box-row__label {
-  flex: 1;
-}
-
 .button--block {
   width: 100%;
   justify-content: center;

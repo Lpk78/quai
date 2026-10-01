@@ -32,18 +32,21 @@ beforeEach(() => {
 });
 
 describe("home", () => {
-  it("shows today's van and its boxes from the manifest", () => {
+  it("shows the operator's name and the load's real counts, summarised rather than listed", () => {
+    // HY-17: the per-box list (id, label, dimensions) moved out of this screen into a compact
+    // summary card. Léo-Paul and the two counts are still here; an individual box's own detail,
+    // such as B01's label, is not — that is what the stat tiles and the scan step are for now.
     at("/app");
     expect(screen.getByText(/Léo-Paul/)).toBeInTheDocument();
-    expect(screen.getByText("B01")).toBeInTheDocument();
-    expect(screen.getByText(/washing machine/)).toBeInTheDocument();
+    expect(screen.queryByText("B01")).not.toBeInTheDocument();
+    expect(screen.queryByText(/washing machine/)).not.toBeInTheDocument();
   });
 
   it("has one big button, now to the scan step rather than straight to dictating", () => {
     // SA-17 put /app/scan in front of /app/dictate: the operator reads the package label first, so
     // the sentence they dictate next is about a box QUAI can name.
     at("/app");
-    const link = screen.getByRole("link", { name: /scan a package/i });
+    const link = screen.getByRole("link", { name: /start loading/i });
     expect(link).toHaveAttribute("href", "/app/scan");
   });
 

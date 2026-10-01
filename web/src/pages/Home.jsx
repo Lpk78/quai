@@ -42,26 +42,18 @@ export default function Home() {
       </ul>
 
       <section className="card van-card">
-        <h2>Today’s load</h2>
-        <ul className="box-list">
-          {boxes.map((box) => (
-            <li className="box-row" key={box.id}>
-              <span className="badge">{box.id}</span>
-              <span className="box-row__label">{box.label}</span>
-              <span className="data muted">
-                {box.length} × {box.width} × {box.height} cm · {box.weight} kg
-              </span>
-            </li>
-          ))}
-        </ul>
+        <h2>Loading plan ready</h2>
+        <p className="muted">
+          Scan each parcel as you load it, and say any rules QUAI needs to know.
+        </p>
+        <Link className="button button--block" to="/app/scan">
+          Start loading <span aria-hidden="true">→</span>
+        </Link>
       </section>
 
-      <Link className="button button--block" to="/app/scan">
-        Scan a package <span aria-hidden="true">→</span>
-      </Link>
-
-      {/* The round is reference, not the next action: the operator loads first and drives after, so
-          this sits under the main button rather than competing with it. */}
+      {/* `SA-21`'s link to the round, kept: "Start loading" above is the next action and now lives
+          inside the summary card, so the separate "Scan a package" button it replaced is gone. The
+          round is reference rather than the next step, so it stays the quiet one. */}
       <Link className="button button--block button--quiet" to="/app/route">
         See today’s round <span aria-hidden="true">→</span>
       </Link>
