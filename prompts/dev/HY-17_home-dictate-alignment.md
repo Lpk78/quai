@@ -44,7 +44,7 @@ history if the night ends before it is reached.
 
 ## Outcome
 
-- **PR:** (filled below once opened) — reviewer `Lpk78`
+- **PR:** https://github.com/Lpk78/quai/pull/62 (reviewer: `Lpk78`)
 - **What the AI produced:** the six commits, one per numbered point — the two-line headings, the
   persistent `.mic-example` line, the `Tap and speak` relabel, the `.stat-tiles` markup and CSS, the
   `.mic-panel` / `SoundWave` decoration, and the Home summary card — plus five new web tests and the
