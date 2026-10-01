@@ -1,13 +1,13 @@
 import { Link } from "react-router-dom";
 
-import { BOXES, STOPS, VAN_ID } from "../data/manifest.js";
+import { BOXES, OPERATOR_NAME, STOPS } from "../data/manifest.js";
 
 export default function Home() {
   return (
     <>
       <h1>Good morning. Let’s load.</h1>
       <p className="muted">
-        {VAN_ID} · {STOPS.length} stops · {BOXES.length} boxes
+        {OPERATOR_NAME} · {STOPS.length} stops · {BOXES.length} boxes
       </p>
 
       <section className="card van-card">
