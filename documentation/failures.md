@@ -497,3 +497,28 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   nothing about the specification looked wrong until `loading_order` was read. For a solver this
   layer does not own, read the function before wiring to its supposed behaviour.
 - Related branch / PR: `feature/plan-constraints`, `SA-16`.
+
+---
+
+## 2026-10-01 — The phone demo and the camera cannot both work over `http://`
+
+- What happened: `LP-20` asked for two things that turn out to contradict each other. Reaching the
+  dev servers from a phone means serving them on the LAN over plain `http://`, at
+  `http://192.168.1.201:5173`. Scanning an operator card means `getUserMedia`, which browsers only
+  expose in a *secure context* — HTTPS, or `localhost`. A LAN IP over `http://` is neither, so on the
+  phone `navigator.mediaDevices` is not merely blocked, it is `undefined`.
+- Why: the two halves of the task were specified against different assumptions about where the app
+  runs. Nothing in either half is wrong on its own; the conflict only exists once they are the same
+  deployment. `localhost` is a special case in the spec precisely so that development works without
+  certificates, and it does not extend to the machine's other addresses.
+- What we tried: measured rather than assumed, with one vite server bound to both names on the same
+  port so only the host differed. At `http://localhost:5174`, `isSecureContext` is `true` and
+  `navigator.mediaDevices.getUserMedia` exists. At `http://192.168.1.201:5174`, `isSecureContext` is
+  `false` and `navigator.mediaDevices` is absent. Same build, same port, same browser.
+- What we learned: the screen was built so that the absent camera is a state and not a crash — the
+  same shape the dictate screen already uses when speech recognition is missing. `/login` detects it
+  and offers the code typed in instead, so the phone demo still signs in, and scanning works from the
+  Mac at `localhost`. The honest fix is HTTPS on the LAN (`mkcert`, or a tunnel), which is not built:
+  it needs a certificate the phone trusts, which is its own task. Worth knowing before the demo, so
+  the card is scanned from the laptop and the phone is driven by hand.
+- Related branch / PR: `feature/phone-demo-login`, `LP-20`.
