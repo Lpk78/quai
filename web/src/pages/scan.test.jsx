@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +11,12 @@ vi.mock("../api.js", async (importOriginal) => ({
   postConstraints: vi.fn(),
   postPlan: vi.fn(),
 }));
+
+beforeEach(() => {
+  // The scan survives a reload now, which means it also survives between tests unless cleared —
+  // a leaked parcel would make "nothing was scanned" quietly assert the wrong thing.
+  window.sessionStorage.clear();
+});
 
 function at(path) {
   return render(
@@ -155,5 +161,64 @@ describe("the scan putting the parcel into the load", () => {
     readCode("QUAI:BOX:B01");
     expect(screen.getByText("washing machine")).toBeInTheDocument();
     expect(screen.getByText(/already in the van/i)).toBeInTheDocument();
+  });
+});
+
+describe("the scan surviving a reload", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    postConstraints.mockReset();
+    postConstraints.mockResolvedValue({ constraints: [], unresolved: [] });
+  });
+
+  // Unmounting and rendering again from scratch is what a reload does to this app: React state is
+  // gone and the provider is built fresh. Asked for in review of #57 — a reload mid-demo dropping
+  // silently back to eighteen boxes is the failure being prevented.
+  function reload(path) {
+    cleanup();
+    return at(path);
+  }
+
+  it("still plans nineteen boxes after a reload", async () => {
+    at("/app/scan");
+    readCode("QUAI:BOX:QUAI-BOX-0001");
+    fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
+
+    reload("/app/dictate");
+    fireEvent.change(screen.getByLabelText(/transcript/i), {
+      target: { value: "The fragile parcel goes on top." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    await waitFor(() => expect(postConstraints).toHaveBeenCalled());
+    expect(postConstraints.mock.calls[0][1]).toHaveLength(19);
+  });
+
+  it("still counts nineteen on the home screen after a reload", () => {
+    at("/app/scan");
+    readCode("QUAI:BOX:QUAI-BOX-0001");
+    fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
+
+    reload("/app");
+    expect(screen.getByText(/19 boxes/)).toBeInTheDocument();
+  });
+
+  it("stores the id, not a copy of the box", () => {
+    // `manifest.js` stays the single source of what a parcel measures. A stored copy could go stale
+    // against it and nothing would notice.
+    at("/app/scan");
+    readCode("QUAI:BOX:QUAI-BOX-0001");
+    fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
+    expect(window.sessionStorage.getItem("quai.scannedParcel")).toBe("QUAI-BOX-0001");
+  });
+
+  it("ignores a stored id it does not recognise instead of restoring rubbish", () => {
+    window.sessionStorage.setItem("quai.scannedParcel", "QUAI-BOX-9999");
+    at("/app");
+    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
+  });
+
+  it("starts a fresh round at eighteen when nothing was stored", () => {
+    at("/app");
+    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
   });
 });
