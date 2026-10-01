@@ -23,7 +23,8 @@ PR or issue.
   read every session file under
   `~/.claude/projects/-Users-leo-paulkerrinckx-Desktop-data-project/` and all 384 entries of
   `~/.claude/history.jsonl`, and cross-checked each prompt against the commits, PRs and issues it produced
-  before writing an Outcome.
+  before writing an Outcome. The other three directories under `~/.claude/projects/` are ruled out by
+  date rather than by reading — see the table in `LP-02`.
 - **What was changed by hand:** nothing in the backfill itself — the review round below is where the
   by-hand changes are. Three points were decided rather than guessed and are flagged for the reviewer:
   - `LP-02` is deliberately incomplete. The prompt that wrote the solver is older than any session kept on

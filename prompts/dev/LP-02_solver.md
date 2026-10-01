@@ -16,8 +16,22 @@ The solver commits `134abd3` → `6a1e0be` are dated 2026-09-28T13:09:05Z and PR
 13:09:10Z. The oldest Claude Code prompt kept anywhere on this machine for this repository is
 2026-09-28T13:36:57Z — the `LP-01` prompt — about 28 minutes *after* the solver was already pushed. This
 was checked in every session file under
-`~/.claude/projects/-Users-leo-paulkerrinckx-Desktop-data-project/`, in the other project directory, and
-in all 384 entries of `~/.claude/history.jsonl`. Nothing earlier exists.
+`~/.claude/projects/-Users-leo-paulkerrinckx-Desktop-data-project/` and in all 384 entries of
+`~/.claude/history.jsonl` at the time. Nothing earlier exists.
+
+"Anywhere on this machine" is the stronger half of that claim, so here is what it rests on.
+`~/.claude/projects/` holds four directories, and the earliest session timestamp in each is:
+
+| Directory | Earliest session | Could hold the solver prompt? |
+|---|---|---|
+| `…-Desktop-data-project` | 2026-09-28T13:36:57Z | This repository — searched; nothing earlier |
+| `…-Desktop-EJC-web-claude` | 2026-08-03T12:55:53Z | No — a different project, unrelated to QUAI |
+| `…-Desktop-quai-sam` | 2026-09-30T20:54:03Z | No — created two days *after* the solver |
+| `…-Desktop-quai-hypo` | 2026-09-30T20:54:23Z | No — created two days *after* the solver |
+
+The two `quai-*` checkouts did not exist when the solver was written, so a renamed or parallel checkout
+cannot be where the prompt went. That is the step this file was missing: not "I looked here", but why
+nowhere else could hold it.
 
 So the solver was written before any session that was recorded on this machine, and the prompt that
 produced `src/quai/models.py`, `checks.py`, `solver.py`, the tests and `src/demo.py` is gone. See
