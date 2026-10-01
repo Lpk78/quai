@@ -267,25 +267,47 @@ export function Features() {
   );
 }
 
-/* 5 — the compact navy banner, between sections (landing_ref_1) --------------------------------
+/* 5 — the navy band is the site footer (landing_ref_1's treatment, at the end of the page) -------
 
-   The reference carries "Smarter loading for a smoother day." and "Voice. Optimisation. Delivery."
-   Neither is used: design.md allows one tagline, and "optimisation" is the claim the copy rules
-   forbid. The layout is the reference's; the words are ours. */
+   #34 moved it here and the review of #42 moved it back: the strongest element on the page should
+   close it rather than interrupt it. The reference's own words are not used — it carries two
+   taglines design.md forbids. */
 
-export function NavyBanner() {
+export function FooterBand() {
   return (
-    <section className="banner">
-      <img className="banner__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
-      <p className="banner__line">People talk. We load.</p>
+    <footer className="band">
+      <div className="band__text">
+        <img className="band__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
+        <p className="band__line">People talk. We load.</p>
+        <p className="band__copyright">© 2026 QUAI</p>
+      </div>
+      <nav className="band__links" aria-label="Footer">
+        <ul>
+          <li className="band__heading">Product</li>
+          {NAV_LINKS.map(([label, href]) => (
+            <li key={href}>
+              <a href={href}>{label}</a>
+            </li>
+          ))}
+        </ul>
+        <ul>
+          <li className="band__heading">Get started</li>
+          <li>
+            <Link to="/app">Open the app</Link>
+          </li>
+          <li>
+            <Link to="/app">Log in</Link>
+          </li>
+        </ul>
+      </nav>
       <Picture
-        className="banner__image"
+        className="band__image"
         name="operator_bust"
         widths={[360, 720]}
-        sizes="(max-width: 760px) 30vw, 14vw"
+        sizes="(max-width: 760px) 34vw, 15vw"
         alt="An operator checking a parcel on a phone."
       />
-    </section>
+    </footer>
   );
 }
 
@@ -318,7 +340,13 @@ export function LoadingPlanReady() {
           ))}
         </ul>
         {/* design.md: figures that are not measurements must say so. These are one example van. */}
-        <p className="tag">Example van — not a measured result</p>
+        {/* Two different things to say, and the review of #42 found that saying only the first
+            reads as "the number is illustrative but the feature is here": these are one example
+            van's figures, *and* the estimated route time is not shipped (#35). */}
+        <p className="plan__notes">
+          <span className="tag">Example van — not a measured result</span>
+          <span className="tag">Estimated route time — planned, not shipped</span>
+        </p>
       </div>
       <PhoneShot name="phone_home" alt="The QUAI app home screen on a phone." />
     </section>
@@ -451,8 +479,8 @@ const TILES = [
     "The inside of a loaded van, the next parcel picked out in orange."],
   ["van_stops_colours", [400, 640, 1024], "Loaded in stop order",
     "The back of a loaded van, parcels grouped by colour for each stop."],
-  ["customer", [400, 800], "The right parcel, first time",
-    "A customer taking her parcel at the door.", "cutout"],
+  ["doorstep_handover", [400, 640, 1024], "The right parcel, first time",
+    "An operator handing a parcel to someone at their door."],
 ];
 
 export function DayOnTheDock() {
@@ -486,25 +514,5 @@ export function FinalCta() {
         </Link>
       </div>
     </section>
-  );
-}
-
-/* 10 — a plain light footer: the navy is spent on the banner above, not here ---------------------- */
-
-export function LandingFooter() {
-  return (
-    <footer className="foot">
-      <p>© 2026 QUAI · People talk. We load.</p>
-      <ul>
-        {NAV_LINKS.map(([label, href]) => (
-          <li key={href}>
-            <a href={href}>{label}</a>
-          </li>
-        ))}
-        <li>
-          <Link to="/app">Log in</Link>
-        </li>
-      </ul>
-    </footer>
   );
 }

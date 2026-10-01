@@ -114,17 +114,29 @@ describe("an unbuilt feature carries its warning", () => {
     expect(textOf("/")).toContain("planned, not shipped");
   });
 
-  it("puts that warning on the route panel itself", () => {
+  it("puts that warning on every surface that mentions an unbuilt feature", () => {
+    /* The first version of this test pinned the label to the route *panel*. The rule is about the
+       page: the review of #42 found "Estimated route time" on a second surface with no warning,
+       which is the same gap that let the badge drift in the first place. So the test now walks
+       every section and asks the question of each one that raises the claim. */
     const { container } = render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
       </MemoryRouter>,
     );
-    const panel = [...container.querySelectorAll(".panel")].find((p) =>
-      /route and stop order/i.test(p.textContent),
+    const CLAIMS = /estimated route time|navigation (app|and live)|hand-?off|delivery progress/i;
+    const surfaces = [...container.querySelectorAll("section, .panel")].filter(
+      (node) =>
+        CLAIMS.test(node.textContent) &&
+        // only the innermost surface that raises it, so a parent is not blamed for its child
+        ![...node.querySelectorAll("section, .panel")].some((child) =>
+          CLAIMS.test(child.textContent),
+        ),
     );
-    expect(panel).toBeTruthy();
-    expect(panel.textContent).toContain("planned, not shipped");
+    expect(surfaces.length).toBeGreaterThan(0);
+    for (const surface of surfaces) {
+      expect(surface.textContent).toContain("planned, not shipped");
+    }
   });
 
   it("never labels it with the bare word, which reads as a planned route", () => {
