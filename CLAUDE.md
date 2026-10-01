@@ -8,6 +8,9 @@ Any AI assistant working in this repository (Claude, Copilot, ChatGPT, Cursor…
 - Everything written in the repository is in English: code, comments, docs, prompts, commit messages, PRs, reviews.
 - The LLM in QUAI never computes placement: it translates constraints into validated JSON and explains
   solver output. Do not propose designs that break this rule.
+- Model output reaches the solver only through `quai.constraints.parse()`; output that fails validation
+  is refused, never repaired. The schema is `src/quai/constraints.py`, its contract
+  `documentation/prompt_evaluation.md`.
 - A new prompt version is a new file in `prompts/<family>/`; never overwrite an old version. Every development task is saved in `prompts/dev/<ID>_<slug>.md` (IDs: `LP-nn`, `SA-nn`, `HY-nn`). See `prompts/README.md`.
 - Never invent evaluation scores. Record only results that were actually run.
 - Never write secrets in the repository; use `.env`.

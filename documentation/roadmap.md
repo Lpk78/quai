@@ -11,7 +11,7 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 |---|---|---|---|---|---|---|
 | 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
 | 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | To do |
-| 3 | #6 | `feature/api-server` | FastAPI exposing the solver and the translation, key server-side | `SamDana-maker` | `MORHI11` | To do |
+| 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
 | 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | To do |
 | 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
@@ -25,14 +25,17 @@ starting with row 2.
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
 | 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | Done (#14) |
-| 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | To do |
-| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
+| 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | In review (#21) |
+| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | In review (#22) |
 | 10 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
 | 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON → solver, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | To do |
 
 Row 11 is the feature the whole AI layer builds towards; rows 7 to 10 are what make it possible. It is
 where the prompt, the schema and the solver become one path, behind `POST /constraints` on the server
 from row 3. #10 points at this row.
+
+Row 9 is branched off row 8 rather than off `main`: C1 of the rubric is `quai.constraints.parse()`,
+so #22 has to be merged after #21.
 
 ## Later — not yet opened as issues
 

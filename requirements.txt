@@ -1,1 +1,9 @@
-# No external dependency yet. Add each package in the commit that starts using it.
+# One package per line, added in the commit that starts using it.
+
+fastapi>=0.115    # HTTP API exposing the solver (src/server.py)
+uvicorn>=0.30     # runs the API locally
+httpx>=0.27       # used by FastAPI's TestClient in tests/test_server.py
+
+# Claude API client. Used by the prompt evaluation script (src/evaluate_prompt.py) to run a prompt
+# version on the fixed test inputs; the key comes from .env and never from the repository.
+anthropic

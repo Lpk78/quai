@@ -73,6 +73,19 @@ We plan to *measure* this with an experiment (LLM-only placement vs solver), whi
   GitHub without one of us saying yes.
 - Related branch / PR: `docs/per-task-ai-usage-rule`, follow-up to PR #4.
 
+## Session 5 — reviews and PR bodies are written in the account owner's voice
+
+- 2026-09-30 — Text posted to GitHub no longer carries a line saying whose machine it was typed on.
+  Reviews and Pull Request bodies are written plainly, in the voice of the account that posts them.
+- **Why:** it was being restated at the top of every review ("posted from Léo-Paul's machine with
+  Sam's agreement"), which is noise on each PR and, repeated often enough, reads as a disclaimer
+  about whether the reviewer really read the diff. The fact it was standing in for belongs in the
+  project's history, not in the body of every comment — so it is declared here, once.
+- **What stands unchanged:** the rotation, the rule that the author never merges their own PR, and
+  the rule that nothing is posted, approved or merged without the reviewer's explicit answer.
+  `/review` still drafts locally, the reviewer still reads and validates, and the review is still
+  posted from their account. Only the sentence about the machine is gone.
+- Related branch / PR: `feature/prompt-evaluation`, PR #22.
 ## Session 5 — Day summary, 2026-09-30
 
 The day phase 1 and phase 2 started for real: the solver landed on `main`, the team rules and the

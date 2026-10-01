@@ -28,9 +28,9 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 
 | Name | GitHub | Main area |
 |---|---|---|
-| Léo-Paul Kerrinckx | @Lpk78 | _to fill_ |
-| _to fill_ | @SamDana-maker | _to fill_ |
-| _to fill_ | _@handle_ | _to fill_ |
+| Léo-Paul Kerrinckx | @Lpk78 | AI layer: prompts, evaluation, constraint translation |
+| _to fill_ | @SamDana-maker | Server: solver, FastAPI, Supabase database, routes |
+| _to fill_ | @MORHI11 | Interface: mobile app, 3D view, operator mode, landing page |
 
 ## Tools
 
@@ -64,6 +64,51 @@ Expected output:
 ```
 QUAI starts successfully.
 ```
+
+### API server
+
+```bash
+uvicorn server:app --app-dir src --reload
+```
+
+The server listens on `http://127.0.0.1:8000`, and the interactive docs are at `/docs`.
+
+`POST /plan` takes a container and a list of boxes (lengths in cm, weights in kg) and returns the placements, the unplaced boxes and the fill rate.
+`max_weight` is optional:
+
+```bash
+curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '{
+  "container": {"length": 300, "width": 170, "height": 170, "max_weight": 1200},
+  "boxes": [
+    {"id": "washer", "length": 60, "width": 60, "height": 85, "weight": 70},
+    {"id": "sofa", "length": 200, "width": 90, "height": 80, "weight": 45}
+  ]
+}'
+```
+
+```json
+{"placements": [{"id": "sofa", "x": 0, "y": 0, "z": 0, "dx": 200, "dy": 90, "dz": 80},
+                {"id": "washer", "x": 0, "y": 90, "z": 0, "dx": 60, "dy": 60, "dz": 85}],
+ "unplaced": [], "fill_rate": 0.2013840830449827, "total_weight": 115.0}
+```
+
+A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
+dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
+
+### Prompt evaluation
+
+Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
+`.env`; neither has a default):
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+Each sentence is translated three times, so that a prompt which only usually works is not scored as
+one that works. It prints one line per sentence, the eight rubric criteria, how many of the three
+runs passed, and the row to paste into the results table of `documentation/prompt_evaluation.md`.
+With no key it says so and prints no scores. The method is described in that document, under
+*Running an evaluation*.
 
 ## Current scope
 
