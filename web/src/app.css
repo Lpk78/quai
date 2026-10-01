@@ -83,6 +83,15 @@
   box-shadow: 0 0 0 6px rgba(255, 138, 0, 0.25);
 }
 
+/* An example of what to say, not a placeholder: it has to still be there once the operator has
+   started typing or talking, which is the one thing a placeholder cannot do. */
+.mic-example {
+  color: var(--quai-text-muted);
+  font-style: italic;
+  text-align: center;
+  max-width: 26rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;

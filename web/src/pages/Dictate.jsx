@@ -223,6 +223,9 @@ function TalkStep({
             <IconMic />
           </button>
           <p className="muted">{listening ? "Listening…" : "Tap to talk"}</p>
+          <p className="mic-example">
+            “Keep the pallet of tiles upright and load the toolbox last.”
+          </p>
         </div>
       ) : (
         <p className="muted">Speech isn’t available on this device. Type your rules instead.</p>

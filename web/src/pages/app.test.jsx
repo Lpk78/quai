@@ -120,6 +120,36 @@ describe("dictate, with no speech recognition in this environment", () => {
   });
 });
 
+describe("dictate, with speech recognition available", () => {
+  // `SpeechRecognitionImpl` is read once, at module load, which is exactly why the rest of this
+  // file runs with no browser speech API: a stub set after `Dictate.jsx` is first imported would
+  // never be seen. `vi.resetModules()` plus a dynamic import re-evaluates that module with the
+  // stub already on `window`, which is the only way to reach this branch at all.
+  it("shows a fixed example of what to say, which stays once typing starts", async () => {
+    class MockSpeechRecognition {
+      start() {}
+      stop() {}
+    }
+    vi.stubGlobal("SpeechRecognition", MockSpeechRecognition);
+    vi.resetModules();
+    const { default: FreshApp } = await import("../App.jsx");
+
+    render(
+      <MemoryRouter initialEntries={["/app/dictate"]}>
+        <FreshApp />
+      </MemoryRouter>,
+    );
+
+    const example = /Keep the pallet of tiles upright and load the toolbox last\./;
+    expect(screen.getByText(example)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: "some rule" } });
+    expect(screen.getByText(example)).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("confirm sends the dictated constraints to /plan and shows what it returns", () => {
   async function confirmWith(constraints) {
     postConstraints.mockResolvedValue({ constraints, unresolved: [] });
