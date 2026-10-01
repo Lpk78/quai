@@ -1,0 +1,32 @@
+/* Generated from assets/brand/tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
+:root {
+  --quai-background: #F7F6F3;
+  --quai-surface: #FFFFFF;
+  --quai-text: #1F2937;
+
+  /* Derived: secondary text, 6.99:1 on the background. See design.md, Accessibility. */
+  --quai-text-muted: #4B5563;
+
+  --quai-navy: #102238;
+  --quai-orange: #FF8A00;
+
+  /* Derived: the primary orange is a fill, never small text. See design.md, Accessibility. */
+  --quai-orange-text: #C2410C;
+
+  --quai-success: #16A34A;
+  --quai-warning: #F59E0B;
+  --quai-error: #EF4444;
+
+  --quai-kraft-1: #D7B899;
+  --quai-kraft-2: #B8936B;
+  --quai-kraft-3: #8B6F47;
+
+  --quai-stop-1: #2563EB;
+  --quai-stop-2: #059669;
+  --quai-stop-3: #7C3AED;
+  --quai-stop-4: #DC2626;
+
+  --quai-font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --quai-font-text: "Inter", system-ui, sans-serif;
+  --quai-font-data: "JetBrains Mono", ui-monospace, monospace;
+}
