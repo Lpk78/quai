@@ -347,6 +347,20 @@ a profile, and on iOS enable it under *Settings → General → About → Certif
 installing the profile is not enough on its own. Without that, Safari refuses the certificate and
 `/login` falls back to the typed code, which still signs the operator in.
 
+### LLM-only placement experiment
+
+Asks the model to place the demo boxes itself and scores every reply with the solver's own checks
+(`SA-06`, needs `ANTHROPIC_API_KEY` and `LLM_MODEL`):
+
+```bash
+python3 src/run_placement_experiment.py            # 10 runs at temperature 0, 10 at temperature 1
+python3 src/run_placement_experiment.py --runs 2   # a short rehearsal
+```
+
+It makes 20 billed calls. Replies are written to `outputs/placement/` (Git-ignored) so the results can
+be re-read without paying for them again; `notebooks/llm_vs_solver.ipynb` explores a stored run. What it
+found is in `documentation/failures.md` — one physically valid plan in twenty.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
