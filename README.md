@@ -183,6 +183,21 @@ shows it: where each box goes, and which ones did not fit. It needs the API runn
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
 
+The operator's path through the app is `/app` → `/app/scan` → `/app/dictate` → `/app/plan`: read the
+label on the package in your hands, say what to do with it, see where the solver put it.
+
+**`/app/scan`** reads a label shaped `QUAI:BOX:<id>` and shows what the manifest knows about that
+box — `QUAI:BOX:QUAI-BOX-0001` is the fragile parcel, 40 × 30 × 25 cm, 8 kg. A code that is not a
+QUAI label and a QUAI label for a box that is not on this van are told apart, because they are
+different mistakes on a loading dock.
+
+Two things it does not do yet. The **camera** is not wired: the QR library is `LP-20`, and until it
+lands the code is typed rather than scanned — `web/src/scan/scanCode.js` is the seam it drops into,
+so the screen above it will not change. And scanning does not **add** the parcel to the load: it is
+already in `web/src/data/manifest.js` alongside the eighteen loaded boxes. Modelling a box that is
+scanned *into* a van — out of the static list, into app state, marked not yet loaded — changes that
+module and the dictate screen, so it is its own task rather than a side effect of this one.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
