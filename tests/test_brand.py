@@ -148,17 +148,39 @@ class TestBrandFiles(unittest.TestCase):
             with self.subTest(name):
                 self.assertTrue((BRAND / "logo" / name).is_file())
 
-    def test_the_wordmark_does_not_ask_for_arial(self):
-        for name in ("quai-logo-light.svg", "quai-logo-dark.svg"):
+    def test_the_wordmark_is_outlines_and_not_live_text(self):
+        # The logo must render identically on a machine with no fonts installed. A <text> element
+        # or a font-family would make the wordmark depend on what the viewer happens to have.
+        for name in ("quai-logo-light.svg", "quai-logo-dark.svg", "quai-app-icon.svg"):
             with self.subTest(name):
                 svg = (BRAND / "logo" / name).read_text()
-                self.assertNotIn("Arial", svg)
-                self.assertIn("Plus Jakarta Sans", svg)
+                self.assertNotIn("<text", svg)
+                self.assertNotIn("font-family", svg)
+
+    def test_the_logo_is_vector_only(self):
+        for name in ("quai-logo-light.svg", "quai-logo-dark.svg", "quai-app-icon.svg"):
+            with self.subTest(name):
+                svg = (BRAND / "logo" / name).read_text()
+                self.assertNotIn("<image", svg)      # no raster smuggled into the vector
+                self.assertNotIn("base64", svg)
 
     def test_the_logo_uses_the_brand_colours(self):
         svg = (BRAND / "logo" / "quai-logo-light.svg").read_text()
         self.assertIn(TOKENS["colors"]["primary_safety_orange"], svg)
         self.assertIn(NAVY, svg)
+
+    def test_the_retired_logo_rasters_are_gone(self):
+        # Two earlier marks were drawn before this one. Keeping a retired logo next to the live one
+        # is how the wrong logo ends up shipped.
+        for name in ("quai-app-icon.png", "quai-logo-variations.png"):
+            with self.subTest(name):
+                self.assertFalse((BRAND / "logo" / name).exists())
+
+    def test_design_md_states_the_one_slogan(self):
+        self.assertIn("People talk. We load.", DESIGN)
+
+    def test_design_md_forbids_claiming_the_ai_plans_the_load(self):
+        self.assertIn("Never say the AI plans the load or orders the stops", DESIGN)
 
     def test_the_heavy_brand_guide_pdf_is_not_in_the_repository(self):
         self.assertEqual(list(ROOT.rglob("*.pdf")), [])

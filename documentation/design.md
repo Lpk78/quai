@@ -131,32 +131,100 @@ Three files in `assets/brand/logo/`:
 | `quai-logo-dark.svg` | On navy `#102238` and other dark surfaces |
 | `quai-app-icon.svg` | The square icon: PWA manifest, favicon, home screen |
 
-The mark is a rounded **Q read as a loading dock**: a navy outer Q, a white dock opening, a safety-orange
-parcel door, and a small navy ramp at the base. The wordmark is bold and rounded, set in the display font.
+The mark is a **Q read as a loading dock**: a navy arch, a white dock opening seen in slight
+perspective, a safety-orange parcel door inside it, and a ramp running down and to the right that doubles
+as the Q's tail. In the lockup the mark *is* the Q — the wordmark that follows it is `UAI`, set in a bold
+rounded geometric sans drawn to match the display font.
+
+All three files are **hand-drawn vectors**: flat paths, no raster, no embedded fonts, no live `<text>`.
+The whole set is generated from one shared definition of the mark, so the icon and the two lockups
+cannot drift apart.
 
 Rules:
 
-- **Do not rebuild it.** An earlier geometric bracket logo exists in older files; it is retired. These
-  three SVGs replace everything before them.
+- **Do not rebuild it.** Two earlier marks exist in older files — a geometric bracket logo, then a first
+  dock Q. Both are retired. These three SVGs replace everything before them.
 - **Do not recolour it.** Navy, white and orange, in those places. No gradients, no shadows, no outline.
-- **Do not distort it.** Scale both axes together. Do not rotate it, do not condense the wordmark.
-- **Clear space:** keep a margin equal to the height of the Q's opening on all four sides.
-- **Minimum size:** 24 px tall for the mark alone, 96 px wide for the mark with the wordmark. Below
-  that, use the app icon.
+- **Do not distort it.** Scale both axes together. Do not rotate it, do not condense the wordmark, do not
+  re-space the letters.
+- **Do not set the wordmark in a font.** `UAI` is outlines on purpose. Typing "QUAI" in Plus Jakarta Sans
+  next to the mark gives a different logo.
+- **Clear space:** keep a margin equal to the height of the dock opening on all four sides.
+- **Minimum size:** 24 px tall for the mark alone, 96 px wide for the mark with the wordmark. Below that,
+  use the app icon, which stays legible down to about 32 px.
 - **On a photograph**, put the logo on a solid navy or off-white panel. Never straight onto a diorama.
-- App icon sizes exported in the pack: 1024, 256, 128, 64 and 32 px. The 1024 px master is
-  `quai-app-icon.png`; generate the rest from the SVG.
+- The app icon is a navy rounded square; export PNGs from the SVG at 1024, 256, 128, 64 and 32 px.
 
-### Known defect in the supplied wordmark
+`assets/brand/logo/quai-logo-v2-sheet.png` is the supplied rendering of the approved mark. It is the
+**reference** the vectors were drawn from, not an asset to use: it is a raster, it has no transparency,
+and it is the thing the SVGs replace.
 
-`quai-logo-light.svg` and `quai-logo-dark.svg` render the word QUAI as live SVG `<text>`. This branch
-sets that text to the display font the kit itself declares, with a fallback stack, because the files
-arrived asking for Arial — which is neither the brand font nor present on every machine.
+## Copy rules
 
-Live text still means the wordmark renders differently depending on what the viewer has installed.
-**Before the logo is used anywhere public, the wordmark should be converted to outlines.** That needs a
-vector editor and is not something this branch can do correctly. Until then, prefer the app icon, which
-is pure geometry and has no text at all.
+What the product is allowed to say about itself. These apply to the landing page, the app, the README,
+screenshots, the demo film and anything published.
+
+**One slogan: "People talk. We load."** It is the only tagline. Do not write variations of it, do not
+translate it in an English-language surface, and do not pair it with a second strapline.
+
+**Never say the AI plans the load or orders the stops.** This is the architectural rule of the project,
+and copy is where it is most easily broken. A deterministic solver computes placement; the route arrives
+with the manifest as an input. The AI turns what the operator says into validated constraints and
+explains the result.
+
+| Do not write | Write instead |
+|---|---|
+| "The AI plans your load" | "QUAI plans your load" — or name the solver |
+| "The AI decides what goes where" | "You talk, the solver places" |
+| "Our AI optimises your route" | Nothing: QUAI does not compute routes |
+| "AI-powered loading order" | "Loading order follows your delivery stops" |
+| "Smart AI stacking" | "Stacking that respects the limits you stated" |
+
+**Do not describe features the app does not have.** No route map, no ETA, no live tracking, no driver
+tracking, no pricing or billing, no fleet management, no barcode catalogue, no integrations. The bonus
+list in `documentation/roadmap.md` is a list of things we have *not* built; it is not marketing copy.
+If a mockup shows a feature we do not have, the mockup is a mood image and must not be captioned as a
+screenshot.
+
+**No real brand marks in published images.** No real carrier, retailer, van, or software logo, no
+recognisable real packaging, no real company name on a box, a truck, a building or a screen. Generated
+illustrations are prone to producing them by accident — check every image before it is published, and
+regenerate rather than retouch.
+
+**Navy text on orange buttons**, every time. This is the accessibility rule above, repeated here because
+button labels are copy as much as they are colour, and the supplied mockups get it wrong.
+
+**Tone**, from the personality: human, calm, precise, optimistic. Say what happened and what the operator
+can do about it. A box that could not be placed is a normal result stated plainly, never an apology and
+never an error page.
+
+### The supplied mockups break almost all of these
+
+This is not hypothetical. The two newest reference sheets were checked against the rules above and they
+fail them, which is exactly why the rules are written down. Treat both as mood images.
+
+`reference/website-mockup.png`:
+
+- Two invented slogans — "Smart loading. Delivery confidence." and "Smart logistics for a smoother day" —
+  where there is one: *People talk. We load.*
+- "Follow your **optimised route** and get **live updates**", a "4h 20m **Est. route time**" tile, and a
+  map step. QUAI computes no routes, estimates no times and tracks nothing live. Three features we do
+  not have, on one page.
+- A **Pricing** item in the navigation, for a product with no pricing.
+- "Get started" and "Start loading" drawn as **white text on orange**.
+
+`reference/brand-applications.png`:
+
+- Two more slogans: "Smarter Delivery Ahead." on the van and "People. Parcels. Forward." on the van and
+  the business card.
+- A **fabricated identity** — a named Operations Lead, an email address, a phone number and a domain.
+  None of it is real and none of it may be published as though it were.
+- A phone home screen carrying **real third-party app icons**. That is the real-brand-marks rule, broken
+  by a generator that was only asked for "a phone". It is the easiest one to miss and the clearest
+  reason to check every image before publishing it.
+
+The useful parts of both sheets are the layout, the colour, the camera and the mood. The words are not
+ours.
 
 ## Illustration style
 
@@ -177,6 +245,9 @@ Every image in the product comes from one world, the way a stop-motion film has 
 - **Environments** (`reference/environments.png`): warehouse interiors, loading docks, suburban delivery
   streets. Always mid-morning.
 
+`reference/delivery-story.png` and `reference/brand-applications.png` extend the world to the delivery
+itself and to vans, signage, packaging and stationery. Same material, same light, same cast.
+
 The film storyboard runs: parcels arrive → the operator scans → the operator talks → the AI understands →
 the 3D plan appears → the forklift loads → something unexpected happens → the plan recomputes on the spot
 → the load is finished → the deliveries come off in order. That last beat is the product's whole promise,
@@ -184,8 +255,9 @@ and it is the one a screenshot should show.
 
 ## Interface rules
 
-The mockups in `reference/mobile-ui.png` set the shape of the interface. Where they conflict with the
-accessibility rules above, the accessibility rules win.
+The mockups in `reference/mobile-ui.png`, `reference/app-mockups.png` and `reference/website-mockup.png`
+set the shape of the interface. Where they conflict with the accessibility rules or the copy rules above,
+those rules win — and they do conflict, in the ways listed under *Copy rules*.
 
 - **Phone first.** The operator is standing up holding a phone, sometimes in gloves. Design for one
   thumb, then let it grow to the supervisor's screen.
@@ -210,4 +282,5 @@ accessibility rules above, the accessibility rules win.
   interface do not.
 - No spacing scale, type scale or elevation scale. Whoever builds #18 should propose one and add it here
   rather than inventing it per screen.
-- The wordmark is still live text (see above).
+- The landing page has no approved copy. The mockups supply none that passes the copy rules, so the words
+  for `/` still have to be written.
