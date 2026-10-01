@@ -231,7 +231,7 @@ const PANELS = [
     ],
     shot: "phone_route_map",
     alt: "The QUAI app showing the stops for the day and the route between them.",
-    planned: "planned",
+    planned: "planned, not shipped",
   },
 ];
 
@@ -241,8 +241,11 @@ export function Features() {
       {PANELS.map((panel) => (
         <article className="panel" key={panel.eyebrow}>
           <div className="panel__text">
-            <p className="eyebrow">
-              {panel.eyebrow}
+            <p className="eyebrow">{panel.eyebrow}</p>
+            {/* Its own row, the same height in every card so the titles still line up. "planned"
+                alone read as *planned route* on this card, which is the one claim design.md
+                forbids — a label that can be read as the feature is not a label (#34). */}
+            <p className="panel__badge">
               {panel.planned && <span className="tag">{panel.planned}</span>}
             </p>
             <h2>{panel.title}</h2>

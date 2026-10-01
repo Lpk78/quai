@@ -52,6 +52,39 @@ describe("orange as text", () => {
   });
 });
 
+describe("the planned-not-shipped badge", () => {
+  /* The one element on the page whose job is to stop a reader believing something untrue, in the
+     combination most likely to fall under AA: small muted text on a faint tint. Checked here the
+     way tests/test_brand.py checks every other pair. */
+  function flatten(hex, alpha, over) {
+    const parse = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const [f, b] = [parse(hex), parse(over)];
+    return f.map((c, i) => Math.round(c * alpha + b[i] * (1 - alpha)));
+  }
+
+  function luminance([r, g, b]) {
+    const lin = [r, g, b]
+      .map((c) => c / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  }
+
+  function contrast(a, b) {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  it("clears AA for small text on its own tint", () => {
+    const rule = landing.match(/\.tag\s*\{([^}]*)\}/)[1];
+    expect(rule).toContain("background: rgba(16, 34, 56, 0.07)");
+    expect(rule).toContain("color: var(--quai-text-muted)");
+    // the tint sits on a white card
+    const pill = flatten("#102238", 0.07, "#FFFFFF");
+    const text = [0x4b, 0x55, 0x63]; // --quai-text-muted
+    expect(contrast(text, pill)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 describe("the stylesheet", () => {
   it("takes every colour from a token rather than a literal", () => {
     const literals = css.match(/(?:background|color):\s*#[0-9a-f]{3,8}/gi) ?? [];

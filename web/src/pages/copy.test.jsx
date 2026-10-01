@@ -104,6 +104,35 @@ describe("no features the app does not have", () => {
   });
 });
 
+describe("an unbuilt feature carries its warning", () => {
+  /* #34: the badge drifted from "Route view, estimated times and hand-off — planned, not shipped"
+     to the single word "planned", which on a card headed "Route and stop order" reads most
+     naturally as *planned route* — the one claim design.md forbids. design.md says a planned
+     feature described as though it shipped is the same dishonesty one step along, and nothing
+     pinned the label, so it drifted. This pins it. */
+  it("says the route feature is not shipped, in words that cannot be read as the feature", () => {
+    expect(textOf("/")).toContain("planned, not shipped");
+  });
+
+  it("puts that warning on the route panel itself", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/"]}>
+        <App />
+      </MemoryRouter>,
+    );
+    const panel = [...container.querySelectorAll(".panel")].find((p) =>
+      /route and stop order/i.test(p.textContent),
+    );
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain("planned, not shipped");
+  });
+
+  it("never labels it with the bare word, which reads as a planned route", () => {
+    const badges = [...document.querySelectorAll(".tag")].map((b) => b.textContent.trim());
+    for (const badge of badges) expect(badge).not.toBe("planned");
+  });
+});
+
 describe("QUAI never chooses the route or the stop order", () => {
   /* The architectural rule the relaxed feature rule makes easier to break: the delivery list is an
      input. QUAI shows it, loads to match it, and hands off to a navigation app — it does not compute
