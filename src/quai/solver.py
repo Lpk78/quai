@@ -39,6 +39,14 @@ class UnsupportedConstraint(ValueError):
 
 def solve(boxes: list[Box], container: Container,
           constraints: ConstraintSet | None = None) -> Plan:
+    """Place the boxes, honouring the constraints this solver knows how to honour.
+
+    The set's `unresolved` entries are deliberately not read here. They are the things the operator
+    said that the model could not translate, and nothing about them is a placement rule — whether an
+    unresolved entry should stop a plan being made at all, or be shown beside it, belongs to the
+    end-to-end path (#19), which is the layer that can ask the operator. This function refuses what
+    it cannot honour and ignores what was never a constraint; surfacing that is the caller's.
+    """
     refuse_unhandled(constraints)
     placements: list[Placement] = []
     unplaced: list[Box] = []
