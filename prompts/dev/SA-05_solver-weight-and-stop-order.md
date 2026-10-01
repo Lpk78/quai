@@ -69,6 +69,14 @@ of max_total_weight and Container.max_weight; with tests
 - **Verified:** 139 tests pass. Removing the refusal fails five of them. The merge result keeps the
   journal entry `main` gained from #22 and adds none of its own — checked with `git merge-tree`, not
   assumed, because #2 had just shown me a merge that silently deleted 30 lines of `main`.
+- **For whoever wires constraints into the API (#19):** `solve()` now has two raising paths and
+  `src/server.py` has no handler for either — `UnsupportedConstraint` for a constraint type the solver
+  cannot honour, and `ValueError` from `loading_order()` for a box outside the manifest the constraints
+  were validated against. Neither is reachable today, because `POST /plan` passes no `ConstraintSet`.
+  The first endpoint that passes one must map both to a `422` with the reason, the way #16 set the
+  standard for bad input, or a validated-but-unhonourable constraint will come back as a `500`.
+  `MORHI11` raised this on the #27 review round; it is noted here rather than guessed at in code
+  because the handler belongs to the PR that creates the path, not to this one.
 - **Not changed, and why:** the whole-stop no-op stays implicit in the sort key (`MORHI11` agreed a
   special case no test can distinguish is dead weight), `overloads()` keeps correctness over speed,
   and `loading_order()` still raises on a box outside the manifest rather than defaulting it to the
