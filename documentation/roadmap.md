@@ -26,13 +26,16 @@ starting with row 2.
 |---|---|---|---|---|---|---|
 | 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | Done (#14) |
 | 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | In review (#21) |
-| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | To do |
+| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | In review (#22) |
 | 10 | #12 | `prompt/constraint-translation-v1-zero-shot` | First prompt of the family, `prompts/constraint-translation/v1_zero_shot.md`, + real scores | `Lpk78` | `SamDana-maker` | To do |
 | 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON → solver, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | To do |
 
 Row 11 is the feature the whole AI layer builds towards; rows 7 to 10 are what make it possible. It is
 where the prompt, the schema and the solver become one path, behind `POST /constraints` on the server
 from row 3. #10 points at this row.
+
+Row 9 is branched off row 8 rather than off `main`: C1 of the rubric is `quai.constraints.parse()`,
+so #22 has to be merged after #21.
 
 ## Later — not yet opened as issues
 

@@ -44,3 +44,7 @@ IDs never collide because each member has a prefix and numbers follow the team t
 | `HY-` | Hypolyte (MORHI11) |
 
 Example: `/task SA-04 Build a FastAPI server…` creates `prompts/dev/SA-04_fastapi-server.md`.
+
+A letter suffix — `LP-04b`, `LP-04c` — marks a task recovered after the fact and placed next to the ID
+it followed in time, rather than given a free number that was never assigned to it. It is a separate
+task, not another round of the ID it sits beside.
