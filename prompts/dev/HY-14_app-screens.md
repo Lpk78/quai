@@ -17,8 +17,10 @@ HY-14 App screens: home and dictate. Branch from main (the app does not depend o
 the time of writing (checked after pulling `main`). `web/src/api.js` is written as the minimal client the
 task asks for, reading `VITE_API_URL` with a `http://127.0.0.1:8000` fallback — the same origin
 `vite.config.js` and the README already assume for the FastAPI server. Sam's version replaces it; the
-shape of `postConstraints(sentence, manifest)` is what `Dictate.jsx` calls, so his version only has to
-keep that signature or the call site is updated alongside it.
+shape of `postConstraints(text, manifest, stops)` is what `Dictate.jsx` calls, so his version only has
+to keep that signature or the call site is updated alongside it. (Updated after the fact: the first
+round guessed `{ sentence, manifest: { items, stops } }`, which did not match #46 once it existed —
+see the Outcome's second round, below.)
 
 **The mockup used is the fallback one.** `assets/mockups/app_mockups.png` does not exist, so
 `~/Downloads/QUAI_DA_FINAL/05_UI/QUAI_app_mockups.png` was used for layout and mood only — its copy
@@ -53,3 +55,16 @@ covers, so the existing enforcement is extended rather than left to only check t
   route/ETA/stop-count content out of the home screen entirely, since it is both out of this task's
   scope and the kind of claim `design.md`'s copy rules single out. Extending `copy.test.jsx` to
   `/app/dictate` rather than leaving the new route unchecked.
+- **First review round (`Lpk78`, blocking):** `api.js`'s guessed request shape did not match #46,
+  which had landed in the meantime with a different one (`{ text, manifest, stops }`, manifest a flat
+  item list). Fixed by rewriting `postConstraints` to that shape and merging `main` in, since #45/#48
+  had also landed and independently created the same `web/src/api.js` and `App.jsx` — reconciled by
+  keeping both `postPlan` and the corrected `postConstraints` side by side.
+- **Second review round (`Lpk78`, one blocking, two optional):** the error state kept only
+  `err.message`, so every failure showed the same "could not reach the solver" headline even when
+  `ApiError` carried a `kind` of `"refused"` and the server's real reason as `detail` — fixed by
+  keeping the whole error object and branching on `kind`, the way `PlanScreen.jsx`'s `Failure` already
+  did. Optional: `postPlan` and `postConstraints` shared almost their whole body, deduplicated into one
+  `post()` ladder both now call; this file's stale request shape and test count are the two lines
+  corrected above.
+- **Verified again:** `npm test` — 58 web tests pass, up from 35.
