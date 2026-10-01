@@ -39,3 +39,27 @@ Also decided with the author: the 2.52 MB master brand board is kept at full siz
   any code was written: the web-app third of the task was split off to #18 because `web/` does not
   exist yet, and the 2.52 MB master brand board was kept at full size. Each test was checked to fail
   when the rule it guards is reversed.
+
+## Follow-up prompt, same branch (2026-10-01)
+
+```
+The brand kit gained five images in ~/Downloads/QUAI_DA_FINAL: 01_LOGO/PNG/QUAI_logo_v2_sheet.png (new logo, replaces the earlier one), 05_UI/QUAI_website_mockup.png, 05_UI/QUAI_app_mockups.png, 00_MASTER_BOARD/QUAI_brand_applications.png, 06_STORYBOARD/QUAI_delivery_story.png. Add them to assets/brand/, redraw the new logo as clean SVGs (light, dark, app icon), and add a "Copy rules" section to documentation/design.md: one slogan "People talk. We load."; never say the AI plans the load or orders the stops (the solver places, the stop order comes with the manifest); no route map, ETA, live tracking, pricing or other features the app does not have; no real brand marks in published images; navy text on orange buttons.
+```
+
+### Outcome of the follow-up
+
+- **What the AI produced:** the five images copied into `assets/brand/`; the approved mark redrawn as
+  three vector SVGs (light lockup, dark lockup, app icon) generated from one shared definition in
+  `assets/brand/logo/build_logo.py`, with the wordmark as outlines rather than live text — which also
+  closes the Arial defect found in the first round; the **Copy rules** section of `design.md`; a
+  `failures.md` entry; and three further tests.
+- **How the redraw was checked:** the mark's geometry was measured off the supplied sheet by scanline
+  analysis rather than estimated, then the SVGs were rendered in a browser at 360 px, 180 px and 36 px
+  and compared against the sheet over two rounds of correction (the dock opening was too open at the
+  bottom, the letter spacing too loose).
+- **What it found that was not asked for:** the website and brand-application mockups advertise route
+  optimisation, live tracking, an ETA and pricing — none of which QUAI has, and route computation is in
+  the rejected scope — plus three slogans that are not ours, a fabricated employee identity, and real
+  third-party app icons on a phone mockup. Each is named in `design.md`.
+- **What was changed by hand:** nothing in the output. The decision to delete the two retired logo
+  rasters, rather than keep them beside the new mark, was the author's.

@@ -129,6 +129,9 @@ both: **text on orange is navy `#102238`, never white**, and **small orange text
 not the primary `#FF8A00`. `tests/test_brand.py` enforces these and every other contrast ratio
 the design document claims.
 
+`design.md` also carries the **copy rules** — one slogan, never claiming the AI plans the load or orders
+the stops, and no features the app does not have. Read them before writing any user-facing text.
+
 ## AI Usage
 
 _To complete as the project evolves._ Summary so far: AI was used to explore and challenge project ideas

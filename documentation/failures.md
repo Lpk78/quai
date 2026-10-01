@@ -184,3 +184,30 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   non-normative: sampling a pixel out of `colour-palette.png` gives `#FB830C` where the token says
   `#FF8A00`, so anyone eyedropping a mockup is already working from the wrong colour.
 - Related branch / PR: `docs/brand-kit`, `HY-10`.
+
+---
+## 2026-10-01 — Mockups that advertised a product we are not building
+
+- What happened: the second round of brand images arrived with a full website mockup and a brand
+  applications board. Read as marketing copy rather than looked at as pictures, they describe a different
+  product: "Follow your optimised route and get live updates", an "Est. route time 4h 20m" tile, a route
+  map, and a Pricing item in the navigation. QUAI computes no routes, estimates no times, tracks nothing
+  live and has no pricing. The same sheets carry three slogans that are not ours — "Smart loading.
+  Delivery confidence.", "Smarter Delivery Ahead.", "People. Parcels. Forward." — alongside the real one,
+  a business card with an invented employee, email, phone number and domain, and a phone home screen
+  showing real third-party app icons.
+- Why: an image generator asked for "a logistics SaaS landing page" produces the landing page of the
+  average logistics SaaS, because that is what it has seen. Nothing in the brief said which features
+  exist, so it supplied the usual ones. The route map is the sharpest case: route optimisation is in
+  `documentation/roadmap.md` under *rejected scope*, and the mockup put it in the hero.
+- What we tried: `documentation/design.md` gained a **Copy rules** section — one slogan, never saying the
+  AI plans the load or orders the stops, no features the app does not have, no real brand marks in
+  published images, navy text on orange buttons. It names each violation in each sheet, so the images
+  stay useful for mood and layout without their words leaking into the product. Two of the rules are
+  checked by `tests/test_brand.py`.
+- What we learned: a mockup is an argument about what the product is, not only about how it looks, and it
+  is persuasive precisely because nobody reads it as a claim. The dangerous ones were not the invented
+  slogans, which are obviously wrong, but "optimised route" — plausible, adjacent, and a direct
+  contradiction of the one architectural rule the project is built on. Reference images now get read for
+  what they assert, not just looked at.
+- Related branch / PR: `docs/brand-kit`, `HY-10`.

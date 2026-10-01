@@ -6,7 +6,9 @@ white-on-orange button copied back out of the mockups, breaks a test here rather
 
 Run from the repository root:  python3 -m unittest discover tests
 """
+import importlib.util
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -168,6 +170,20 @@ class TestBrandFiles(unittest.TestCase):
         svg = (BRAND / "logo" / "quai-logo-light.svg").read_text()
         self.assertIn(TOKENS["colors"]["primary_safety_orange"], svg)
         self.assertIn(NAVY, svg)
+
+    def test_the_committed_svgs_match_their_generator(self):
+        """design.md says the three files come from one definition. This is what makes that true."""
+        spec = importlib.util.spec_from_file_location(
+            "build_logo", BRAND / "logo" / "build_logo.py")
+        build_logo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build_logo)
+        with tempfile.TemporaryDirectory() as tmp:
+            build_logo.build(Path(tmp))
+            for name in build_logo.files():
+                with self.subTest(name):
+                    self.assertEqual((Path(tmp) / name).read_text(),
+                                     (BRAND / "logo" / name).read_text(),
+                                     f"{name} was edited by hand; re-run build_logo.py instead")
 
     def test_the_retired_logo_rasters_are_gone(self):
         # Two earlier marks were drawn before this one. Keeping a retired logo next to the live one

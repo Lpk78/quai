@@ -137,8 +137,10 @@ as the Q's tail. In the lockup the mark *is* the Q — the wordmark that follows
 rounded geometric sans drawn to match the display font.
 
 All three files are **hand-drawn vectors**: flat paths, no raster, no embedded fonts, no live `<text>`.
-The whole set is generated from one shared definition of the mark, so the icon and the two lockups
-cannot drift apart.
+They are generated from one definition of the mark in `assets/brand/logo/build_logo.py`, so the icon and
+the two lockups cannot drift apart. **Edit that script and re-run it; do not edit the SVGs by hand** —
+`tests/test_brand.py` regenerates them into a temporary directory and fails if the committed files
+differ.
 
 Rules:
 
