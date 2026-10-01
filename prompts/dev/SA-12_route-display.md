@@ -38,6 +38,11 @@ README.
   looked like it was about sequence while the data made sequence irrelevant. The fixture now drives
   Lille → Amiens → Paris, which differs from every plausible sort. `documentation/failures.md`,
   *The order test that could not fail*.
+- **What went wrong, twice:** the push went out green locally and CI went red on a `SyntaxError`.
+  `f"...{", ".join(x)}"` nests the same quote inside an f-string, which Python 3.12 allows and 3.11 —
+  what `tests.yml` runs and what the README promises — does not. Fixed, and then the whole tree was
+  parsed with `ast.parse(..., feature_version=(3, 11))` to check nothing else had crept in on a 3.14
+  machine. `documentation/failures.md`, *Valid Python locally, a syntax error in CI*.
 - **Scope note:** no issue and no roadmap row existed for this work. A `feature/route-display` row was
   added to the roadmap's *Later* table rather than leaving it untracked; the PR asks the reviewer whether
   it should have been an issue first.
