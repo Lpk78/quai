@@ -63,8 +63,10 @@ class TestPlanEndpoint(unittest.TestCase):
 
     def test_empty_box_list_gives_an_empty_plan(self):
         body = self.post([]).json()
+        # `not_applied` is always present, empty when every constraint reached the solver — so the
+        # web app can read its length without first checking the key exists (SA-16).
         self.assertEqual(body, {"placements": [], "unplaced": [], "fill_rate": 0.0,
-                                "total_weight": 0.0})
+                                "total_weight": 0.0, "not_applied": []})
 
     def test_zero_sized_container_is_rejected(self):
         # A zero volume would divide by zero in Plan.fill_rate (issue #15).
@@ -111,6 +113,115 @@ class TestCrossOrigin(unittest.TestCase):
         response = client.post("/plan", json={"container": CONTAINER, "boxes": []},
                                headers={"Origin": "https://example.com"})
         self.assertNotIn("access-control-allow-origin", response.headers)
+
+
+# A van rather than the 100 cm cube the tests above use, because the claim being tested is
+# geometric: in a 100 cm container these boxes stack in y and z and every x stays 0, so "nearer the
+# doors" could not be observed even when the ordering is right.
+#
+# The toolbox is the largest box on purpose. Without a constraint the solver loads largest first, so
+# it goes in at x=0 — the back wall. `load_last` has to move it to the far end, and a test built on a
+# box that was already going to be loaded last would pass while asserting nothing.
+VAN = {"length": 300, "width": 170, "height": 170, "max_weight": 1200}
+TOOLBOX = {"id": "toolbox", "length": 100, "width": 85, "height": 85, "weight": 20}
+OTHERS = [{"id": "b1", "length": 85, "width": 85, "height": 85, "weight": 30},
+          {"id": "b2", "length": 70, "width": 85, "height": 85, "weight": 25}]
+
+
+class TestPlanConstraints(unittest.TestCase):
+    """`POST /plan` taking constraints, the one wired type being `load_last` (SA-16)."""
+
+    def post(self, constraints=None):
+        body = {"container": VAN, "boxes": [TOOLBOX] + OTHERS}
+        if constraints is not None:
+            body["constraints"] = constraints
+        return client.post("/plan", json=body)
+
+    def order(self, response):
+        return [p["id"] for p in response.json()["placements"]]
+
+    def toolbox_x(self, response):
+        return next(p["x"] for p in response.json()["placements"] if p["id"] == "toolbox")
+
+    def test_a_request_without_constraints_plans_exactly_as_before(self):
+        response = self.post()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[0], "toolbox")
+        self.assertEqual(self.toolbox_x(response), 0)
+        self.assertEqual(response.json()["not_applied"], [])
+
+    def test_load_last_moves_the_item_to_the_end_of_the_load(self):
+        before, after = self.post(), self.post([{"type": "load_last", "item": "toolbox"}])
+        self.assertEqual(after.status_code, 200)
+        self.assertEqual(self.order(before)[0], "toolbox", "the baseline loads it first")
+        self.assertEqual(self.order(after)[-1], "toolbox", "load_last must load it last")
+        self.assertEqual(after.json()["not_applied"], [])
+
+    def test_load_last_moves_the_item_away_from_the_back_wall(self):
+        # The visible effect, and the one the demo shows: x is the distance from the back wall, so a
+        # box loaded last sits further forward — nearer the doors the operator opens.
+        before, after = self.post(), self.post([{"type": "load_last", "item": "toolbox"}])
+        self.assertGreater(self.toolbox_x(after), self.toolbox_x(before))
+
+    def test_the_rest_of_the_plan_is_still_valid(self):
+        response = self.post([{"type": "load_last", "item": "toolbox"}])
+        body = response.json()
+        self.assertEqual(body["unplaced"], [])
+        boxes = {b["id"]: b for b in [TOOLBOX] + OTHERS}
+        container = Container(VAN["length"], VAN["width"], VAN["height"], VAN["max_weight"])
+        placements = [Placement(Box(p["id"], boxes[p["id"]]["length"], boxes[p["id"]]["width"],
+                                    boxes[p["id"]]["height"], boxes[p["id"]]["weight"]),
+                                p["x"], p["y"], p["z"], p["dx"], p["dy"], p["dz"])
+                      for p in body["placements"]]
+        self.assertEqual(find_problems(placements, container), [])
+
+    def test_a_type_the_solver_cannot_honour_is_reported_not_dropped(self):
+        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 200)
+        not_applied = response.json()["not_applied"]
+        self.assertEqual([e["type"] for e in not_applied], ["on_top"])
+        self.assertEqual(not_applied[0]["item"], "toolbox")
+        self.assertIn("#29", not_applied[0]["reason"])
+
+    def test_a_type_the_solver_honours_but_this_endpoint_does_not_pass_is_reported(self):
+        # 50 kg against a 75 kg load: had the cap been applied, the solver would have left `b2` out.
+        # Asserting nothing was unplaced is what proves the constraint was reported, not quietly used.
+        response = self.post([{"type": "max_total_weight", "limit_kg": 50}])
+        self.assertEqual(response.status_code, 200)
+        not_applied = response.json()["not_applied"]
+        self.assertEqual([e["type"] for e in not_applied], ["max_total_weight"])
+        self.assertIn("#19", not_applied[0]["reason"])
+        self.assertEqual(response.json()["unplaced"], [])
+        self.assertEqual(response.json()["total_weight"], 75)
+
+    def test_unload_at_says_why_a_route_is_missing(self):
+        response = self.post([{"type": "unload_at", "item": "toolbox", "stop": "S2"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no route", response.json()["not_applied"][0]["reason"])
+
+    def test_a_wired_and_an_unwired_constraint_in_one_call(self):
+        response = self.post([{"type": "load_last", "item": "toolbox"},
+                              {"type": "at_bottom", "item": "b1"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[-1], "toolbox", "the wired one still applies")
+        self.assertEqual([e["type"] for e in response.json()["not_applied"]], ["at_bottom"])
+
+    def test_a_type_outside_the_contract_is_refused(self):
+        response = self.post([{"type": "teleport", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("teleport", response.json()["detail"])
+
+    def test_load_last_naming_a_box_not_in_the_load_is_refused(self):
+        response = self.post([{"type": "load_last", "item": "ghost"}])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("ghost", response.json()["detail"])
+
+    def test_an_empty_constraint_list_is_not_sent_through_parse(self):
+        # `parse()` refuses a payload with nothing in it, so an empty list has to mean "no
+        # constraints" rather than becoming one.
+        response = self.post([])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.order(response)[0], "toolbox")
 
 
 if __name__ == "__main__":
