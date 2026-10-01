@@ -56,3 +56,34 @@ stay green.
   assertion loosened.
 - **Verified:** 322 tests pass (311 before), 1 skip. `load_last` on the largest box moves it from
   `x: 0` and first in the load to `x: 70` and last.
+
+## Outcome of the review round (#51)
+
+- **What the review asked for:** one blocking point from `MORHI11`. `split_constraints` checked a
+  constraint's `type` against the contract and nothing else, so a known-but-unwired type was sorted
+  into `not_applied` without its shape ever being validated —
+  `{"type": "max_weight_on", "item": "does-not-exist", "bogus_field": 123}` came back `200` with all
+  three faults echoed into the response. Reported instead of refused, which is the one thing the
+  stated contract says must not happen, on the only path that did not enforce it.
+- **What the AI produced:** `2a467c5`. A `validate_constraints` step that runs before anything is
+  applied *or reported*, asking `quai.constraints.find_problems` rather than re-implementing the
+  rules — so missing fields, undeclared fields, unknown types, items outside the load, non-finite or
+  non-positive limits and contradictions are all caught by the contract's own code. Plus
+  `validation_stops`, four new tests, and the README paragraph that had understated the rule as
+  applying only to unknown types.
+- **The tension the reviewer named, and how it was resolved:** a full `parse()` over the whole list
+  collides with `PLAN_ROUTE_STOP`, because any `unload_at` naming a real stop would fail validation
+  against a manifest holding only the placeholder. Rather than the narrower item-existence check he
+  offered, the validation manifest is given the placeholder *plus* every stop the request names. That
+  makes the stop check structural — it still catches a stop that is missing, empty or not a string —
+  and honest about what it cannot check, since no route exists here to check against. Nothing is
+  ordered by that list: `unload_at` is reported, never passed to `loading_order`.
+- **What was changed by hand:** nothing in the committed code.
+- **Also in this round:** `#46` merged while the fix was being written, so `origin/main` was merged in
+  and the three-way conflict I had predicted on the PR — `README.md`, `src/server.py` and
+  `tests/test_server.py`, since both PRs add to the same regions — was resolved by keeping both sides
+  (`3313e80`). Verified afterwards that all five test classes, both endpoints and #46's rewritten CORS
+  comment survived.
+- **Verified:** 336 tests pass (322 mine, plus the 10 that arrived with #46), 1 skip. `MORHI11`'s
+  payload now returns `422` naming all three faults, and a well-formed `unload_at` still returns `200`
+  with the constraint reported — the line that had to hold.
