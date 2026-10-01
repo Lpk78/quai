@@ -118,8 +118,6 @@ class ManifestItemIn(BaseModel):
     width: int = Field(gt=0, description="cm")
     height: int = Field(gt=0, description="cm")
     weight: float = Field(default=0.0, ge=0, description="kg")
-    stop: str | None = Field(default=None, description="the stop id this item is already assigned "
-                                                        "to, if known; must be one of `stops`")
 
 
 class StopIn(BaseModel):
@@ -169,14 +167,6 @@ def constraints(request: ConstraintsRequest) -> ConstraintsResponse:
     stop_duplicates = sorted(i for i, n in Counter(s.id for s in request.stops).items() if n > 1)
     if stop_duplicates:
         raise HTTPException(status_code=422, detail=f"duplicate stop ids: {', '.join(stop_duplicates)}")
-
-    stop_ids = {s.id for s in request.stops}
-    unknown_stops = sorted(f"{m.id} -> {m.stop!r}" for m in request.manifest
-                           if m.stop is not None and m.stop not in stop_ids)
-    if unknown_stops:
-        raise HTTPException(status_code=422,
-                            detail=f"manifest items reference a stop that is not in stops: "
-                                   f"{', '.join(unknown_stops)}")
 
     manifest = Manifest(items=tuple(m.id for m in request.manifest),
                         stops=tuple(s.id for s in request.stops))

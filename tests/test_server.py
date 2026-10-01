@@ -151,12 +151,6 @@ class TestConstraintsEndpoint(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertIn("S1", response.json()["detail"])
 
-    def test_a_manifest_item_naming_an_unknown_stop_is_rejected(self):
-        item = MANIFEST_ITEM | {"stop": "S9"}
-        response = self.post(manifest=[item])
-        self.assertEqual(response.status_code, 422)
-        self.assertIn("S9", response.json()["detail"])
-
     def test_a_reply_that_fails_validation_is_a_502(self):
         with mock.patch.object(server, "_translate", return_value='{"not": "the right shape"}'):
             response = self.post()

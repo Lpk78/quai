@@ -121,9 +121,7 @@ curl -X POST http://127.0.0.1:8000/constraints -H "Content-Type: application/jso
  "unresolved": []}
 ```
 
-Each manifest item may also carry an optional `stop` — the item's already-known destination — which must
-be one of `stops`; a reference to a stop not in that list is a `422`. `text` left empty or blank is a
-`422` too. A reply from the model that is not valid JSON, or that does not match the contract, never
+`text` left empty or blank is a `422`. A reply from the model that is not valid JSON, or that does not match the contract, never
 reaches the caller: it is a `502` with the validation problem. A lost call (rate limit, refusal, network
 error, after retries) is a `503`. CORS uses the same allowlist as `/plan` — not authentication; tracked
 as a gap on issue #19.
