@@ -20,7 +20,7 @@ evaluation and report per sentence against v3 and v4.
 
 ## Outcome
 
-- **PR:** (filled when opened; reviewer `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/43 (reviewer: `SamDana-maker`)
 - **What the AI produced:** `prompts/constraint-translation/v5_bounded_examples.md`, the loosened
   assertion in `tests/test_prompt_examples.py`, the results row and per-sentence comparison in
   `documentation/prompt_evaluation.md`, and the `documentation/failures.md` entry.
