@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from quai.constraints import CONSTRAINT_FIELDS, ConstraintError, Manifest, parse
+from quai.constraints import ConstraintError, Manifest, find_problems, parse
 from quai.models import Box, Container
 from quai.solver import HONOURED, solve
 
@@ -122,18 +122,52 @@ def why_not_applied(kind: str) -> str:
             "issue #29")
 
 
+def validation_stops(constraints: list[dict]) -> tuple[str, ...]:
+    """Stop ids for the manifest the contract is checked against — not a route.
+
+    `find_problems` asks whether a constraint's `stop` is one the route knows, and this endpoint has
+    no route, so every stop named by an `unload_at` is added here before the question is put. That
+    makes the check structural rather than geographic: it catches a stop that is missing, empty or
+    not a string, and cannot catch one that is simply not on the round, because nothing here knows
+    what the round is. Nothing is ordered by this list — `unload_at` is reported rather than applied,
+    so it never reaches `loading_order`.
+    """
+    stops = [PLAN_ROUTE_STOP]
+    for constraint in constraints:
+        stop = constraint.get("stop")
+        if isinstance(stop, str) and stop and stop not in stops:
+            stops.append(stop)
+    return tuple(stops)
+
+
+def validate_constraints(constraints: list[dict], box_ids: tuple[str, ...]) -> None:
+    """Refuse the whole list unless every constraint in it matches the contract.
+
+    Before anything is acted on *or reported*. A constraint this endpoint does not wire is still
+    checked, because `not_applied` is an answer about the caller's input and an answer about
+    malformed input has to be a refusal — reporting `max_weight_on` with no `limit_kg` back as
+    "honoured but not passed yet" says something false about it.
+
+    `quai.constraints.find_problems` is asked rather than re-implemented: missing fields, undeclared
+    fields, unknown types, items outside the load, limits that are not finite numbers and
+    contradictions are all already written down there, and a second copy here would be the drift the
+    contract exists to prevent.
+    """
+    if not constraints:
+        return
+    problems = find_problems({"constraints": constraints, "unresolved": []},
+                             Manifest(box_ids, validation_stops(constraints)))
+    if problems:
+        raise HTTPException(status_code=422,
+                            detail=f"the constraints did not validate: {'; '.join(problems)}")
+
+
 def split_constraints(constraints: list[dict]) -> tuple[list[dict], list[NotAppliedOut]]:
     """The constraints this endpoint passes to the solver, and the ones it reports back instead.
 
-    An unknown type is not reported, it is refused: a name outside the contract is malformed input,
-    not a feature waiting to be wired, and repairing it is the one thing this layer must not do.
+    Both halves are known to be well formed: `validate_constraints` has already refused the request
+    otherwise, so the only question left here is which ones the solver gets.
     """
-    unknown = sorted({str(c.get("type")) for c in constraints
-                      if c.get("type") not in CONSTRAINT_FIELDS})
-    if unknown:
-        raise HTTPException(status_code=422,
-                            detail=f"not constraint types in the contract: {', '.join(unknown)}")
-
     wired = [c for c in constraints if c["type"] in WIRED]
     not_applied = [NotAppliedOut(type=c["type"], item=c.get("item"),
                                  reason=why_not_applied(c["type"]))
@@ -154,15 +188,18 @@ def plan(request: PlanRequest) -> PlanResponse:
                           max_weight=float("inf") if c.max_weight is None else c.max_weight)
     boxes = [Box(b.id, b.length, b.width, b.height, b.weight) for b in request.boxes]
 
+    box_ids = tuple(b.id for b in boxes)
+    validate_constraints(request.constraints, box_ids)
     wired, not_applied = split_constraints(request.constraints)
     constraints = None
     if wired:
         # Through `parse()` like everything else that reaches the solver. Nothing here came from a
-        # model, but the door is the same one, so a constraint naming a box that is not in the load
-        # is refused here rather than planned around.
+        # model, but the door is the same one, and the set handed to `solve` is built by it rather
+        # than assembled here. The validation above has already refused anything malformed, so this
+        # raising at all would mean the two disagree.
         try:
             constraints = parse({"constraints": wired, "unresolved": []},
-                                Manifest(tuple(b.id for b in boxes), (PLAN_ROUTE_STOP,)))
+                                Manifest(box_ids, (PLAN_ROUTE_STOP,)))
         except ConstraintError as error:
             raise HTTPException(status_code=422,
                                 detail=f"the constraints did not validate: {error}") from error

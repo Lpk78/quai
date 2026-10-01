@@ -211,6 +211,53 @@ class TestPlanConstraints(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertIn("teleport", response.json()["detail"])
 
+    def test_a_malformed_constraint_is_refused_even_when_it_is_not_wired(self):
+        """The whole list is validated before any of it is applied *or reported*.
+
+        Reporting a `max_weight_on` that carries no `limit_kg` back as "honoured but not passed yet"
+        would be saying something false about it: it is not a constraint at all. Found by MORHI11 in
+        review of #51, where `not_applied` was the one path that reported instead of refusing.
+        """
+        for label, constraint in (
+            ("missing field", {"type": "max_weight_on", "item": "toolbox"}),
+            ("undeclared field", {"type": "on_top", "item": "toolbox", "bogus_field": 123}),
+            ("item not in the load", {"type": "at_bottom", "item": "does-not-exist"}),
+            ("limit not a number", {"type": "max_total_weight", "limit_kg": "heavy"}),
+            ("limit not positive", {"type": "max_total_weight", "limit_kg": -5}),
+            ("stop not a string", {"type": "unload_at", "item": "toolbox", "stop": 123}),
+        ):
+            with self.subTest(label):
+                response = self.post([constraint])
+                self.assertEqual(response.status_code, 422)
+                self.assertIn("did not validate", response.json()["detail"])
+
+    def test_the_three_faults_in_one_constraint_are_all_refused(self):
+        # MORHI11's payload verbatim: no `limit_kg`, an item that is not in the load, and a field the
+        # type does not declare. It used to come back 200 with the whole thing echoed into
+        # `not_applied`.
+        response = self.post([{"type": "max_weight_on", "item": "does-not-exist",
+                               "bogus_field": 123}])
+        self.assertEqual(response.status_code, 422)
+        detail = response.json()["detail"]
+        self.assertIn("limit_kg", detail)
+        self.assertIn("does-not-exist", detail)
+        self.assertIn("bogus_field", detail)
+
+    def test_a_well_formed_unload_at_is_still_reported_rather_than_refused(self):
+        # The line to hold: validation must not turn an unwired-but-valid constraint into an error.
+        # This endpoint has no route, so the stop cannot be checked against one — only that it is a
+        # stop id at all.
+        response = self.post([{"type": "unload_at", "item": "toolbox", "stop": "S7"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([e["type"] for e in response.json()["not_applied"]], ["unload_at"])
+
+    def test_one_bad_constraint_refuses_the_whole_request(self):
+        # Not "apply the good one and report the bad one": a caller who sent something malformed gets
+        # told, rather than a plan built from the half that parsed.
+        response = self.post([{"type": "load_last", "item": "toolbox"},
+                              {"type": "max_weight_on", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 422)
+
     def test_load_last_naming_a_box_not_in_the_load_is_refused(self):
         response = self.post([{"type": "load_last", "item": "ghost"}])
         self.assertEqual(response.status_code, 422)

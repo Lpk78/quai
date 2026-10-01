@@ -126,8 +126,16 @@ Two different reasons appear there. `at_bottom`, `keep_upright`, `max_stack_heig
 `max_total_weight` the solver honours, but this endpoint does not hand them over yet; `unload_at`
 it honours too, but this request carries no route, and the stop order it needs is an input rather
 than something to invent.
-All three are roadmap row 12 (#19). A type outside the contract is a `422`, not a report: that is
-malformed input rather than a feature waiting to be wired.
+All three are roadmap row 12 (#19).
+
+Being reported is for constraints that are *valid but unwired*. A malformed one is a `422`, even
+when it is a type the endpoint would not have passed on anyway: a missing or undeclared field, a
+limit that is not a positive finite number, an `item` that is not in the load, an unknown type. The
+whole list is checked before any of it is applied or reported, by
+`quai.constraints.find_problems` rather than a second copy of the rules — so one bad constraint
+refuses the request instead of yielding a plan built from the half that parsed. The one thing not
+checked is whether an `unload_at` names a real stop, because this request carries no route to check
+it against.
 
 ### The web app
 
