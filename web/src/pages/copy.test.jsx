@@ -71,11 +71,6 @@ describe("it reads as a product site", () => {
     }
   });
 
-  it("offers no navigation feature, which is what a map would imply", () => {
-    for (const page of PAGES) {
-      expect(textOf(page)).not.toMatch(/\bnavigate\b/i);
-    }
-  });
 });
 
 describe("no measured saving is claimed", () => {
@@ -97,16 +92,29 @@ describe("no measured saving is claimed", () => {
 });
 
 describe("no features the app does not have", () => {
-  it("promises no route, ETA, tracking or pricing", () => {
+  /* design.md changed on 2026-10-01: the route view, an estimated time per stop, navigation hand-off
+     and delivery progress are planned (server SA-12), so those words are allowed. What stays out of
+     scope is still out of scope. */
+  it("promises no pricing, billing, fleet management or integrations", () => {
+    const banned = [/\bpricing\b/i, /\bbilling\b/i, /fleet management/i, /barcode catalogue/i];
+    for (const page of PAGES) {
+      const text = textOf(page);
+      for (const pattern of banned) expect(text).not.toMatch(pattern);
+    }
+  });
+});
+
+describe("QUAI never chooses the route or the stop order", () => {
+  /* The architectural rule the relaxed feature rule makes easier to break: the delivery list is an
+     input. QUAI shows it, loads to match it, and hands off to a navigation app — it does not compute
+     it, reorder it or improve it. */
+  it("never claims to optimise or choose a route", () => {
     const banned = [
-      /optimis(ed|e) route/i,
-      /route map/i,
-      /live (updates|tracking)/i,
-      /\bETA\b/,
-      /est\.? route time/i,
-      /\bpricing\b/i,
-      /\bbilling\b/i,
-      /fleet management/i,
+      /optimis(ed|es|e|ing) (your |the )?(route|delivery order|stop order)/i,
+      /best (route|order of stops)/i,
+      /faster routes?/i,
+      /we (plan|choose|decide) (your |the )?(route|stops?|stop order)/i,
+      /AI[- ]optimised/i,
     ];
     for (const page of PAGES) {
       const text = textOf(page);
@@ -114,7 +122,7 @@ describe("no features the app does not have", () => {
     }
   });
 
-  it("says plainly that QUAI does not plan routes", () => {
-    expect(textOf("/")).toMatch(/does not plan your route/i);
+  it("says plainly that the stop order is the operator's", () => {
+    expect(textOf("/")).toMatch(/your (delivery list|route|stop order)/i);
   });
 });
