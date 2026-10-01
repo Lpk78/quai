@@ -28,9 +28,9 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 
 | Name | GitHub | Main area |
 |---|---|---|
-| Léo-Paul Kerrinckx | @Lpk78 | _to fill_ |
-| _to fill_ | @SamDana-maker | _to fill_ |
-| _to fill_ | _@handle_ | _to fill_ |
+| Léo-Paul Kerrinckx | @Lpk78 | AI layer: prompts, evaluation, constraint translation |
+| _to fill_ | @SamDana-maker | Server: solver, FastAPI, Supabase database, routes |
+| _to fill_ | @MORHI11 | Interface: mobile app, 3D view, operator mode, landing page |
 
 ## Tools
 
@@ -94,6 +94,21 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 
 A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
 dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
+
+### Prompt evaluation
+
+Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
+`.env`; neither has a default):
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+Each sentence is translated three times, so that a prompt which only usually works is not scored as
+one that works. It prints one line per sentence, the eight rubric criteria, how many of the three
+runs passed, and the row to paste into the results table of `documentation/prompt_evaluation.md`.
+With no key it says so and prints no scores. The method is described in that document, under
+*Running an evaluation*.
 
 ## Current scope
 

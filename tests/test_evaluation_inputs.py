@@ -3,70 +3,25 @@
 The expected JSON in `documentation/prompt_evaluation.md` is what every prompt version is scored
 against, so a typo there silently corrupts every score. These tests read the document and check it
 against the manifest and output contract declared in the same file.
+
+The readers themselves live in `src/quai/rubric.py`, because the evaluation script (LP-06) scores
+prompt versions from the same document: one reading of the document, used by the tests that guard
+it and by the script that runs on it. They are re-exported here so that a test module importing
+them from this file keeps working.
 """
 
-import json
-import pathlib
-import re
+import sys
 import unittest
+from pathlib import Path
 
-DOC = pathlib.Path(__file__).resolve().parent.parent / "documentation" / "prompt_evaluation.md"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-EXPECTED_SENTENCES = 26
+from quai.rubric import (  # noqa: E402
+    DOC, EXPECTED_SENTENCES, constraint_fields, manifest_ids, read_doc, reasons, sentences,
+    stop_ids, table_rows)
 
-
-def read_doc():
-    return DOC.read_text(encoding="utf-8")
-
-
-def manifest_ids(text):
-    return set(re.findall(r"^\| `(B\d+)` \|", text, re.MULTILINE))
-
-
-def stop_ids(text):
-    line = re.search(r"^Stops on the route: (.+)$", text, re.MULTILINE).group(1)
-    return set(re.findall(r"`(S\d+)`", line))
-
-
-def table_rows(text, header):
-    """Rows of the one Markdown table introduced by `header`, as lists of cell strings.
-
-    Reading a named table instead of every `| ... |` line in the document is what keeps the
-    manifest rows (`| `B1` | washing machine | ... |`) out of the constraint contract.
-    """
-    rows = []
-    for line in text.split(header)[1].splitlines():
-        line = line.strip()
-        if not line.startswith("|"):
-            if rows:
-                break  # the table has ended
-            continue
-        if set(line) <= set("|-: "):
-            continue  # the |---|---| separator
-        rows.append([cell.strip() for cell in line.strip("|").split("|")])
-    return rows
-
-
-def constraint_fields(text):
-    """Map constraint name -> required fields, from the contract table."""
-    return {
-        row[0].strip("`"): set(re.findall(r"`(\w+)`", row[1]))
-        for row in table_rows(text, "| Constraint | Fields | Meaning |")
-    }
-
-
-def reasons(text):
-    return {row[0].strip("`") for row in table_rows(text, "| `reason` | Used when |")}
-
-
-def sentences(text):
-    """Return [(id, parsed_json)] for every test sentence."""
-    body = text.split("## Test inputs")[1].split("## Results")[0]
-    found = []
-    for tid, block in re.findall(r"^\*\*(T\d+)\*\*.*?\n```json\n(.*?)\n```", body,
-                                 re.MULTILINE | re.DOTALL):
-        found.append((tid, json.loads(block)))
-    return found
+__all__ = ["DOC", "EXPECTED_SENTENCES", "constraint_fields", "manifest_ids", "read_doc", "reasons",
+           "sentences", "stop_ids", "table_rows"]
 
 
 class TestEvaluationInputs(unittest.TestCase):

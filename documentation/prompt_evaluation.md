@@ -132,6 +132,8 @@ the `unknown_item` alone, dropping "keep the washing machine upright", fails C8 
 **Scoring.** Each criterion is scored out of 26. **Total** is the number of sentences where all eight are
 Yes — the only number that says the translation was actually usable. A version that emits coordinates
 (C7 No) or obeys an embedded instruction (C6 No) is reported as failed whatever the other columns say.
+Each sentence is run three times, and a criterion is Yes for that sentence only when all three runs
+say Yes: see *Running an evaluation* below.
 
 Scores go in the results table below, with the model and temperature used. Only runs that actually
 happened are recorded; an evaluation that could not run leaves the row empty and says why.
@@ -314,6 +316,73 @@ also failed, because the operator's actual request was lost.
 Two `load_last` items at the same stop are the last group there, not a contradiction (see *Route and
 unloading order*). Answering `contradiction` loses the whole request, because the operator has no other
 way to say this.
+
+## Running an evaluation
+
+`src/evaluate_prompt.py` scores one prompt version on the 26 sentences above, against the eight
+criteria above, and prints the row for the results table:
+
+```bash
+python3 src/evaluate_prompt.py prompts/constraint-translation/v1_zero_shot.md
+```
+
+The script reads this document — the manifest, the route, the sentences, the expected outputs and
+the criteria — so that a version is always scored on what is written here and nowhere else.
+`src/quai/rubric.py` reads the document, `src/quai/evaluation.py` applies the criteria,
+`src/quai/llm.py` makes the call. `--cases T01,T25` runs a subset while a prompt is being written;
+such a run prints no row, because a score over part of the inputs is comparable with nothing.
+`--runs` changes how many times each sentence is asked; the default is 3 and a recorded score uses
+the default. The key is read from `ANTHROPIC_API_KEY` and the model from `LLM_MODEL` (see
+`.env.example`); neither has a default, and a missing one stops the run instead of being guessed —
+the Model column of a row has to name the model that actually answered. `--model` overrides
+`LLM_MODEL` for one run, for scoring the same prompt on two models.
+
+How a version is run — fixed for every version, so that the scores stay comparable:
+
+- **The prompt version is the system prompt.** The manifest and the sentence are the user turn, and
+  the sentence sits inside an `<operator_utterance>` block. The operator's words are data: C6 can
+  only be measured honestly if the harness itself never mixes speech with instructions.
+- **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
+  which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
+- **`temperature 0` is sent** — and recorded as what was sent, not as what makes a score
+  repeatable. See *On the temperature column* below.
+- **Three calls per sentence.** The same question asked twice does not always get the same answer,
+  so each sentence is translated three times and a criterion is Yes for that sentence only when all
+  three runs say Yes. A prompt that only usually works is not a prompt that works. The per-sentence
+  table shows how many of the three runs answered all eight criteria (`2/3`) and whether the three
+  translations were the same, so the difference between "always" and "twice out of three" stays
+  visible instead of being averaged away.
+- **A rate limit or a server error is waited out**, with an exponential backoff of four attempts,
+  honouring `retry-after` when the API sends one. A rejected request or a bad key (400, 401) stops
+  the whole evaluation at once: it would say the same thing on all 78 calls. A sentence lost after
+  the last attempt is recorded as such and scored on no criterion, because a criterion that was
+  never observed is not a criterion that failed. A run that did not reach all 26 sentences leaves
+  its row empty and says why.
+- **Every reply is kept** in `outputs/evaluations/` (ignored by Git) — all three per sentence — so
+  that a score can be re-read later without calling the model again.
+
+Beside the eight criteria, the script reports per sentence whether the output **matched** the
+expected one: the same constraints, and the same reasons reported. The wording of `text` and
+`question` is not compared — the rubric asks that doubt be reported, not that it be worded the way
+this document words it. The match count is not part of the rubric and is not recorded in the table.
+C3 and C8 together say all the rubric has to say about the `constraints` list, so what `match` adds
+is the count of `unresolved` entries: a sentence with two faults answered with one of them is Yes on
+every criterion and still does not match.
+
+**On the temperature column.** It records what was actually sent, never what the method asks for.
+The script sends `temperature 0`, as the course asks, and `claude-haiku-4-5-20251001` — the model
+`LLM_MODEL` names — accepts it, so the column reads `0`.
+
+Sending it is worth saying out loud, because it is not what makes a score repeatable. A temperature
+of 0 reduces variability; it has never guaranteed identical outputs. The three runs per sentence are
+what measures the variability that the parameter only made easy to forget, and they stay whatever
+the column says.
+
+Some current Claude models — Opus 5, Sonnet 5, Opus 4.7 and 4.8 — removed sampling parameters and
+answer `temperature` with a 400. Scoring a version on one of those means running with no sampling
+parameter at all, and then the column reads `n/a`: the harness prints the value it sent, so a row
+can always be read back as what happened. A 400 is fatal and stops the evaluation at the first
+sentence rather than recording anything (see `documentation/failures.md`).
 
 ## Results
 
