@@ -11,6 +11,10 @@
   /* Heavier than a default card shadow, as the mockups are: the surfaces read as lifted. */
   --lift: 0 1px 2px rgba(16, 34, 56, 0.06), 0 18px 48px rgba(16, 34, 56, 0.1);
   --lift-sm: 0 1px 2px rgba(16, 34, 56, 0.05), 0 10px 26px rgba(16, 34, 56, 0.07);
+  /* One spacing scale, so the vertical rhythm between sections is a decision rather than an
+     accident. --space-section is the gap between every two sections on the page. */
+  --space-section: clamp(3.5rem, 6vw, 5.5rem);
+  --space-block: clamp(1.75rem, 3vw, 2.75rem);
   overflow-x: clip;
 }
 
@@ -26,7 +30,7 @@
   margin: 0 0 0.6rem;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   /* Small orange text: the darkened token at 4.79:1. The fill orange would be 2.19:1. */
   color: var(--quai-orange-text);
@@ -36,13 +40,16 @@
    same dishonesty the old rule guarded against, one step along. */
 .tag {
   display: inline-block;
-  margin-top: 0.9rem;
-  padding: 0.3rem 0.7rem;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 999px;
   background: rgba(16, 34, 56, 0.07);
   color: var(--quai-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  vertical-align: middle;
 }
 
 .button--lg {
@@ -159,7 +166,8 @@
 .hero__text {
   position: relative;
   z-index: 1;
-  max-width: 41rem;
+  /* Wide enough for the three chips on one line; the subtitle is capped separately below. */
+  max-width: 47rem;
   padding: clamp(2rem, 4vw, 3.5rem);
 }
 
@@ -172,7 +180,9 @@
   margin-top: 1.25rem;
   font-size: clamp(1rem, 1.25vw, 1.18rem);
   color: var(--quai-text-muted);
-  max-width: 31rem;
+  /* 460 px exactly, as asked on #34: a rem here is not 16 px on every machine, and the point of
+     the cap is that the line never runs under the operator in the photograph behind it. */
+  max-width: 460px;
 }
 
 .hero__actions {
@@ -200,8 +210,8 @@
 
 .hero__points {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.4rem;
+  flex-wrap: nowrap;
+  gap: 1.25rem;
   margin: 2.5rem 0 0;
   padding: 0;
   list-style: none;
@@ -234,6 +244,10 @@
   font-size: 0.95rem;
 }
 
+.hero__points li > span {
+  white-space: nowrap;
+}
+
 .hero__points span span:last-child {
   font-size: 0.84rem;
   color: var(--quai-text-muted);
@@ -256,7 +270,7 @@
 
 .how__card > h2 {
   text-align: center;
-  margin-bottom: 2.75rem;
+  margin-bottom: var(--space-block);
 }
 
 .how__grid {
@@ -264,14 +278,16 @@
   grid-template-columns: 1fr auto 1fr;
   gap: clamp(1.75rem, 4vw, 3.5rem);
   align-items: center;
+  justify-items: center;
 }
 
 .how__phone .phone-shot {
-  width: clamp(12rem, 19vw, 17rem);
+  height: clamp(320px, 30vw, 420px);
 }
 
 .how__steps {
   display: grid;
+  align-content: center;
   gap: 2.25rem;
   margin: 0;
   padding: 0;
@@ -323,24 +339,44 @@
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
   gap: 1.5rem;
-  padding-top: clamp(4rem, 7vw, 6.5rem);
+  padding-top: var(--space-section);
 }
 
 .panel {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
-  align-items: center;
+  /* Top-aligned, so eyebrows, titles and lists line up across the three cards. */
+  align-items: start;
+  /* The phone runs past the bottom edge, as in mockup v2's lower row. */
+  padding-bottom: 5.5rem;
+  overflow: visible;
   background: var(--quai-surface);
   border-radius: var(--radius);
   padding: clamp(1.25rem, 1.8vw, 1.75rem);
   box-shadow: var(--lift-sm);
 }
 
+/* One line, so the titles below them start at the same height in all three cards. */
+.panel .eyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .panel h2 {
   font-size: clamp(1.05rem, 1.3vw, 1.25rem);
   text-wrap: balance;
+  min-height: 3.2em;
+}
+
+.panel .phone-shot {
+  align-self: end;
+  margin-bottom: -72px;
+  height: 320px;
 }
 
 .panel__list {
@@ -369,26 +405,28 @@
 
 .phone-shot {
   display: block;
-  width: 8.25rem;
-  height: auto;
-  /* The renders carry a near-white backdrop; multiply drops it into the white card instead of
-     leaving a visible pale square around the phone. */
-  mix-blend-mode: multiply;
-  filter: drop-shadow(0 14px 28px rgba(16, 34, 56, 0.18));
+  height: 320px; /* as asked on #34 */
+  width: auto;
+  /* The renders are cut out of their background, so drop-shadow follows the phone's own outline
+     rather than painting a rectangle behind it. */
+  filter: drop-shadow(0 18px 30px rgba(16, 34, 56, 0.26));
 }
 
 /* --- 5. navy band ---------------------------------------------------------------------------- */
 
 .band {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
+  /* Room for the operator to run past the top edge without the band growing to fit him. */
+  margin-top: calc(var(--space-section) + 4rem);
   gap: 2rem;
-  margin-top: clamp(4rem, 7vw, 6.5rem);
-  padding: clamp(2rem, 3vw, 3rem) clamp(2rem, 3vw, 3.25rem);
+  margin-top: var(--space-section);
+  padding: clamp(1.75rem, 2.4vw, 2.5rem) clamp(2rem, 3vw, 3.25rem);
   background: var(--quai-navy);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* The plaque-free lockup: white mark and wordmark on transparency, so the band's own navy shows
@@ -411,16 +449,18 @@
 
 .band__image {
   display: block;
-  width: clamp(9rem, 19vw, 15rem);
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
+  align-self: end;
+  width: clamp(8rem, 15vw, 12rem);
+  height: auto;
+  margin-right: clamp(1rem, 4vw, 4rem);
+  margin-bottom: -0.5rem;
+  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.3));
 }
 
 /* --- 6. icon strip ----------------------------------------------------------------------------- */
 
 .strip {
-  padding-top: 1.25rem;
+  padding-top: var(--space-block);
 }
 
 .strip ul {
@@ -467,12 +507,21 @@
 /* --- 7. why QUAI ------------------------------------------------------------------------------ */
 
 .why {
-  padding-top: clamp(4rem, 7vw, 6.5rem);
+  padding-top: var(--space-section);
   text-align: center;
 }
 
 .why h2 {
   font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  color: var(--quai-navy);
+}
+
+.why__lead {
+  max-width: 46rem;
+  margin: 1.25rem auto 0;
+  font-family: var(--quai-font-display);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
   color: var(--quai-navy);
 }
 
@@ -526,7 +575,7 @@
 /* --- 8. a day on the dock --------------------------------------------------------------------- */
 
 .dock {
-  padding-top: clamp(4rem, 7vw, 6.5rem);
+  padding-top: var(--space-section);
 }
 
 .dock h2 {
@@ -561,7 +610,7 @@
 
 .cta {
   text-align: center;
-  padding-top: clamp(4.5rem, 8vw, 7rem);
+  padding-top: var(--space-section);
 }
 
 .cta h2 {

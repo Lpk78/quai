@@ -4,11 +4,15 @@ import { describe, expect, it } from "vitest";
 /* The two accessibility rules from design.md, checked where they are actually applied.
    tests/test_brand.py proves the palette supports them; this proves the stylesheet uses them. */
 
-// vitest runs with the web/ project as its working directory.
-const css = readFileSync("src/index.css", "utf8");
+// vitest runs with the web/ project as its working directory. Both stylesheets are read: the base
+// rules live in index.css and the landing page's in landing.css, and the two accessibility rules
+// have to hold wherever they are applied.
+const base = readFileSync("src/index.css", "utf8");
+const landing = readFileSync("src/landing.css", "utf8");
+const css = base + "\n" + landing;
 
 function ruleFor(selector) {
-  const match = css.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`));
+  const match = base.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`));
   if (!match) throw new Error(`no rule for ${selector}`);
   return match[1];
 }
@@ -31,9 +35,20 @@ describe("the button, where text meets orange", () => {
 });
 
 describe("orange as text", () => {
-  it("uses the darkened token, never the fill orange", () => {
+  it("uses the darkened token where orange is text", () => {
     expect(css).toContain("color: var(--quai-orange-text)");
-    expect(css).not.toMatch(/color:\s*var\(--quai-orange\)\s*;/);
+  });
+
+  it("only uses the fill orange as a colour on icons, never on type", () => {
+    /* An inline SVG takes its colour from `color`, through currentColor, so the fill orange is
+       allowed there — it is a graphic, not type. Anywhere else, `color: var(--quai-orange)` is the
+       2.19:1 combination design.md forbids. */
+    const offenders = [];
+    for (const [, selector] of css.matchAll(/([^{}]+)\{[^}]*color:\s*var\(--quai-orange\)\s*;/g)) {
+      const s = selector.trim().split("\n").pop().trim();
+      if (!/svg$|icon|__play|step__n|screen__cta/.test(s)) offenders.push(s);
+    }
+    expect(offenders).toEqual([]);
   });
 });
 

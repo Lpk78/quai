@@ -122,7 +122,10 @@ describe("QUAI never chooses the route or the stop order", () => {
     }
   });
 
-  it("says plainly that the stop order is the operator's", () => {
-    expect(textOf("/")).toMatch(/your (delivery list|route|stop order)/i);
+  it("says the sentence, not a paraphrase of it", () => {
+    /* Asked for on #34: the previous assertion matched /your (delivery list|route|stop order)/i,
+       which almost any sentence mentioning the route satisfies. This is the exact line. */
+    const SENTENCE = "QUAI follows your delivery list: it never chooses or reorders your stops.";
+    expect(textOf("/")).toContain(SENTENCE);
   });
 });

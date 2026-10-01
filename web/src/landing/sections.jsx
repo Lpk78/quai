@@ -39,14 +39,15 @@ function Picture({ name, widths, sizes, alt, className = "", loading = "lazy" })
   );
 }
 
-/** One of the supplied phone renders: a real frame, bezel, dynamic island and status bar included. */
+/** A supplied phone render, cut out of its studio background by assets/brand/cutout.py, so the page
+    can give it a shadow that follows the phone rather than a grey box. */
 function PhoneShot({ name, alt, className = "" }) {
   return (
     <Picture
       className={`phone-shot ${className}`}
-      name={name}
-      widths={[480, 720]}
-      sizes="(max-width: 760px) 66vw, 20vw"
+      name={`${name}-cut`}
+      widths={[320, 640]}
+      sizes="(max-width: 760px) 60vw, 22vw"
       alt={alt}
     />
   );
@@ -230,7 +231,7 @@ const PANELS = [
     ],
     shot: "phone_route_map",
     alt: "The QUAI app showing the stops for the day and the route between them.",
-    planned: "Route view, estimated times and hand-off — planned, not shipped",
+    planned: "planned",
   },
 ];
 
@@ -240,7 +241,10 @@ export function Features() {
       {PANELS.map((panel) => (
         <article className="panel" key={panel.eyebrow}>
           <div className="panel__text">
-            <p className="eyebrow">{panel.eyebrow}</p>
+            <p className="eyebrow">
+              {panel.eyebrow}
+              {panel.planned && <span className="tag">{panel.planned}</span>}
+            </p>
             <h2>{panel.title}</h2>
             <ul className="panel__list">
               {panel.bullets.map((b) => (
@@ -250,7 +254,7 @@ export function Features() {
                 </li>
               ))}
             </ul>
-            {panel.planned && <p className="tag">{panel.planned}</p>}
+
           </div>
           <PhoneShot name={panel.shot} alt={panel.alt} />
         </article>
@@ -270,10 +274,10 @@ export function Band() {
       </div>
       <Picture
         className="band__image"
-        name="scan_parcel"
-        widths={[400, 640, 1024]}
-        sizes="(max-width: 760px) 60vw, 26vw"
-        alt="An operator scanning a parcel with a phone."
+        name="operator-cut"
+        widths={[360, 720]}
+        sizes="(max-width: 760px) 50vw, 20vw"
+        alt="An operator checking a parcel on a phone."
       />
     </section>
   );
@@ -320,6 +324,9 @@ export function WhyQuai() {
   return (
     <section className="why" id="why-quai">
       <h2>The model never places a box.</h2>
+      <p className="why__lead">
+        QUAI follows your delivery list: it never chooses or reorders your stops.
+      </p>
       <p className="why__body">
         Language models write layouts that look right and are not: boxes overlap, float, change from
         one run to the next. In QUAI the AI only translates what you say; placement comes from a
