@@ -195,7 +195,7 @@ explains the result.
 
 **Only describe features that are built or planned.** Changed on 2026-10-01: the route view, an
 estimated time per stop, handing off to a navigation app and delivery progress are **planned** — the
-server work is `SA-12` and the app screen follows it. They may be described. What is still out of
+server work is `SA-12` — issue #35, `POST /route` — and the app screen follows it. They may be described. What is still out of
 scope, and still forbidden: pricing and billing, fleet management, a barcode catalogue, integrations.
 The bonus list in `documentation/roadmap.md` is a list of things we have *not* built and is not
 marketing copy.
