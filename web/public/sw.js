@@ -30,8 +30,13 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
+        // Only a good response is kept. A 404 or a transient 502 stored here would become the
+        // offline experience until the next successful load replaced it, which is the opposite of
+        // what the fallback is for: the last *good* copy, not the last copy.
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(request).then((hit) => hit || caches.match("/"))),
