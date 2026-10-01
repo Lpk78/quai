@@ -18,3 +18,12 @@ stop per box, so colour by stop is SA-14c and waits for #36.
 
 ## Outcome
 
+- **PR:** https://github.com/Lpk78/quai/pull/48 (reviewer: `MORHI11`), stacked on #45
+- **What the AI produced:** `web/src/plan/LoadScene.jsx`, the inspector and selection wiring in
+  `PlanScreen.jsx`, the scene styles, the three dependencies, and 9 tests.
+- **What was changed by hand:** colour by index rather than by stop, because the response carries no
+  stop — the brief asked for stop colours and the data does not exist until #36. The inspector shows
+  only what the response holds for the same reason. The 3D modules are mocked in the screen tests:
+  jsdom has no WebGL, so what a canvas draws is not visible to the suite, and the tests check the
+  arithmetic instead rather than pretending to check pixels.
+- **Verified:** 47 web tests, 333 Python tests, `npm run build` clean.
