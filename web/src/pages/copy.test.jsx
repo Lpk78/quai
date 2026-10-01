@@ -57,6 +57,45 @@ describe("the AI never plans the load or orders the stops", () => {
   });
 });
 
+describe("it reads as a product site", () => {
+  it("never mentions a school, a course or an assignment", () => {
+    // HY-06: the landing page is the product's own site. The project context belongs in the
+    // repository, not on the page a delivery team would read.
+    const banned = [
+      /\bschool\b/i, /\bcourse\b/i, /\buniversity\b/i, /\bstudent\b/i,
+      /\bassignment\b/i, /\bsemester\b/i, /\bprofessor\b/i, /\bALBERT\b/,
+    ];
+    for (const page of PAGES) {
+      const text = textOf(page);
+      for (const pattern of banned) expect(text).not.toMatch(pattern);
+    }
+  });
+
+  it("offers no navigation feature, which is what a map would imply", () => {
+    for (const page of PAGES) {
+      expect(textOf(page)).not.toMatch(/\bnavigate\b/i);
+    }
+  });
+});
+
+describe("no measured saving is claimed", () => {
+  it("promises no time, error, emission or utilisation figure", () => {
+    // The supplied mockups carried "Save time", "Fewer errors", "Save hours every day" and
+    // "Higher vehicle utilisation". We have measured none of them.
+    const banned = [
+      /save (time|hours)/i,
+      /fewer (errors|delivery issues)/i,
+      /\bemissions?\b/i,
+      /higher .*utilisation/i,
+      /\d+\s*%\s*(faster|fewer|more|less)/i,
+    ];
+    for (const page of PAGES) {
+      const text = textOf(page);
+      for (const pattern of banned) expect(text).not.toMatch(pattern);
+    }
+  });
+});
+
 describe("no features the app does not have", () => {
   it("promises no route, ETA, tracking or pricing", () => {
     const banned = [

@@ -1,0 +1,338 @@
+/* The phone frames and their screens, drawn in CSS. Tokens only — see documentation/design.md. */
+
+.phone {
+  width: 100%;
+  max-width: 15rem;
+}
+
+.phone__frame {
+  position: relative;
+  border-radius: 2.2rem;
+  padding: 0.45rem;
+  background: var(--quai-navy);
+  box-shadow: 0 2px 4px rgba(16, 34, 56, 0.1), 0 18px 44px rgba(16, 34, 56, 0.18);
+}
+
+.phone__notch {
+  position: absolute;
+  top: 0.45rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 38%;
+  height: 1.1rem;
+  background: var(--quai-navy);
+  border-radius: 0 0 0.8rem 0.8rem;
+  z-index: 2;
+}
+
+.phone__screen {
+  position: relative;
+  background: var(--quai-background);
+  border-radius: 1.85rem;
+  padding: 0.6rem 0.7rem 0.9rem;
+  min-height: 19rem;
+  overflow: hidden;
+}
+
+.phone__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--quai-navy);
+  margin-bottom: 0.6rem;
+}
+
+.phone__signal {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.5rem;
+}
+
+.phone__signal i {
+  width: 3px;
+  background: var(--quai-navy);
+  border-radius: 1px;
+}
+
+.phone__signal i:nth-child(1) { height: 40%; }
+.phone__signal i:nth-child(2) { height: 70%; }
+.phone__signal i:nth-child(3) { height: 100%; }
+
+/* --- shared screen pieces --------------------------------------------------------------------- */
+
+.screen {
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.screen__hello,
+.screen__heading {
+  font-family: var(--quai-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--quai-navy);
+  line-height: 1.2;
+}
+
+.screen__sub {
+  font-size: 0.6rem;
+  color: var(--quai-text-muted);
+  margin-top: 0.2rem;
+}
+
+.screen__card,
+.screen__question,
+.screen__callout {
+  background: var(--quai-surface);
+  border-radius: 0.9rem;
+  padding: 0.6rem 0.7rem;
+  margin-top: 0.7rem;
+  box-shadow: 0 1px 2px rgba(16, 34, 56, 0.05);
+}
+
+.screen__card-title,
+.screen__question-title {
+  font-weight: 700;
+  color: var(--quai-navy);
+  font-size: 0.7rem;
+}
+
+.screen__card-body {
+  color: var(--quai-text-muted);
+  font-size: 0.62rem;
+  margin-top: 0.15rem;
+}
+
+/* Navy on orange — never white. */
+.screen__cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+.screen__tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.screen__tile {
+  background: var(--quai-surface);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.3rem;
+  text-align: center;
+  color: var(--quai-text-muted);
+  font-size: 0.55rem;
+}
+
+.screen__tile svg {
+  width: 13px;
+  height: 13px;
+  color: var(--quai-navy);
+}
+
+.screen__tile strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--quai-navy);
+}
+
+/* --- voice screen ------------------------------------------------------------------------------ */
+
+.screen__mic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: var(--quai-surface);
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.screen__mic-button {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+}
+
+.screen__mic-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.screen__wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 1.4rem;
+}
+
+.screen__wave i {
+  width: 2px;
+  border-radius: 1px;
+  background: var(--quai-orange);
+  opacity: 0.75;
+}
+
+.screen__wave i:nth-child(odd) { height: 45%; }
+.screen__wave i:nth-child(even) { height: 85%; }
+.screen__wave i:nth-child(3n) { height: 65%; }
+
+.screen__rules {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.screen__rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  background: var(--quai-surface);
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  color: var(--quai-text-muted);
+  font-size: 0.6rem;
+}
+
+.screen__rules svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: var(--quai-success);
+  margin-top: 1px;
+}
+
+.screen__rules strong {
+  color: var(--quai-navy);
+}
+
+.screen__question {
+  border: 1px solid var(--quai-orange);
+}
+
+/* --- 3D plan screen ----------------------------------------------------------------------------- */
+
+.screen--plan .screen__van {
+  position: relative;
+  height: 6.5rem;
+  margin-top: 0.7rem;
+  border-radius: 0.8rem;
+  background: var(--quai-surface);
+  border: 2px solid rgba(16, 34, 56, 0.12);
+  overflow: hidden;
+}
+
+.screen__parcel {
+  position: absolute;
+  border-radius: 0.2rem;
+}
+
+.screen__parcel--a { left: 8%;  bottom: 8%;  width: 26%; height: 34%; background: var(--quai-kraft-1); }
+.screen__parcel--b { left: 37%; bottom: 8%;  width: 24%; height: 46%; background: var(--quai-kraft-2); }
+.screen__parcel--c { left: 64%; bottom: 8%;  width: 26%; height: 30%; background: var(--quai-kraft-1); }
+.screen__parcel--d { left: 8%;  bottom: 45%; width: 26%; height: 26%; background: var(--quai-kraft-3); }
+.screen__parcel--next {
+  left: 64%;
+  bottom: 41%;
+  width: 26%;
+  height: 28%;
+  background: var(--quai-orange);
+  box-shadow: 0 0 0 2px var(--quai-navy);
+}
+
+.screen__callout {
+  margin-top: 0.5rem;
+}
+
+.screen__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.6rem;
+  color: var(--quai-navy);
+  font-weight: 700;
+}
+
+.screen__progress-bar {
+  flex: 1;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgba(16, 34, 56, 0.1);
+  overflow: hidden;
+}
+
+.screen__progress-bar i {
+  display: block;
+  height: 100%;
+  background: var(--quai-orange);
+}
+
+/* --- stop order screen --------------------------------------------------------------------------- */
+
+.screen__stops {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.screen__stops li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--quai-surface);
+  border-radius: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.62rem;
+}
+
+.screen__stops strong {
+  display: block;
+  color: var(--quai-navy);
+}
+
+.screen__stop-meta {
+  font-size: 0.55rem;
+  color: var(--quai-text-muted);
+}
+
+.screen__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  flex: none;
+  border-radius: 999px;
+}
+
+/* The stop colours, in route order. design.md: colour never carries the stop on its own, which is
+   why every row is also labelled with its number. */
+.screen__dot--one { background: var(--quai-stop-1); }
+.screen__dot--two { background: var(--quai-stop-2); }
+.screen__dot--three { background: var(--quai-stop-3); }
+
+.screen__footnote {
+  margin-top: 0.7rem;
+  font-size: 0.58rem;
+  color: var(--quai-text-muted);
+}
