@@ -72,3 +72,10 @@ export const IconBraces = (p) => (
     <path d="M16 3a3 3 0 0 1 3 3v3a3 3 0 0 0 3 3 3 3 0 0 0-3 3v3a3 3 0 0 1-3 3" />
   </svg>
 );
+
+export const IconClock = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);

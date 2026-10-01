@@ -4,6 +4,7 @@ import logoLight from "../../../assets/brand/logo/quai-logo-light.svg";
 import logoOnNavy from "../../../assets/brand/logo/quai-logo-on-navy.svg";
 import {
   IconBraces,
+  IconClock,
   IconBox,
   IconCube,
   IconMic,
@@ -266,34 +267,100 @@ export function Features() {
   );
 }
 
-/* 5 — the navy band is the site footer: it closes the page rather than interrupting it ---------- */
+/* 5 — the compact navy banner, between sections (landing_ref_1) --------------------------------
 
-export function FooterBand() {
+   The reference carries "Smarter loading for a smoother day." and "Voice. Optimisation. Delivery."
+   Neither is used: design.md allows one tagline, and "optimisation" is the claim the copy rules
+   forbid. The layout is the reference's; the words are ours. */
+
+export function NavyBanner() {
   return (
-    <footer className="band">
-      <div className="band__text">
-        <img className="band__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
-        <p className="band__line">People talk. We load.</p>
-        <ul className="band__links">
-          {NAV_LINKS.map(([label, href]) => (
-            <li key={href}>
-              <a href={href}>{label}</a>
-            </li>
-          ))}
-          <li>
-            <Link to="/app">Log in</Link>
-          </li>
-        </ul>
-        <p className="band__copyright">© 2026 QUAI</p>
-      </div>
+    <section className="banner">
+      <img className="banner__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
+      <p className="banner__line">People talk. We load.</p>
       <Picture
-        className="band__image"
-        name="operator-cut"
+        className="banner__image"
+        name="operator_bust"
         widths={[360, 720]}
-        sizes="(max-width: 760px) 45vw, 18vw"
+        sizes="(max-width: 760px) 30vw, 14vw"
         alt="An operator checking a parcel on a phone."
       />
-    </footer>
+    </section>
+  );
+}
+
+/* 5b — loading plan ready (landing_ref_3) ------------------------------------------------------- */
+
+const EXAMPLE_VAN = [
+  [<IconBox key="i" />, "124", "Parcels"],
+  [<IconPin key="i" />, "28", "Stops"],
+  [<IconClock key="i" />, "4h 20m", "Estimated route time"],
+];
+
+export function LoadingPlanReady() {
+  return (
+    <section className="plan">
+      <div className="plan__text">
+        <h2>Loading plan ready</h2>
+        <p className="plan__body">
+          Built from the rules you said and the stop order on your delivery list. Every parcel has a
+          place before anyone picks one up.
+        </p>
+        <ul className="plan__tiles">
+          {EXAMPLE_VAN.map(([icon, value, label]) => (
+            <li key={label}>
+              <span className="plan__icon" aria-hidden="true">{icon}</span>
+              <span>
+                <strong className="data">{value}</strong>
+                <span>{label}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {/* design.md: figures that are not measurements must say so. These are one example van. */}
+        <p className="tag">Example van — not a measured result</p>
+      </div>
+      <PhoneShot name="phone_home" alt="The QUAI app home screen on a phone." />
+    </section>
+  );
+}
+
+/* 5c — route and delivery order (landing_ref_2) -------------------------------------------------- */
+
+const STOP_GROUPS = [
+  ["one", "At the doors", "comes off first"],
+  ["two", "Middle", "the stops after it"],
+  ["three", "At the back", "comes off last"],
+];
+
+export function RouteOrder() {
+  return (
+    <section className="route">
+      <div className="route__text">
+        <h2>Route &amp; delivery order</h2>
+        <p className="route__body">
+          QUAI groups and places your parcels so the right ones are near the right doors. The order is
+          your delivery list&rsquo;s, not ours.
+        </p>
+        <ul className="route__legend">
+          {STOP_GROUPS.map(([tone, where, when]) => (
+            <li key={where}>
+              <span className={`route__dot route__dot--${tone}`} aria-hidden="true" />
+              <span>
+                <strong>{where}</strong> — {when}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Picture
+        className="route__van"
+        name="van_topdown"
+        widths={[640, 1024, 1600]}
+        sizes="(max-width: 900px) 95vw, 55vw"
+        alt="A van seen from above, its parcels grouped in three colours by delivery stop."
+      />
+    </section>
   );
 }
 
@@ -309,6 +376,13 @@ const STRIP = [
 export function IconStrip() {
   return (
     <section className="strip">
+      <Picture
+        className="strip__boxes"
+        name="boxes_quai"
+        widths={[480, 960]}
+        sizes="(max-width: 1100px) 0px, 12vw"
+        alt=""
+      />
       <ul>
         {STRIP.map(([icon, title, body]) => (
           <li key={title}>
@@ -322,6 +396,13 @@ export function IconStrip() {
           </li>
         ))}
       </ul>
+      <Picture
+        className="strip__operator"
+        name="operator_thumbsup"
+        widths={[400, 800]}
+        sizes="(max-width: 1100px) 0px, 10vw"
+        alt=""
+      />
     </section>
   );
 }
@@ -370,8 +451,8 @@ const TILES = [
     "The inside of a loaded van, the next parcel picked out in orange."],
   ["van_stops_colours", [400, 640, 1024], "Loaded in stop order",
     "The back of a loaded van, parcels grouped by colour for each stop."],
-  ["doorstep_handover", [400, 640, 1024], "The right parcel, first time",
-    "An operator handing a parcel to someone at their door."],
+  ["customer", [400, 800], "The right parcel, first time",
+    "A customer taking her parcel at the door.", "cutout"],
 ];
 
 export function DayOnTheDock() {
@@ -379,8 +460,8 @@ export function DayOnTheDock() {
     <section className="dock">
       <h2>A day on the dock</h2>
       <div className="dock__tiles">
-        {TILES.map(([name, widths, caption, alt]) => (
-          <figure className="dock__tile" key={name}>
+        {TILES.map(([name, widths, caption, alt, kind]) => (
+          <figure className={`dock__tile ${kind === "cutout" ? "dock__tile--cutout" : ""}`} key={name}>
             <Picture name={name} widths={widths} sizes="(max-width: 760px) 90vw, 23vw" alt={alt} />
             <figcaption>{caption}</figcaption>
           </figure>
@@ -405,5 +486,25 @@ export function FinalCta() {
         </Link>
       </div>
     </section>
+  );
+}
+
+/* 10 — a plain light footer: the navy is spent on the banner above, not here ---------------------- */
+
+export function LandingFooter() {
+  return (
+    <footer className="foot">
+      <p>© 2026 QUAI · People talk. We load.</p>
+      <ul>
+        {NAV_LINKS.map(([label, href]) => (
+          <li key={href}>
+            <a href={href}>{label}</a>
+          </li>
+        ))}
+        <li>
+          <Link to="/app">Log in</Link>
+        </li>
+      </ul>
+    </footer>
   );
 }

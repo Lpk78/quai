@@ -2,11 +2,14 @@ import {
   DayOnTheDock,
   Features,
   FinalCta,
-  FooterBand,
   Hero,
   HowItWorks,
   IconStrip,
+  LandingFooter,
+  LoadingPlanReady,
   Nav,
+  NavyBanner,
+  RouteOrder,
   WhyQuai,
 } from "../landing/sections.jsx";
 import "../landing.css";
@@ -19,12 +22,15 @@ export default function Landing() {
         <Hero />
         <HowItWorks />
         <Features />
+        <LoadingPlanReady />
+        <NavyBanner />
+        <RouteOrder />
         <IconStrip />
         <WhyQuai />
         <DayOnTheDock />
         <FinalCta />
       </main>
-      <FooterBand />
+      <LandingFooter />
     </div>
   );
 }
