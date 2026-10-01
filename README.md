@@ -175,10 +175,13 @@ call (rate limit, refusal, network error, after retries) is a `503`. CORS uses t
 cd web && npm install && npm run dev      # http://localhost:5173
 ```
 
-`/` is the landing page and `/app` the application shell. `/app/plan` asks the solver for a plan and
-shows it: where each box goes, and which ones did not fit. It needs the API running
-(`uvicorn server:app --app-dir src`), and reads its address from `VITE_API_URL`, defaulting to
-`http://127.0.0.1:8000`. Screenshots at phone width are in `documentation/screenshots/`.
+`/` is the landing page and `/login` the way into the app: it reads an operator card shaped
+`QUAI:OPERATOR:<id>` off a QR code with the camera, and signs the operator in by name. Where there
+is no camera the same code can be typed in, which is how the phone demo below signs in. `/app` is
+the application shell, and `/app/plan` asks the solver for a plan and shows it: where each box goes,
+and which ones did not fit. It needs the API running (`uvicorn server:app --app-dir src`), and reads
+its address from `VITE_API_URL`, defaulting to `http://127.0.0.1:8000`. Screenshots at phone width
+are in `documentation/screenshots/`.
 
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
