@@ -17,7 +17,7 @@ prompts/<family>/, as Sam suggested on #30.
 
 ## Outcome
 
-- **PR:** (filled when opened; reviewer `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/37 (reviewer: `SamDana-maker`)
 - **What the AI produced:** `prompts/constraint-translation/v2_output_format.md`, the marker
   requirement in `src/evaluate_prompt.py` with four tests, the results row and comparison, and the
   `documentation/failures.md` entry.
