@@ -6,8 +6,9 @@
    held until `HY-16`. That set is for scoring prompt versions against a fixed rubric, not a live
    demo load — using it here was a placeholder, not a second source of truth.
 
-   Includes the scanned parcel (`QUAI-BOX-0001`) alongside the eighteen already-loaded boxes: the
-   app has no scan interaction yet, so there is no before/after to model, only one manifest. */
+   `BOXES` is the eighteen boxes already in the van. The parcel scanned on stage is `SCANNED_PARCEL`,
+   held apart from them since `SA-17b` so that /app/scan has something to add — see the note on it
+   below. `loadWith()` is the one place the two are put back together. */
 
 export const OPERATOR_NAME = "Léo-Paul";
 
@@ -47,6 +48,25 @@ export const BOXES = [
   { id: "B17", label: "carton, glassware", length: 40, width: 85, height: 45, weight: 13,
     stop: "S2" },
   { id: "B18", label: "carton, lamps", length: 40, width: 85, height: 45, weight: 8, stop: "S1" },
-  { id: "QUAI-BOX-0001", label: "fragile parcel", length: 40, width: 30, height: 25, weight: 8,
-    stop: "S2" },
 ];
+
+/* The parcel scanned on stage, kept out of `BOXES` on purpose (`SA-17b`).
+
+   `BOXES` means "already in the van". This one is not: in `src/demo_fixtures.py` it starts outside
+   the load and the demo adds it, which is the whole point of the scan step. Holding it here instead
+   of in that list is what lets `/app/scan` add something — until this split it was already in the
+   manifest, so a scan had nothing to do and the screen could only confirm what was there.
+
+   It keeps its stop: the operator dictates what to do with it, but where it comes off is known from
+   the label. */
+export const SCANNED_PARCEL = {
+  id: "QUAI-BOX-0001", label: "fragile parcel", length: 40, width: 30, height: 25, weight: 8,
+  stop: "S2",
+};
+
+/* Everything the van is carrying once the scanned parcel is aboard — eighteen, or nineteen. The one
+   place that arithmetic is written down, so a screen counting boxes cannot disagree with a screen
+   planning them. */
+export function loadWith(parcel) {
+  return parcel ? [...BOXES, parcel] : BOXES;
+}
