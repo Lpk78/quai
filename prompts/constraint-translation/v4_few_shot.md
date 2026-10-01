@@ -210,4 +210,21 @@ expectations rather than at the prompt.
 
 ## Scores
 
-See the results table in `documentation/prompt_evaluation.md`.
+**22/26** — C1 26, C2 24, C3 24, C4 26, C5 23, C6 26, C7 26, C8 26. Run on 2026-10-01 against
+`claude-haiku-4-5-20251001` at temperature 0, 78 calls, same answer every time on 26/26. v3 scored
+21/26.
+
+**+1, and the +1 is the least interesting part.** Two sentences fixed, one broken, three unmoved:
+
+- **T20 fixed** — reports `unknown_item` and no longer binds a constraint to it. That is Example 1's
+  target and its exact shape.
+- **T14 fixed.**
+- **T13 broken** — it passed on v3. "Put the fragile stuff on top" now gets the ambiguity reported
+  **and** `on_top` emitted for `B2` and `B5`. Example 1 taught "translate the resolvable half", and
+  T13 has no resolvable half.
+- **T10, T16, T17 unmoved** — Examples 2 and 3 had no measurable effect at all.
+
+The falsification written before the run was "C5 not moving". C5 moved by one, which is the weakest
+possible version of not being falsified. The honest reading is in *Reading the v4 row* in
+`documentation/prompt_evaluation.md`: few-shot moved the sentences that matched an example's shape,
+left the rest, and generalised one lesson further than intended.

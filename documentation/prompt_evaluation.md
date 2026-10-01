@@ -406,6 +406,7 @@ sentence rather than recording anything (see `documentation/failures.md`).
 | v1_zero_shot | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | 3 runs per sentence; same answer every time on 26/26. All 78 replies came back inside a ```json fence, so none of them parsed — see below |
 | v2_output_format | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Same inputs, model and temperature as v1. Output section rewritten, everything else byte-identical. **78 of 78 replies fenced again** — the change made no difference at all |
 | v3_response_prefill | 26 | 24 | 24 | 26 | 22 | 26 | 26 | 26 | **21** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | Prompt byte-identical to v2; the request ends with an assistant turn `{`. **78 of 78 replies parsed.** 3 runs per sentence; same answer every time on 25/26 |
+| v4_few_shot | 26 | 24 | 24 | 26 | 23 | 26 | 26 | 26 | **22** | claude-haiku-4-5-20251001 | 0 | 2026-10-01 | v3's prompt with four worked examples appended, same delivery. 3 runs per sentence; same answer every time on 26/26 |
 
 **Reading the v1 row.** Zero on every criterion is not zero understanding, and the distinction matters
 for what v2 should change. All 78 replies were wrapped in a ```json code fence. `parse()` receives the
@@ -522,3 +523,38 @@ failures are in `unresolved`, which is where the diagnostic said they would be:
 C1, C4, C6, C7 and C8 are 26/26. C6 holds on T25, the injection case. The constraint half of the
 contract is solved; `unresolved` is the whole of what is left, and v4 has an evidenced brief rather
 than a guess.
+
+**Reading the v4 row: +1, and the +1 is the least interesting part.** v4 is v3's prompt with four
+worked examples appended — v3's text is a strict prefix of v4's — targeting the five `unresolved`
+failures one decision at a time. The Total moved 21 → 22. Underneath that, **two sentences were fixed,
+one was broken, and three did not move at all**:
+
+| | v3 | v4 | |
+|---|---|---|---|
+| **T20** "…don't stack the microwave" | C2, C3 | **all eight** | fixed — reports `unknown_item` and no longer binds a constraint to it |
+| **T14** "the heavy things on the light ones" | C5 | **all eight** | fixed |
+| **T13** "Put the fragile stuff on top." | all eight | **C2, C3** | **broken** |
+| **T10** "Nothing heavier than 50" | C2, C3, C5 | C2, C3, C5 | unchanged |
+| **T16**, **T17** | C5 | C5 | unchanged |
+
+**The regression is the useful finding.** Example 1 shows a compound sentence — one half names a real
+item, the other names something absent — and teaches: translate the real half, report the absent half,
+bind nothing to it. That fixed T20, which is exactly that shape. It also taught the model to answer
+the resolvable part of *any* doubtful sentence, and T13 has no resolvable part: "the fragile stuff" is
+an ambiguous reference, so the correct answer is an `unresolved` entry and an empty `constraints`
+list. v4 reports the ambiguity correctly **and** emits `on_top` for `B2` and `B5` anyway.
+
+An example teaches the decision it shows and the generalisation the reader draws from it, and the
+second is not under the author's control. v4 bought T20 at the price of T13 — the same class of
+failure, moved to a different sentence.
+
+**Two examples had no effect whatsoever.** T10 still emits `max_weight_on 50` despite Example 2 being
+a bare number with no unit, and T16 and T17 still answer `out_of_scope` where the contract wants
+`ambiguous`, despite Example 3 being precisely that distinction. Few-shot is not a general lever here:
+it moved the sentences that closely matched an example's shape and left the rest where they were.
+
+**What this says about v5.** Three versions of prose and one of examples have now failed to move T10,
+T16 and T17. The remaining `unresolved` failures may not be a prompting problem at all — T16's reply
+is a defensible reading of "load the appliances together", and T17 collapses two faults into one entry
+that is not wrong so much as incomplete. Before a fifth version, the rubric's expectations for those
+three are worth re-reading against what a careful operator would actually accept.

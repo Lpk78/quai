@@ -389,3 +389,32 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   regressed, so the diagnostic moved 21 → 20 while the recorded score stayed 0 → 0. A version that
   cannot be parsed is worth nothing whatever its content does.
 - Related branch / PR: `prompt/constraint-translation-v2-output-format`, #12.
+
+---
+
+## 2026-10-01 — A worked example taught more than it was shown
+
+- What happened: `v4_few_shot` added four worked examples to v3's prompt, one per `unresolved` failure.
+  The Total moved 21/26 → 22/26. Underneath that: **T20 and T14 were fixed, T13 was broken, and T10,
+  T16 and T17 did not move at all.** T13 had passed every criterion on v3.
+- Why: Example 1 shows a compound sentence — one half names a real item, the other names something
+  absent — and teaches "translate the real half, report the absent half, bind nothing to it". That is
+  T20's exact shape and T20 was fixed. The model also drew the wider lesson "answer the resolvable
+  part of any doubtful sentence", and applied it to T13, where there is no resolvable part: "the
+  fragile stuff" is an ambiguous reference, so the contract wants an `unresolved` entry and an empty
+  `constraints` list. v4 reports the ambiguity correctly and emits `on_top` for `B2` and `B5` anyway.
+  An example teaches the decision it shows *and* whatever generalisation the reader draws from it, and
+  the second is not the author's to choose.
+- What we tried: kept the regression and recorded it per sentence rather than reporting +1 and moving
+  on. The headline is the least informative number in the result: two fixed, one broken and three
+  untouched is four different findings, and only the per-sentence table shows them. Also recorded that
+  Examples 2 and 3 had **no measurable effect** — T10 still guesses kilograms and T16/T17 still answer
+  `out_of_scope` where the contract wants `ambiguous` — so few-shot is not a general lever here. It
+  moved what matched an example's shape and left the rest.
+- What we learned: a prompt change is not one intervention with one number. v4 was four examples and
+  produced at least four separate effects, two of them in opposite directions, and a Total that
+  averages them hides all of it. The three-runs rule and the per-sentence table are what made this
+  legible — without them this is "+1, few-shot helps a bit", which is the wrong conclusion in both
+  directions. Next time, an experiment with four independent changes should expect to be read as four
+  results.
+- Related branch / PR: `prompt/constraint-translation-v4-few-shot`, #12.
