@@ -356,3 +356,26 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   whether the test noticed. A test that has never been seen to fail is a claim, not evidence. Where a test
   protects a rule, write the fixture so that breaking the rule changes the answer.
 - Related branch / PR: `feature/route-display`, `SA-12`.
+
+---
+
+## 2026-10-01 — Valid Python locally, a syntax error in CI
+
+- What happened: `SA-12` pushed with 290 tests passing locally and CI went red immediately. The whole
+  `test_server` module failed to import on a `SyntaxError` in `src/server.py`:
+  `f"duplicate stop ids: {", ".join(duplicates)}"`. Nesting the same quote character inside an f-string
+  expression is legal from Python 3.12 (PEP 701) and a syntax error before it. The machine this was
+  written on runs 3.14; `tests.yml` pins 3.11, which is also what the README promises.
+- Why: the language version was the one part of the environment never checked. The rule we already wrote
+  after the last one of these — "a green local run proves nothing if the working directory holds
+  untracked leftovers" — was about *files*; this is the same lesson about the *interpreter*, and nothing
+  in the local run could have surfaced it.
+- What we tried: used `', '` inside the f-string, and then checked the whole repository rather than the
+  one line, by parsing every file under `src/` and `tests/` with
+  `ast.parse(source, feature_version=(3, 11))`. That compiles against the 3.11 grammar without needing
+  3.11 installed, and it reported the rest of the tree clean. Worth running before a push whenever
+  something new is written on a machine ahead of CI.
+- What we learned: "it runs here" is a statement about this machine, and the gap that matters is usually
+  the one nobody chose — here, a minor version that silently permits newer syntax. CI caught it in
+  fifteen seconds, which is the system working; the cost is a red build on a reviewer's notification.
+- Related branch / PR: `feature/route-display`, #35.

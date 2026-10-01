@@ -140,7 +140,7 @@ def route(request: RouteRequest) -> RouteResponse:
     """
     duplicates = sorted(i for i, n in Counter(s.id for s in request.stops).items() if n > 1)
     if duplicates:
-        raise HTTPException(status_code=422, detail=f"duplicate stop ids: {", ".join(duplicates)}")
+        raise HTTPException(status_code=422, detail=f"duplicate stop ids: {', '.join(duplicates)}")
 
     with routing.build_client() as client:
         try:
