@@ -183,6 +183,31 @@ shows it: where each box goes, and which ones did not fit. It needs the API runn
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
 
+### Phone demo
+
+Both servers listen on localhost by default, which a phone cannot reach, and on a phone `127.0.0.1`
+is the phone — so the app also has to be told where the API is:
+
+```bash
+LAN=$(ipconfig getifaddr en0)                                 # e.g. 192.168.1.201
+
+QUAI_LAN_ORIGIN="http://$LAN:5173" \
+  uvicorn server:app --app-dir src --host 0.0.0.0             # API: http://<LAN>:8000
+
+cd web && VITE_API_URL="http://$LAN:8000" npm run dev:phone   # app: http://<LAN>:5173
+```
+
+Then open `http://<LAN>:5173` on the phone. `QUAI_LAN_ORIGIN` is what puts that origin on the API's
+CORS allowlist (`DEV_ORIGINS` in `src/server.py`), which otherwise only knows localhost; it falls
+back to the address this was written on, so the variable is what keeps it working after DHCP hands
+out a different one.
+
+**The camera does not work over this URL.** `getUserMedia` is only available in a secure context,
+and `http://` on a LAN address is not one — so `/login` cannot reach the camera from the phone and
+offers manual code entry instead. Scanning works at `http://localhost:5173` on the Mac, where
+localhost counts as secure. Serving the LAN over HTTPS is not built; see
+`documentation/failures.md`.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
