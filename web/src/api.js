@@ -2,7 +2,9 @@
  *
  * There was no client before this: nothing under web/src called the server at all. Keeping it in one
  * module means the base URL, the error shape and the request shape are decided once, and a screen
- * never builds a URL of its own.
+ * never builds a URL of its own. `post()` is that one ladder — fetch, parse, map the status to a
+ * kind — so a later change to it (a timeout, a 429, telling an `AbortError` apart from a dead
+ * server) lands once rather than needing to be found twice.
  *
  * The server is `src/server.py`, run with `uvicorn server:app --app-dir src --reload`. In
  * development it is on another origin, which is what the CORS list in that file is for.
@@ -35,13 +37,13 @@ function readDetail(body) {
   return null;
 }
 
-export async function postPlan(request, { fetchImpl = fetch, signal } = {}) {
+async function post(path, body, refusedFallback, { fetchImpl = fetch, signal } = {}) {
   let response;
   try {
-    response = await fetchImpl(`${API_URL}/plan`, {
+    response = await fetchImpl(`${API_URL}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
+      body: JSON.stringify(body),
       signal,
     });
   } catch (cause) {
@@ -49,19 +51,32 @@ export async function postPlan(request, { fetchImpl = fetch, signal } = {}) {
     throw new ApiError("unreachable", `Could not reach the solver at ${API_URL}.`, String(cause));
   }
 
-  let body = null;
+  let parsed = null;
   try {
-    body = await response.json();
+    parsed = await response.json();
   } catch {
-    body = null;
+    parsed = null;
   }
 
   if (!response.ok) {
-    const detail = readDetail(body);
+    const detail = readDetail(parsed);
     if (response.status === 422) {
-      throw new ApiError("refused", detail || "The solver refused this load.", detail);
+      throw new ApiError("refused", detail || refusedFallback, detail);
     }
-    throw new ApiError("server", `The solver answered ${response.status}.`, detail);
+    throw new ApiError("server", detail || `The solver answered ${response.status}.`, detail);
   }
-  return body;
+  return parsed;
+}
+
+export function postPlan(request, opts = {}) {
+  return post("/plan", request, "The solver refused this load.", opts);
+}
+
+/* `manifest` is the flat list of items in the load (`id`, `label`, dimensions, `weight`) and `stops`
+ * is the route in delivery order (`id`, `name`) — the shape `POST /constraints` documents in the
+ * README (#46), not an assumed one: this was wrong before and sent `{ sentence, manifest: {...} }`,
+ * which the real endpoint answers with a 422. */
+export function postConstraints(text, manifest, stops, opts = {}) {
+  return post("/constraints", { text, manifest, stops }, "QUAI could not accept that sentence.",
+    opts);
 }

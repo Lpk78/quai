@@ -95,6 +95,80 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
 dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
 
+**Constraints (optional).** `POST /plan` also accepts a `constraints` list, in the shape
+`quai.constraints.parse()` validates — so what the operator dictated can reach the plan:
+
+```bash
+curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '{
+  "container": {"length": 300, "width": 170, "height": 170},
+  "boxes": [{"id": "toolbox", "length": 100, "width": 85, "height": 85, "weight": 20},
+            {"id": "b1", "length": 85, "width": 85, "height": 85, "weight": 30}],
+  "constraints": [{"type": "load_last", "item": "toolbox"}]
+}'
+```
+
+`load_last` is the one type this endpoint passes to the solver today: the toolbox moves from `x: 0`,
+loaded first against the back wall, to the far end of the load where the doors are. Omit
+`constraints` and the endpoint behaves exactly as it did before.
+
+Every other type comes back in `not_applied` with the reason, rather than being dropped in
+silence — a plan that quietly ignored what the operator said is the one answer this layer must
+not give:
+
+```json
+{"placements": [...], "fill_rate": 0.42, "not_applied": [
+  {"type": "on_top", "item": "b1",
+   "reason": "the solver cannot honour on_top yet and refuses to plan with it rather than drop it; issue #29"}]}
+```
+
+Two different reasons appear there. `at_bottom`, `keep_upright`, `max_stack_height`,
+`not_stackable` and `on_top` are refused by the solver itself (issue #29). `max_weight_on` and
+`max_total_weight` the solver honours, but this endpoint does not hand them over yet; `unload_at`
+it honours too, but this request carries no route, and the stop order it needs is an input rather
+than something to invent.
+All three are roadmap row 12 (#19).
+
+Being reported is for constraints that are *valid but unwired*. A malformed one is a `422`, even
+when it is a type the endpoint would not have passed on anyway: a missing or undeclared field, a
+limit that is not a positive finite number, an `item` that is not in the load, an unknown type. The
+whole list is checked before any of it is applied or reported, by
+`quai.constraints.find_problems` rather than a second copy of the rules — so one bad constraint
+refuses the request instead of yielding a plan built from the half that parsed. The one thing not
+checked is whether an `unload_at` names a real stop, because this request carries no route to check
+it against.
+
+`POST /constraints` takes one operator sentence plus the manifest (the items currently in the load) and
+the route (the stops, in delivery order), and returns the validated constraint JSON that
+`quai.constraints.parse()` produced from it — the same shape documented as the *Output contract* in
+`documentation/prompt_evaluation.md`. It calls the production constraint-translation prompt
+(`prompts/constraint-translation/v4_few_shot.md`) with `claude-haiku-4-5-20251001` at temperature 0, the
+key read from `.env`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/constraints -H "Content-Type: application/json" -d '{
+  "text": "The washing machine stays at the bottom and comes off at Le Havre.",
+  "manifest": [
+    {"id": "B1", "label": "washing machine", "length": 60, "width": 60, "height": 85, "weight": 70}
+  ],
+  "stops": [
+    {"id": "S1", "name": "Rouen"},
+    {"id": "S2", "name": "Le Havre"}
+  ]
+}'
+```
+
+```json
+{"constraints": [{"type": "at_bottom", "item": "B1"},
+                 {"type": "unload_at", "item": "B1", "stop": "S2"}],
+ "unresolved": []}
+```
+
+`text` left empty or blank is a `422`. A reply from the model that is not valid JSON, or that does
+not match the contract, never reaches the caller: it is a `502` with the validation problem. A lost
+call (rate limit, refusal, network error, after retries) is a `503`. CORS uses the same allowlist as
+`/plan` — not authentication; tracked as a gap on issue #19.
+
+
 ### The web app
 
 ```bash
@@ -150,9 +224,11 @@ npm install
 npm run dev
 ```
 
-It serves on `http://localhost:5173`: `/` is the landing page and `/app` is the application. The API
-server above must be running for the app to reach the solver — the two are separate processes, and the
-dev server's origin is allowed by the `CORSMiddleware` in `src/server.py`.
+It serves on `http://localhost:5173`: `/` is the landing page, `/app` shows today's van and its boxes,
+and `/app/dictate` turns a spoken or typed sentence into constraints through `POST /constraints`
+(`web/src/api.js`, origin from `VITE_API_URL`, `http://127.0.0.1:8000` by default). The API server above
+must be running for the app to reach the solver — the two are separate processes, and the dev server's
+origin is allowed by the `CORSMiddleware` in `src/server.py`.
 
 | Command | What it does |
 |---|---|
