@@ -118,7 +118,10 @@ export default function Login() {
           return;
         }
         stream = opened;
-        if (videoRef.current) videoRef.current.srcObject = opened;
+        if (videoRef.current) {
+          videoRef.current.srcObject = opened;
+          videoRef.current.play().catch(() => {});
+        }
         setStatus("scanning");
         scan();
       })
@@ -158,7 +161,14 @@ export default function Login() {
               <div className="scanner" data-status={status}>
                 {/* Kept mounted while starting so the stream has somewhere to go the moment the
                     camera opens; hidden from assistive tech, which has nothing to read in it. */}
-                <video ref={videoRef} className="scanner__video" playsInline muted aria-hidden="true" />
+                <video
+                  ref={videoRef}
+                  className="scanner__video"
+                  autoPlay
+                  playsInline
+                  muted
+                  aria-hidden="true"
+                />
                 <canvas ref={canvasRef} className="scanner__canvas" aria-hidden="true" />
                 {status === "scanning" && <div className="scanner__frame" aria-hidden="true" />}
                 {status === "no-camera" && (
