@@ -107,9 +107,16 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 }'
 ```
 
-`load_last` is the one type this endpoint passes to the solver today: the toolbox moves from `x: 0`,
-loaded first against the back wall, to the far end of the load where the doors are. Omit
-`constraints` and the endpoint behaves exactly as it did before.
+`load_last` and `on_top` are the two types this endpoint passes to the solver. `load_last` moves the
+toolbox from `x: 0`, loaded first against the back wall, to the far end of the load where the doors
+are. `on_top` loads the named box last, into a column nothing stands over — so "this parcel is
+fragile, put it on top" reaches the plan. Omit `constraints` and the endpoint behaves exactly as it
+did before.
+
+Both need nothing but the boxes, which is the test for belonging here. **`on_top` can leave a box
+unplaced**, and that is the honest answer rather than a failure: a box loaded last has only what is
+left to go into, so asking it of something that fills the floor — a wrapped sofa — means there is
+nowhere clear for it, and it is reported in `unplaced` instead of being forced in.
 
 Every other type comes back in `not_applied` with the reason, rather than being dropped in
 silence — a plan that quietly ignored what the operator said is the one answer this layer must
@@ -117,12 +124,12 @@ not give:
 
 ```json
 {"placements": [...], "fill_rate": 0.42, "not_applied": [
-  {"type": "on_top", "item": "b1",
-   "reason": "the solver cannot honour on_top yet and refuses to plan with it rather than drop it; issue #29"}]}
+  {"type": "at_bottom", "item": "b1",
+   "reason": "the solver cannot honour at_bottom yet and refuses to plan with it; issue #29"}]}
 ```
 
-Two different reasons appear there. `at_bottom`, `keep_upright`, `max_stack_height`,
-`not_stackable` and `on_top` are refused by the solver itself (issue #29). `max_weight_on` and
+Two different reasons appear there. `at_bottom`, `keep_upright`, `max_stack_height` and
+`not_stackable` are refused by the solver itself (issue #29). `max_weight_on` and
 `max_total_weight` the solver honours, but this endpoint does not hand them over yet; `unload_at`
 it honours too, but this request carries no route, and the stop order it needs is an input rather
 than something to invent.

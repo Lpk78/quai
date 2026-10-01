@@ -634,3 +634,33 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   the one nobody chose — here, a minor version that silently permits newer syntax. CI caught it in
   fifteen seconds, which is the system working; the cost is a red build on a reviewer's notification.
 - Related branch / PR: `feature/route-display`, #35.
+
+---
+
+## 2026-10-02 — The constraint we wired for the demo changes nothing on the demo load
+
+- What happened: `SA-20` added `on_top` to what `POST /plan` passes the solver, so that the dictated
+  sentence *"this parcel is fragile, put it on top"* would move a box on screen. Driven end to end
+  against a real server — a real Claude call to `/constraints`, its real reply fed to `/plan` — it
+  works exactly as designed and **changes nothing at all**: the plan is byte-for-byte identical with
+  and without the constraint. `not_applied` is empty, so the constraint did reach `solve()`; the parcel
+  simply was already where it asked to be.
+- Why: the scanned parcel is 40 x 30 x 25, the smallest box in the load, so `loading_order` already
+  put it last by volume, and the greedy pass already left it clear at `z: 85`. Moving an item that is
+  already last to the end of the order is a no-op. The constraint is satisfied before it is given.
+- What we tried: asking the same question of every box the demo load actually buries — seven of them.
+  Four give a clean visible change with all nineteen still placed and the fill rate unchanged at 78.2%
+  (`B05` fridge, `B02` dishwasher, `B04` oven, `B10` tv). Three — the sofa, the washing machine and the
+  wardrobe — come back **unplaced**, because a box that fills the floor has nowhere clear to go once it
+  is loaded last, and the fill rate drops to 61–71%. So the sentence to dictate on stage is about one of
+  the four, not about the parcel and not about the sofa.
+- What we learned: wiring a constraint and demonstrating a constraint are different pieces of work, and
+  only the second one needs a load that contradicts it. A unit test mocking the solver would have shown
+  `on_top` arriving; the real run is what showed it arriving and mattering not at all. Before promising
+  that a feature will be visible in a demo, run it against the demo's own data and look at the
+  before-and-after, not at the status code.
+- A second thing the real run found, unrelated and worth keeping: a `uvicorn` was already listening on
+  port 8000 from another session, so the first `/constraints` call answered `503 ANTHROPIC_API_KEY is
+  not set` from a server nobody intended to test. The message was right and the server was the wrong
+  one. Bind to a port you started yourself before concluding anything about configuration.
+- Related branch / PR: `feature/plan-passes-on-top`, `SA-20`.

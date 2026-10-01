@@ -334,12 +334,61 @@ class TestPlanConstraints(unittest.TestCase):
         self.assertEqual(find_problems(placements, container), [])
 
     def test_a_type_the_solver_cannot_honour_is_reported_not_dropped(self):
-        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        # `at_bottom` rather than `on_top`: `SA-19` taught the solver `on_top`, so it is no longer an
+        # example of a type refused at the solver — it is now one this endpoint simply does not pass.
+        response = self.post([{"type": "at_bottom", "item": "toolbox"}])
         self.assertEqual(response.status_code, 200)
         not_applied = response.json()["not_applied"]
-        self.assertEqual([e["type"] for e in not_applied], ["on_top"])
+        self.assertEqual([e["type"] for e in not_applied], ["at_bottom"])
         self.assertEqual(not_applied[0]["item"], "toolbox")
         self.assertIn("#29", not_applied[0]["reason"])
+
+    def test_on_top_now_reaches_the_solver_instead_of_being_reported(self):
+        """`SA-20`. It was reported under #19 — honoured by the solver, not handed over by this
+        endpoint — which is what kept a dictated "put it on top" from moving anything on screen."""
+        response = self.post([{"type": "on_top", "item": "toolbox"}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["not_applied"], [],
+                         "on_top should reach solve() now, not come back as unapplied")
+
+    def test_on_top_moves_the_box_to_the_end_of_the_load_over_http(self):
+        # The visible effect, asserted through the endpoint rather than against the solver: placements
+        # come back in loading order, so the box the operator wants clear is now the last one in.
+        before = self.post()
+        after = self.post([{"type": "on_top", "item": "toolbox"}])
+        self.assertEqual(self.order(before)[0], "toolbox", "the baseline loads it first")
+        self.assertEqual(self.order(after)[-1], "toolbox")
+
+    def test_on_top_keeps_the_column_clear_in_a_load_that_has_to_stack(self):
+        # The three boxes above all fit on the floor, so nothing would ever be above the toolbox and
+        # the constraint would cost nothing. A narrow container forces stacking, which is where the
+        # rule actually bites — and the independent checks are asked, not just the coordinates.
+        narrow = {"length": 110, "width": 90, "height": 200, "max_weight": 1200}
+        boxes = [{"id": "toolbox", "length": 100, "width": 85, "height": 40, "weight": 20},
+                 {"id": "b1", "length": 95, "width": 85, "height": 40, "weight": 30},
+                 {"id": "b2", "length": 90, "width": 85, "height": 40, "weight": 25}]
+        body = {"container": narrow, "boxes": boxes}
+        buried = client.post("/plan", json=body).json()
+        clear = client.post("/plan", json={**body,
+                                           "constraints": [{"type": "on_top",
+                                                            "item": "toolbox"}]}).json()
+
+        def placements_of(payload):
+            by_id = {b["id"]: b for b in boxes}
+            return [Placement(Box(p["id"], by_id[p["id"]]["length"], by_id[p["id"]]["width"],
+                                  by_id[p["id"]]["height"], by_id[p["id"]]["weight"]),
+                              p["x"], p["y"], p["z"], p["dx"], p["dy"], p["dz"])
+                    for p in payload["placements"]]
+
+        container = Container(narrow["length"], narrow["width"], narrow["height"],
+                              narrow["max_weight"])
+        # Without it the toolbox goes in first and is buried; with it, the column above it is empty.
+        self.assertTrue(find_problems(placements_of(buried), container,
+                                      must_be_clear={"toolbox"}),
+                        "the baseline should bury the toolbox, or this proves nothing")
+        self.assertEqual(find_problems(placements_of(clear), container,
+                                       must_be_clear={"toolbox"}), [])
+        self.assertEqual(clear["not_applied"], [])
 
     def test_a_type_the_solver_honours_but_this_endpoint_does_not_pass_is_reported(self):
         # 50 kg against a 75 kg load: had the cap been applied, the solver would have left `b2` out.

@@ -23,14 +23,20 @@ log = logging.getLogger(__name__)
 
 app = FastAPI(title="QUAI")
 
-# The constraint types `POST /plan` passes through to the solver. One, for now.
+# The constraint types `POST /plan` passes through to the solver. Two, now.
 #
-# This is deliberately narrower than the solver's own `HONOURED`. `load_last` needs nothing but the
-# boxes, so it works with what this endpoint already receives. The other three the solver honours do
-# not: `unload_at` needs the route in delivery order, and this request carries no route — the stop
-# order would have to be invented, which is the one thing the route is not allowed to do. Wiring the
-# rest, and accumulating constraints across sentences, is roadmap row 12 (#19).
-WIRED: frozenset[str] = frozenset(["load_last"])
+# Still narrower than the solver's own `HONOURED`, and the test is the same for both members: a type
+# belongs here when it needs nothing this request does not already carry. `load_last` and `on_top`
+# need only the boxes. The rest do not — `unload_at` needs the route in delivery order, and this
+# request carries no route, so the stop order would have to be invented, which is the one thing the
+# route is not allowed to do. Wiring those, and accumulating constraints across sentences, is roadmap
+# row 12 (#19).
+#
+# `on_top` joined when `SA-19` taught the solver to honour it: the boxes that must stay clear are
+# loaded last, into a column nothing stands over. Until then this endpoint reported it under #19 —
+# honoured by the solver, not handed over by the endpoint — which was the last thing standing between
+# a dictated "this parcel is fragile, put it on top" and a box moving on screen.
+WIRED: frozenset[str] = frozenset(["load_last", "on_top"])
 
 # `Manifest` requires at least one stop, because for the solver a route is an input rather than a
 # default. With no `unload_at` applied here, every box travels the whole way and the stop never

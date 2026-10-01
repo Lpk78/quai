@@ -262,9 +262,15 @@ def _conflict_problems(constraints) -> list[str]:
             stated.setdefault(item, c[field])
     # "Nothing on it" and "up to 20 kg on it" cannot both be the rule, the same way `at_bottom` and
     # `on_top` cannot: a limit says what may be stacked, `not_stackable` says nothing may be.
-    for kind in ("max_stack_height", "max_weight_on"):
-        for item in sorted(items_of("not_stackable") & items_of(kind)):
-            problems.append(f"{item} cannot be both not_stackable and given a {kind}")
+    #
+    # `on_top` joins `not_stackable` here since `SA-19`. The solver now reads it as "nothing is above
+    # it" — that is the only form of "in the top layer" the geometry can answer, see
+    # `quai.checks.covered_problems` — so the same contradiction applies to it word for word. It was
+    # missing only because nothing honoured `on_top` yet.
+    for clearing in ("not_stackable", "on_top"):
+        for kind in ("max_stack_height", "max_weight_on"):
+            for item in sorted(items_of(clearing) & items_of(kind)):
+                problems.append(f"{item} cannot be both {clearing} and given a {kind}")
     # Several `load_last` items at one stop are not a clash: "load the toolbox and the paint cans
     # last" is one request, and refusing it would lose the whole sentence. They form the last group
     # at that stop and the solver orders them among themselves.

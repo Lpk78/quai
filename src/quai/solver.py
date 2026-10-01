@@ -1,12 +1,16 @@
 """Deterministic 3D placement heuristic (first fit on candidate points).
 
 1. Put the boxes in loading order: the last stop of the route first, and inside a stop the items
-   the operator asked to load last; largest to smallest volume breaks the ties.
+   the operator asked to load last; largest to smallest volume breaks the ties. Items that must stay
+   clear (`on_top`) are then moved to the end of that order — nothing may be placed after them.
 2. Keep a list of candidate corners, starting with the back-left floor corner.
 3. For each box, try every candidate corner and every allowed rotation, and keep the
    first position (lowest, then furthest back, then leftmost) that is inside the
    container, overlaps nothing, is supported enough and overloads nothing under it.
 4. Placing a box creates three new candidate corners: in front of it, beside it, on top of it.
+
+Step 1's two groups are what make `on_top` hold by construction rather than by luck: the boxes that
+must stay clear are placed when every other box is already down, and nothing is placed after them.
 
 Same input, same plan, every time. A box that fits nowhere is reported as unplaced,
 never forced in.
@@ -15,7 +19,8 @@ What the operator asked for reaches the solver only as a `ConstraintSet` built b
 `quai.constraints.parse`: the solver never reads raw model output, and it reads a validated set
 through its accessors rather than by digging into the constraint dictionaries.
 """
-from .checks import MIN_SUPPORT, is_inside, overlaps, stack_problems, support_ratio
+from .checks import (MIN_SUPPORT, covered_problems, is_inside, overlaps, stack_problems,
+                     support_ratio)
 from .constraints import CONSTRAINT_FIELDS, ConstraintSet
 from .models import Box, Container, Placement, Plan
 
@@ -26,7 +31,7 @@ from .models import Box, Container, Placement, Plan
 # `CONSTRAINT_FIELDS` rather than a second hand-written list, so a type added to the contract
 # refuses itself here until someone teaches the solver what it means.
 HONOURED: frozenset[str] = frozenset(["unload_at", "load_last", "max_weight_on",
-                                      "max_total_weight"])
+                                      "max_total_weight", "on_top"])
 
 
 class UnsupportedConstraint(ValueError):
@@ -54,8 +59,9 @@ def solve(boxes: list[Box], container: Container,
     weight = 0.0
     cap = weight_cap(container, constraints)
     limits = stack_limits(constraints)
+    clear = must_stay_clear(constraints)
 
-    for box in loading_order(boxes, constraints):
+    for box in last(loading_order(boxes, constraints), clear):
         if weight + box.weight > cap:
             unplaced.append(box)
             continue
@@ -70,6 +76,8 @@ def solve(boxes: list[Box], container: Container,
                 if support_ratio(candidate, placements) < MIN_SUPPORT:
                     continue
                 if overloads(candidate, placements, limits):
+                    continue
+                if buries(candidate, placements, clear):
                     continue
                 chosen = candidate
                 break
@@ -131,6 +139,53 @@ def loading_order(boxes: list[Box], constraints: ConstraintSet | None) -> list[B
     last_group = set(constraints.items_with("load_last"))
     return sorted(boxes, key=lambda b: (-stops.index(unloading[b.id]), b.id in last_group,
                                         -b.volume, b.id))
+
+
+def must_stay_clear(constraints: ConstraintSet | None) -> set[str]:
+    """The items the operator asked to keep nothing above: `on_top`.
+
+    "In the top layer" is not something a plan records — the solver never knows the finished height
+    while it is working. "Nothing above it" is the same request in terms the geometry can answer, and
+    it is the reading `quai.checks.covered_problems` judges a finished plan by.
+    """
+    if constraints is None:
+        return set()
+    return set(constraints.items_with("on_top"))
+
+
+def last(order: list[Box], clear: set[str]) -> list[Box]:
+    """The loading order, with the items that must stay clear moved to the end of it.
+
+    This is the one place `on_top` overrides the route, and it has to. Nothing may be placed after a
+    box that must stay clear, or the box placed after it could land on top; so it goes last, keeping
+    its rank relative to the other `on_top` items. The cost is real and worth stating: that box no
+    longer takes the position its stop would have given it, so an `on_top` item for a late stop ends
+    up near the doors rather than deep in the load. `load_last` deliberately sits *below* the stop in
+    `loading_order` for exactly this reason; `on_top` cannot, because being clear is a property of
+    the finished plan and ordering is the only lever a single greedy pass has over it.
+
+    Keeping the two groups in their original relative order is what makes the result deterministic,
+    like everything else here.
+    """
+    if not clear:
+        return order
+    return ([box for box in order if box.id not in clear]
+            + [box for box in order if box.id in clear])
+
+
+def buries(candidate: Placement, placements: list[Placement], clear: set[str]) -> bool:
+    """True if the plan this candidate would make puts something above a box that must stay clear.
+
+    Asked of the whole resulting plan rather than of the candidate alone, for the same reason
+    `overloads` is: it has to catch both directions at once. The candidate may be landing on top of a
+    box that must stay clear, and the candidate may itself be one that must stay clear and be landing
+    under something already placed. One question covers both.
+
+    In the first pass this is vacuous — no box that must stay clear has been placed yet — and the cost
+    of asking anyway is one empty loop, which is cheaper than a reader wondering which passes it
+    applies to.
+    """
+    return bool(clear) and bool(covered_problems(placements + [candidate], clear))
 
 
 def weight_cap(container: Container, constraints: ConstraintSet | None) -> float:
