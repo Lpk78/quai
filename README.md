@@ -257,7 +257,23 @@ The 3D view of that plan is issue #7 and entering your own boxes is #8; until th
 the same eleven-box demo load as `src/demo.py`, and says so.
 
 The operator's path through the app is `/app` → `/app/scan` → `/app/dictate` → `/app/plan`: read the
-label on the package in your hands, say what to do with it, see where the solver put it.
+label on the package in your hands, say what to do with it, see where the solver put it. `/app/route`
+sits beside that path rather than in it — the round is reference, consulted before driving.
+
+**`/app/route`** draws today's round: the road line, a numbered pin per stop in delivery order, and
+the arrival time at each one. Every figure on it comes from `POST /route` — the coordinates, the line,
+the distance, the driving time, the times themselves. Nothing is computed in the browser and nothing
+is guessed: until the request answers there are no times on screen at all, because an invented arrival
+time is the one number an operator would plan their morning around.
+
+It shows the address **as the geocoder matched it**, not as the manifest asked. Three of the eight
+round addresses resolve at street level rather than house number, and showing the server's own label is
+how a wrong street becomes visible instead of silently trusted. The map tiles are OpenStreetMap's,
+credited on the map as their licence asks, and need no key.
+
+The round is in **Paris**, and that is a constraint rather than a preference: `POST /route` geocodes
+through the Base Adresse Nationale, which covers France only. The round was Madrid until this screen
+existed, and a Spanish address returns a `422` no amount of front-end work can fix.
 
 **`/app/scan`** reads a label shaped `QUAI:BOX:<id>` and shows what the manifest knows about that
 box — `QUAI:BOX:QUAI-BOX-0001` is the fragile parcel, 40 × 30 × 25 cm, 8 kg. A code that is not a
