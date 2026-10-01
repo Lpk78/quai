@@ -141,11 +141,17 @@ perspective, a safety-orange parcel door inside it, and a ramp running down and 
 as the Q's tail. In the lockup the mark *is* the Q — the wordmark that follows it is `UAI`, set in a bold
 rounded geometric sans drawn to match the display font.
 
-All three files are **hand-drawn vectors**: flat paths, no raster, no embedded fonts, no live `<text>`.
-They are generated from one definition of the mark in `assets/brand/logo/build_logo.py`, so the icon and
-the two lockups cannot drift apart. **Edit that script and re-run it; do not edit the SVGs by hand** —
-`tests/test_brand.py` regenerates them into a temporary directory and fails if the committed files
-differ.
+All three files are **vectors traced from the sheet**: flat paths, no raster, no embedded fonts, no
+live `<text>`. They are produced by `assets/brand/logo/build_logo.py`, which separates each lockup on
+`quai-logo-v2-sheet.png` into its colour layers and traces them, so the proportions are the sheet's
+rather than an estimate. An earlier version of that script drew the mark by hand from measurements and
+got the Q and the wordmark wrong; the review of #33 caught it by putting the two side by side, which is
+the check to repeat after any change here.
+
+**Edit the script and re-run it; do not edit the SVGs by hand** — `tests/test_brand.py` regenerates
+them into a temporary directory and fails if the committed files differ. That check needs `numpy`,
+`pillow` and `potracer`, which are build-time tools rather than runtime dependencies of QUAI, so it
+skips where they are absent and runs for whoever is editing the logo.
 
 Rules:
 
