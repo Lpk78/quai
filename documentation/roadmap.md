@@ -28,11 +28,13 @@ starting with row 2.
 | 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | In review (#21) |
 | 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | In review (#22) |
 | 10 | #12 | `prompt/constraint-translation-v5-bounded-examples` | The `constraint-translation` family, v1 to v5, each with real scores; v4 stays in production (`documentation/failures.md`) | `Lpk78` | `SamDana-maker` | In review (#43) |
-| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON → solver, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | To do |
+| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | In review (#46) |
+| 12 | #19 | `feature/constraint-solving` | Constraints accumulated across sentences and handed to the solver | `Lpk78` | `SamDana-maker` | To do |
 
-Row 11 is the feature the whole AI layer builds towards; rows 7 to 10 are what make it possible. It is
-where the prompt, the schema and the solver become one path, behind `POST /constraints` on the server
-from row 3. #10 points at this row.
+Row 11 is the translation step: one operator sentence into validated constraint JSON, over
+`POST /constraints` on the server from row 3; rows 7 to 10 are what make it possible, and #10 points
+at this row. Row 12 is the feature the whole AI layer builds towards — it is where the prompt, the
+schema and the solver become one path, consuming what row 11 produces.
 
 Row 9 is branched off row 8 rather than off `main`: C1 of the rubric is `quai.constraints.parse()`,
 so #22 has to be merged after #21.
