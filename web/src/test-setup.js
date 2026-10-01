@@ -21,3 +21,10 @@ beforeEach(() => {
     ),
   );
 });
+
+/* jsdom has no media stack: `HTMLMediaElement.play()` is "not implemented" and returns undefined
+ * rather than a promise. The login screen calls `play().catch(...)` on the element it just gave the
+ * stream to, which would then throw inside the `getUserMedia` handler and read as a refused camera.
+ * Every real browser returns a promise here, so the tests get the contract the app is written for.
+ */
+HTMLMediaElement.prototype.play = () => Promise.resolve();

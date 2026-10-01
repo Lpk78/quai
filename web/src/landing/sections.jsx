@@ -71,10 +71,10 @@ export function Nav() {
           ))}
         </ul>
         <div className="nav__actions">
-          <Link className="button button--quiet" to="/app">
+          <Link className="button button--quiet" to="/login">
             Log in
           </Link>
-          <Link className="button" to="/app">
+          <Link className="button" to="/login">
             Get started <span aria-hidden="true">→</span>
           </Link>
         </div>
@@ -115,7 +115,7 @@ export function Hero() {
             works out where every parcel goes: last stop at the back, first stop at the doors.
           </p>
           <div className="hero__actions">
-            <Link className="button button--lg" to="/app">
+            <Link className="button button--lg" to="/login">
               Get started <span aria-hidden="true">→</span>
             </Link>
             <a className="button button--lg button--film" href="#how-it-works">
@@ -293,10 +293,10 @@ export function FooterBand() {
         <ul>
           <li className="band__heading">Get started</li>
           <li>
-            <Link to="/app">Open the app</Link>
+            <Link to="/login">Open the app</Link>
           </li>
           <li>
-            <Link to="/app">Log in</Link>
+            <Link to="/login">Log in</Link>
           </li>
         </ul>
       </nav>
@@ -506,10 +506,10 @@ export function FinalCta() {
     <section className="cta">
       <h2>Next van, fewer surprises.</h2>
       <div className="cta__actions">
-        <Link className="button button--lg" to="/app">
+        <Link className="button button--lg" to="/login">
           Get started <span aria-hidden="true">→</span>
         </Link>
-        <Link className="button button--lg button--quiet" to="/app">
+        <Link className="button button--lg button--quiet" to="/login">
           Log in
         </Link>
       </div>

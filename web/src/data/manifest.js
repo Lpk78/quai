@@ -10,7 +10,11 @@
    held apart from them since `SA-17b` so that /app/scan has something to add — see the note on it
    below. `loadWith()` is the one place the two are put back together. */
 
+/* The operator and the card they sign in with. `card_id` in `src/demo_fixtures.py` is the same
+   string: /login reads it off a QR code shaped `QUAI:OPERATOR:<id>`, so the demo has one
+   answer to who is driving rather than one per screen. */
 export const OPERATOR_NAME = "Léo-Paul";
+export const OPERATOR_CARD_ID = "QUAI-OP-7842";
 
 export const VAN = { length: 300, width: 170, height: 170, max_weight: 1200 };
 

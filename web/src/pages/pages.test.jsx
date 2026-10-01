@@ -37,12 +37,20 @@ describe("routing", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Nothing at this address");
   });
 
-  it("lets the landing page reach the application", () => {
+  it("lets the landing page reach the application, through /login", () => {
     at("/");
-    const toApp = screen
+    const toLogin = screen
       .getAllByRole("link")
-      .filter((a) => a.getAttribute("href") === "/app");
-    expect(toApp.length).toBeGreaterThan(0);
-    expect(toApp.some((a) => /get started/i.test(a.textContent))).toBe(true);
+      .filter((a) => a.getAttribute("href") === "/login");
+    expect(toLogin.length).toBeGreaterThan(0);
+    expect(toLogin.some((a) => /get started/i.test(a.textContent))).toBe(true);
+    // /login is the way in, so no call to action skips it.
+    expect(screen.queryAllByRole("link", { name: /open the app|log in|get started/i })
+      .every((a) => a.getAttribute("href") === "/login")).toBe(true);
+  });
+
+  it("shows the login screen at /login", () => {
+    at("/login");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Scan your operator card");
   });
 });

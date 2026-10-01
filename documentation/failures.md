@@ -524,3 +524,33 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   cascade is real, it is reachable with one parcel, and it is invisible unless the unplaced list is
   on screen.
 - Related branch / PR: `feature/demo-fixtures`, `SA-15`.
+
+---
+
+## 2026-10-01 — The phone demo and the camera cannot both work over `http://`
+
+- What happened: `LP-20` asked for two things that turn out to contradict each other. Reaching the
+  dev servers from a phone means serving them on the LAN over plain `http://`, at
+  `http://192.168.1.201:5173`. Scanning an operator card means `getUserMedia`, which browsers only
+  expose in a *secure context* — HTTPS, or `localhost`. A LAN IP over `http://` is neither, so on the
+  phone `navigator.mediaDevices` is not merely blocked, it is `undefined`.
+- Why: the two halves of the task were specified against different assumptions about where the app
+  runs. Nothing in either half is wrong on its own; the conflict only exists once they are the same
+  deployment. `localhost` is a special case in the spec precisely so that development works without
+  certificates, and it does not extend to the machine's other addresses.
+- What we tried: measured rather than assumed, with one vite server bound to both names on the same
+  port so only the host differed. At `http://localhost:5174`, `isSecureContext` is `true` and
+  `navigator.mediaDevices.getUserMedia` exists. At `http://192.168.1.201:5174`, `isSecureContext` is
+  `false` and `navigator.mediaDevices` is absent. Same build, same port, same browser.
+- What we learned: the screen was built so that the absent camera is a state and not a crash — the
+  same shape the dictate screen already uses when speech recognition is missing. `/login` detects it
+  and offers the code typed in instead, so the phone demo still signs in either way. That fallback is
+  what made the finding survivable rather than fatal, and it is still the behaviour on any machine
+  without a certificate.
+- **Resolved the same evening (`LP-21`).** mkcert issues a certificate for the Mac's LAN address,
+  `vite.config.js` picks it up when `.certs/` exists, and both servers run over HTTPS. Measured
+  again at `https://192.168.1.201:5173`: `isSecureContext` is now `true`, `getUserMedia` exists, and
+  the scanner reaches its `scanning` state — the camera opens. The remaining manual step is on the
+  device and not in the repository: the phone trusts the Mac's CA only once its root is installed
+  *and* enabled there, which the README now spells out.
+- Related branch / PR: `feature/phone-demo-login`, `LP-20`; fixed by `feature/https-lan`, `LP-21`.

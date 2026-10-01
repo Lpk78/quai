@@ -99,6 +99,15 @@ code,
   cursor: pointer;
 }
 
+/* A button that cannot be pressed has to look like one. Not translucency: that would drag the navy
+   below the contrast the palette guarantees. A flat surface and muted text instead, both tokens
+   that are already proven against the background. */
+.button:disabled {
+  background: rgba(16, 34, 56, 0.08);
+  color: var(--quai-text-muted);
+  cursor: not-allowed;
+}
+
 .button:hover {
   filter: brightness(1.05);
 }

@@ -175,10 +175,13 @@ call (rate limit, refusal, network error, after retries) is a `503`. CORS uses t
 cd web && npm install && npm run dev      # http://localhost:5173
 ```
 
-`/` is the landing page and `/app` the application shell. `/app/plan` asks the solver for a plan and
-shows it: where each box goes, and which ones did not fit. It needs the API running
-(`uvicorn server:app --app-dir src`), and reads its address from `VITE_API_URL`, defaulting to
-`http://127.0.0.1:8000`. Screenshots at phone width are in `documentation/screenshots/`.
+`/` is the landing page and `/login` the way into the app: it reads an operator card shaped
+`QUAI:OPERATOR:<id>` off a QR code with the camera, and signs the operator in by name. Where there
+is no camera the same code can be typed in, which is how the phone demo below signs in. `/app` is
+the application shell, and `/app/plan` asks the solver for a plan and shows it: where each box goes,
+and which ones did not fit. It needs the API running (`uvicorn server:app --app-dir src`), and reads
+its address from `VITE_API_URL`, defaulting to `http://127.0.0.1:8000`. Screenshots at phone width
+are in `documentation/screenshots/`.
 
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
@@ -198,11 +201,54 @@ plans nineteen — without the scan, both see eighteen. The count on `/app` foll
 cannot say eighteen while the plan holds nineteen. Scan the same label twice and it is recognised, not
 added again.
 
+The scan survives a reload, through `sessionStorage` holding the box id — not a copy of the box, so
+`manifest.js` stays the single source of what it measures. `sessionStorage` rather than
+`localStorage` because a scan belongs to one sitting: closing the tab ends the round.
+
 One thing it does not do yet: the **camera**. The code is typed rather than scanned, and
 `web/src/scan/scanCode.js` is the seam a decoder drops into, so the screen above it does not change.
-`LP-20` (#55) has since installed `jsqr` and built that camera loop for `/login`, inline in
-`Login.jsx` — wiring it here is a matter of lifting that loop into something both screens call, once
-#55 has merged.
+`LP-20` installed `jsqr` and built that camera loop for `/login`, inline in `Login.jsx` — wiring it
+here is a matter of lifting that loop into something both screens call, which no task has done yet.
+
+### Phone demo
+
+Both servers listen on localhost by default, which a phone cannot reach, and on a phone `127.0.0.1`
+is the phone — so the app also has to be told where the API is. It is served over HTTPS, because
+`/login` scans a QR code and `getUserMedia` exists only in a secure context: `http://` on a LAN
+address is not one, and the camera is then not blocked but absent.
+
+First, once per machine, a certificate for this Mac's own address — `.certs/` is gitignored, since a
+private key is not committed and the address is this machine's:
+
+```bash
+brew install mkcert && mkcert -install        # a local CA, in this Mac's trust store
+LAN=$(ipconfig getifaddr en0)                 # e.g. 192.168.1.201
+mkdir -p .certs
+mkcert -key-file .certs/key.pem -cert-file .certs/cert.pem localhost 127.0.0.1 ::1 "$LAN"
+```
+
+Then, to run:
+
+```bash
+QUAI_LAN_ORIGIN="https://$LAN:5173" \
+  uvicorn server:app --app-dir src --host 0.0.0.0 \
+  --ssl-keyfile .certs/key.pem --ssl-certfile .certs/cert.pem    # API: https://<LAN>:8000
+
+cd web && VITE_API_URL="https://$LAN:8000" npm run dev:phone     # app: https://<LAN>:5173
+```
+
+Then open `https://<LAN>:5173` on the phone. `QUAI_LAN_ORIGIN` is what puts that origin on the API's
+CORS allowlist (`DEV_ORIGINS` in `src/server.py`), which otherwise only knows localhost; it falls
+back to the address this was written on, so the variable is what keeps it working after DHCP hands
+out a different one — and what carries the `https://` scheme here. `vite.config.js` picks the
+certificate up on its own when `.certs/` exists, and serves plain HTTP when it does not, so a clone
+without one still runs.
+
+**The phone has to be told to trust the CA as well.** `mkcert -install` installs the root into this
+Mac's trust store and nowhere else. Send `"$(mkcert -CAROOT)/rootCA.pem"` to the phone, install it as
+a profile, and on iOS enable it under *Settings → General → About → Certificate Trust Settings* —
+installing the profile is not enough on its own. Without that, Safari refuses the certificate and
+`/login` falls back to the typed code, which still signs the operator in.
 
 ### Prompt evaluation
 
