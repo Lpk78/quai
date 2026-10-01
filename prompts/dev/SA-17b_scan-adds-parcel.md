@@ -50,3 +50,27 @@ rather than a new one, and it belongs next to the ID it followed in time.
   when written, stale within the hour — so it was corrected on that branch (`4f533c4`) to point at the
   loop a future task should lift out and share.
 - **Verified:** 79 web tests pass (73 before), 347 Python tests pass, 1 skip, `npm run build` clean.
+
+## Outcome of the review round (#57)
+
+- **What the review asked for:** one change from `MORHI11`, which was this PR's own Please-check #1
+  coming back — persist the scanned parcel so an accidental reload mid-demo cannot drop the load
+  silently back to eighteen boxes. Confirmed by `Lpk78` before it was built, rather than taken from the
+  reviewer's message alone.
+- **What the AI produced:** `sessionStorage` behind the existing context in
+  `web/src/scan/scannedParcel.jsx`, and five tests covering a reload.
+- **The decision inside it:** only the **id** is stored, never the box. `data/manifest.js` stays the
+  single source of what a parcel measures; a copy in storage would be a second one, free to go stale
+  and impossible to notice. An id nothing recognises is dropped rather than restored, and reads and
+  writes are both wrapped — Safari in private mode throws on write, and failing to remember a parcel is
+  not a reason to fail to render the screen. `sessionStorage` rather than `localStorage` because a scan
+  belongs to one sitting: closing the tab ends the round, which is the expiry rule we would otherwise
+  have had to invent.
+- **A test hazard the change introduced:** persistence survives between tests too, so a leaked parcel
+  would have made "nothing was scanned" quietly assert the wrong thing. Cleared in `beforeEach` with
+  the reason written next to it.
+- **Also in this round:** `main` moved three times under this branch — #54, #56, then #55 and #58. The
+  merge kept LP-20's `/login` route alongside the provider in `App.jsx`, and the scan-step README
+  paragraph that supersedes SA-17's. GitHub had already retargeted this PR from
+  `feature/app-scan-step` to `main` when #54 merged, so no manual retarget was needed.
+- **Verified:** 97 web tests pass (79 before), 349 Python tests pass, 1 skip, `npm run build` clean.
