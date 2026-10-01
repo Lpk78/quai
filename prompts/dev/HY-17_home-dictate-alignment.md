@@ -44,4 +44,27 @@ history if the night ends before it is reached.
 
 ## Outcome
 
-(filled at the end)
+- **PR:** (filled below once opened) — reviewer `Lpk78`
+- **What the AI produced:** the six commits, one per numbered point — the two-line headings, the
+  persistent `.mic-example` line, the `Tap and speak` relabel, the `.stat-tiles` markup and CSS, the
+  `.mic-panel` / `SoundWave` decoration, and the Home summary card — plus five new web tests and the
+  updates to the three existing assertions the changes invalidated.
+- **How it was checked:** `npm test` and `python3 -m unittest discover tests` after every commit
+  (101 web, 399 Python at the end, from 97 and 399). `/app` and `/app/dictate` were also rendered at a
+  real 390 px viewport and read back, since none of the six points is something a jsdom assertion can
+  actually see.
+- **What was changed by hand:** three decisions. Writing the Dictate heading as *"Tell QUAI your /
+  loading rules"* rather than inventing the mockup's own "Voice rules" title, which names a screen this
+  app does not have. Leaving the `{OPERATOR_NAME} · 8 stops · 18 boxes` line in place above the new
+  tiles instead of deleting it as redundant — it carries the operator's name, which the tiles do not.
+  And reaching the speech-recognition branch in tests through `vi.resetModules()` plus a dynamic
+  re-import, because `SpeechRecognitionImpl` is read once at module load, so a stub set afterwards
+  would never be seen and the two new mic tests would have passed against the fallback path instead.
+
+### One thing worth the reviewer's attention
+
+Point 6 removes real information from the screen, not just styling: the eighteen rows of box id,
+label, dimensions and weight are gone, and nothing else in the app shows that list. The task asked for
+exactly this and the mockup supports it, but it is the one change here a user could notice as a loss
+rather than a tidy-up. `test_shows_the_operator_s_name_and_the_load_s_real_counts` now asserts `B01`
+and *washing machine* are **absent**, so the removal is pinned deliberately rather than left to drift.
