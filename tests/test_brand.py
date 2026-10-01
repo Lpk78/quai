@@ -220,11 +220,18 @@ class TestBrandFiles(unittest.TestCase):
                 self.assertTrue((BRAND / rel).is_file(), f"design.md names {rel}, which does not exist")
 
     def test_no_reference_image_is_oversized(self):
-        """References are mood, not assets. The repository is graded; it should not carry 2 MB mockups."""
+        """Mood sheets are stored as JPEG, so none of them should be heavy.
+
+        `master-brand-board.png` is the one exception, and it is exempt for a reason rather than
+        because it is awkward: it is the kit's own declared source of truth, and it is read rather
+        than looked at — the swatch labels and the type specimens on it are small print that JPEG
+        ringing would make unreliable. Everything else in this folder is mood and layout, where
+        lossy costs nothing. A new file does not get added to this exemption; it gets converted.
+        """
         limit = 1_200_000
+        exempt = {"master-brand-board.png"}
         too_big = [p.relative_to(BRAND).as_posix() for p in (BRAND / "reference").iterdir()
-                   if p.is_file() and p.stat().st_size > limit
-                   and p.name != "master-brand-board.png"]
+                   if p.is_file() and p.stat().st_size > limit and p.name not in exempt]
         self.assertEqual(too_big, [], "store these as JPEG, as design.md explains")
 
     def test_the_heavy_brand_guide_pdf_is_not_in_the_repository(self):
