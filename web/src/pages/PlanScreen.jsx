@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { ApiError, postPlan } from "../api.js";
 import LoadScene, { colourFor } from "../plan/LoadScene.jsx";
-import { DEMO_BOXES, DEMO_REQUEST } from "../plan/demoLoad.js";
+import { DEMO_REQUEST } from "../plan/demoLoad.js";
 
 /* The load plan at /app/plan.
  *
@@ -105,6 +105,29 @@ function UnplacedList({ unplaced }) {
   );
 }
 
+function NotAppliedList({ notApplied }) {
+  /* A rule the operator dictated that did not reach the solver — read straight off the response
+     rather than guessed at, same as `unplaced`. Shown, never dropped: the honesty rule this screen
+     already follows for a box that did not fit applies just as much to a rule that did not apply. */
+  if (!notApplied || notApplied.length === 0) return null;
+  return (
+    <section className="plan-unplaced" aria-label="Rules that were not applied">
+      <h2>Not applied</h2>
+      <ul className="plan-list">
+        {notApplied.map((entry, index) => (
+          <li className="plan-item plan-item--unplaced" key={index} data-testid="not-applied">
+            <span className="plan-id">
+              {entry.type}
+              {entry.item ? `: ${entry.item}` : ""}
+            </span>
+            <span className="muted">{entry.reason}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Failure({ error, onRetry }) {
   const unreachable = error.kind === "unreachable";
   return (
@@ -126,12 +149,25 @@ function Failure({ error, onRetry }) {
   );
 }
 
-export default function PlanScreen({ loadPlan = postPlan, request = DEMO_REQUEST }) {
-  const [state, setState] = useState({ status: "loading" });
+export default function PlanScreen({ loadPlan = postPlan, request: requestProp }) {
+  const location = useLocation();
+  // Dictate.jsx already called `postPlan` before navigating here with the result in `state`, so
+  // this screen shows it rather than asking the solver the same question twice. Visited directly —
+  // the URL bar, a reload — there is no `state`, and the screen falls back to its own demo request.
+  const seededPlan = location.state?.plan ?? null;
+  const request = requestProp ?? location.state?.request ?? DEMO_REQUEST;
+
+  const [state, setState] = useState(() =>
+    seededPlan ? { status: "ready", plan: seededPlan } : { status: "loading" },
+  );
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
+    if (attempt === 0 && seededPlan) {
+      setState({ status: "ready", plan: seededPlan });
+      return;
+    }
     let live = true;
     setState({ status: "loading" });
     Promise.resolve()
@@ -148,7 +184,7 @@ export default function PlanScreen({ loadPlan = postPlan, request = DEMO_REQUEST
     return () => {
       live = false;
     };
-  }, [loadPlan, request, attempt]);
+  }, [loadPlan, request, attempt, seededPlan]);
 
   const requested = request.boxes.length;
 
@@ -161,8 +197,7 @@ export default function PlanScreen({ loadPlan = postPlan, request = DEMO_REQUEST
 
       <main className="plan-main">
         <p className="muted note">
-          A demo load of {DEMO_BOXES.length} boxes, planned by the solver. Entering your own
-          boxes is issue #8.
+          A load of {requested} boxes, planned by the solver. Entering your own boxes is issue #8.
         </p>
 
         {state.status === "loading" && <p role="status">Asking the solver…</p>}
@@ -198,6 +233,7 @@ export default function PlanScreen({ loadPlan = postPlan, request = DEMO_REQUEST
               />
             </section>
             <UnplacedList unplaced={state.plan.unplaced} />
+            <NotAppliedList notApplied={state.plan.not_applied} />
           </>
         )}
       </main>
