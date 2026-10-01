@@ -17,7 +17,7 @@ function textOf(path) {
   return container.textContent;
 }
 
-const PAGES = ["/", "/app"];
+const PAGES = ["/", "/app", "/app/dictate"];
 const SLOGAN = "People talk. We load.";
 
 describe("one slogan", () => {

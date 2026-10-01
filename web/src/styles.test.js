@@ -4,12 +4,13 @@ import { describe, expect, it } from "vitest";
 /* The two accessibility rules from design.md, checked where they are actually applied.
    tests/test_brand.py proves the palette supports them; this proves the stylesheet uses them. */
 
-// vitest runs with the web/ project as its working directory. Both stylesheets are read: the base
-// rules live in index.css and the landing page's in landing.css, and the two accessibility rules
-// have to hold wherever they are applied.
+// vitest runs with the web/ project as its working directory. Three stylesheets are read: the base
+// rules live in index.css, the landing page's in landing.css, the app's in app.css, and the two
+// accessibility rules have to hold wherever they are applied.
 const base = readFileSync("src/index.css", "utf8");
 const landing = readFileSync("src/landing.css", "utf8");
-const css = base + "\n" + landing;
+const app = readFileSync("src/app.css", "utf8");
+const css = base + "\n" + landing + "\n" + app;
 
 function ruleFor(selector) {
   const match = base.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`));
