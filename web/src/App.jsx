@@ -4,6 +4,7 @@ import Landing from "./pages/Landing.jsx";
 import AppShell from "./pages/AppShell.jsx";
 import Home from "./pages/Home.jsx";
 import Dictate from "./pages/Dictate.jsx";
+import PlanScreen from "./pages/PlanScreen.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="dictate" element={<Dictate />} />
       </Route>
+      <Route path="/app/plan" element={<PlanScreen />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
