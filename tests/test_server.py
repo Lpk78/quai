@@ -2,11 +2,14 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import server  # noqa: E402
+from quai import llm  # noqa: E402
 from quai.checks import find_problems  # noqa: E402
 from quai.models import Box, Container, Placement  # noqa: E402
 from server import app  # noqa: E402
@@ -114,6 +117,83 @@ class TestCrossOrigin(unittest.TestCase):
                                headers={"Origin": "https://example.com"})
         self.assertNotIn("access-control-allow-origin", response.headers)
 
+
+MANIFEST_ITEM = {"id": "B1", "label": "washing machine", "length": 60, "width": 60, "height": 85,
+                 "weight": 70}
+STOP = {"id": "S1", "name": "Rouen"}
+
+
+class TestConstraintsEndpoint(unittest.TestCase):
+    def post(self, text="The washing machine stays at the bottom.", manifest=None, stops=None):
+        return client.post("/constraints", json={
+            "text": text,
+            "manifest": [MANIFEST_ITEM] if manifest is None else manifest,
+            "stops": [STOP] if stops is None else stops,
+        })
+
+    def test_the_validated_model_output_is_returned(self):
+        with mock.patch.object(server, "_translate",
+                               return_value='{"constraints": [{"type": "at_bottom", "item": "B1"}], '
+                                            '"unresolved": []}'):
+            response = self.post()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "constraints": [{"type": "at_bottom", "item": "B1"}], "unresolved": []})
+
+    def test_empty_text_is_rejected(self):
+        self.assertEqual(self.post(text="   ").status_code, 422)
+
+    def test_duplicate_manifest_ids_are_rejected(self):
+        response = self.post(manifest=[MANIFEST_ITEM, MANIFEST_ITEM])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("B1", response.json()["detail"])
+
+    def test_duplicate_stop_ids_are_rejected(self):
+        response = self.post(stops=[STOP, STOP])
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("S1", response.json()["detail"])
+
+    def test_a_reply_that_fails_validation_is_a_502(self):
+        with mock.patch.object(server, "_translate", return_value='{"not": "the right shape"}'):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("did not validate", response.json()["detail"])
+
+    def test_a_reply_that_is_not_json_is_a_502(self):
+        with mock.patch.object(server, "_translate", return_value="not json at all"):
+            response = self.post()
+        self.assertEqual(response.status_code, 502)
+
+    def test_a_lost_call_is_a_503(self):
+        with mock.patch.object(server, "_translate", side_effect=llm.CallFailed("no reply")):
+            response = self.post()
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("no reply", response.json()["detail"])
+
+    def test_the_vite_dev_server_is_allowed(self):
+        with mock.patch.object(server, "_translate",
+                               return_value='{"constraints": [], "unresolved": []}'):
+            response = client.post("/constraints", json={
+                "text": "ok", "manifest": [MANIFEST_ITEM], "stops": [STOP]},
+                headers={"Origin": "http://localhost:5173"})
+        self.assertEqual(response.headers["access-control-allow-origin"], "http://localhost:5173")
+
+
+class TestTranslateSeam(unittest.TestCase):
+    """Every test above mocks `_translate` itself; these cover what it does before that seam."""
+
+    def test_constraint_prefill_is_loaded_from_the_version_file(self):
+        self.assertEqual(server.CONSTRAINT_PREFILL, "{")
+
+    def test_translate_wires_the_version_prefill_into_the_translator(self):
+        stub = llm.Translator(model="stub-model")
+        with mock.patch.object(llm, "from_env", return_value=stub) as from_env, \
+             mock.patch.object(llm.Translator, "translate", autospec=True,
+                               return_value="{}") as translate:
+            server._translate("the sentence", "the manifest")
+        from_env.assert_called_once_with(server.CONSTRAINT_MODEL)
+        translator = translate.call_args.args[0]
+        self.assertEqual(translator.prefill, server.CONSTRAINT_PREFILL)
 
 # A van rather than the 100 cm cube the tests above use, because the claim being tested is
 # geometric: in a 100 cm container these boxes stack in y and z and every x stays 0, so "nearer the

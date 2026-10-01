@@ -137,6 +137,38 @@ refuses the request instead of yielding a plan built from the half that parsed. 
 checked is whether an `unload_at` names a real stop, because this request carries no route to check
 it against.
 
+`POST /constraints` takes one operator sentence plus the manifest (the items currently in the load) and
+the route (the stops, in delivery order), and returns the validated constraint JSON that
+`quai.constraints.parse()` produced from it — the same shape documented as the *Output contract* in
+`documentation/prompt_evaluation.md`. It calls the production constraint-translation prompt
+(`prompts/constraint-translation/v4_few_shot.md`) with `claude-haiku-4-5-20251001` at temperature 0, the
+key read from `.env`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/constraints -H "Content-Type: application/json" -d '{
+  "text": "The washing machine stays at the bottom and comes off at Le Havre.",
+  "manifest": [
+    {"id": "B1", "label": "washing machine", "length": 60, "width": 60, "height": 85, "weight": 70}
+  ],
+  "stops": [
+    {"id": "S1", "name": "Rouen"},
+    {"id": "S2", "name": "Le Havre"}
+  ]
+}'
+```
+
+```json
+{"constraints": [{"type": "at_bottom", "item": "B1"},
+                 {"type": "unload_at", "item": "B1", "stop": "S2"}],
+ "unresolved": []}
+```
+
+`text` left empty or blank is a `422`. A reply from the model that is not valid JSON, or that does
+not match the contract, never reaches the caller: it is a `502` with the validation problem. A lost
+call (rate limit, refusal, network error, after retries) is a `503`. CORS uses the same allowlist as
+`/plan` — not authentication; tracked as a gap on issue #19.
+
+
 ### The web app
 
 ```bash
