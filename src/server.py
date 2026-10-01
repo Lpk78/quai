@@ -49,7 +49,10 @@ class ContainerIn(BaseModel):
     length: int = Field(gt=0, description="cm")
     width: int = Field(gt=0, description="cm")
     height: int = Field(gt=0, description="cm")
-    max_weight: float | None = Field(default=None, gt=0, description="kg; omitted means no limit")
+    # `ge=0`, not `gt=0`: the model allows a limit of 0 and `models.py` pins that, so refusing it
+    # here would make this second layer stricter than the first. "Nothing may be loaded" is a real
+    # state for an empty or out-of-service vehicle.
+    max_weight: float | None = Field(default=None, ge=0, description="kg; omitted means no limit")
 
 
 class PlanRequest(BaseModel):
