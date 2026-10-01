@@ -86,3 +86,52 @@ We plan to *measure* this with an experiment (LLM-only placement vs solver), whi
   `/review` still drafts locally, the reviewer still reads and validates, and the review is still
   posted from their account. Only the sentence about the machine is gone.
 - Related branch / PR: `feature/prompt-evaluation`, PR #22.
+## Session 5 — Day summary, 2026-09-30
+
+The day phase 1 and phase 2 started for real: the solver landed on `main`, the team rules and the
+evaluation material were merged in the afternoon, and the server endpoint and the constraint schema
+followed in the evening.
+
+**What we built**
+
+- **Solver v1** (#3) is on `main`: boxes and container model, a deterministic first-fit placement and an
+  independent validity check. #5 was closed by hand at 09:44:19, an hour and a half after #3 merged at
+  08:11:08 — #3 never carried a `Closes`, so nothing closed it automatically (see
+  `prompts/dev/LP-02_solver.md` and the `LP-16` backfill).
+- **Team automation** (#4): the `/task`, `/review`, `/fix-review` and `/prompt-version` skills, the
+  permission file and the `tests.yml` workflow, which now runs the tests on every PR.
+- **Evaluation material** (#14): the reference manifest, the output contract, 25 test sentences with their
+  expected JSON and the seven-criterion rubric, fixed before any prompt exists. During review, the contract
+  also gained the route rules the solver needs (stack weight limit, route order, default stop, `load_last`
+  within a stop).
+- **Roadmap** (#13): every phase 1 and 2 task has an owner, a reviewer and an issue. New issues opened
+  today: #15, #17 (`SA-05`), #18 (`HY-01`), #19 (`LP-11`) and, in the evening, #26 out of the #23 review.
+- **Rule change** (#20): AI help is recorded per task in `prompts/dev/`, not as a row in `ai_usage.md`
+  (see the entry above).
+
+**Who did what**
+
+- **Léo-Paul (`Lpk78`)** wrote #3, #4, #13, #14 and #20, answered the reviews on each, and opened #21
+  (constraint schema), #22 (prompt evaluation script) and #25 (backfilled development prompts). #21
+  merged that evening after its review round; #22 and #25 were still in review at the end of the day.
+- **Sam (`SamDana-maker`)** reviewed, approved and merged #3, #4, #13, #14, #20 and, that evening, #21 —
+  after first requesting changes on it (allow several `load_last` items per stop before prompt v1 is
+  scored) and on #2 (out of date with `main`). Opened #16 (`SA-04`, FastAPI `POST /plan`), #23 (`SA-10`,
+  container validation, closes #15), #24 (this entry) and #27 (`SA-05`, solver v2).
+- **`MORHI11`** reviewed, approved and merged #16 and #23, opened #26 out of the second of those, and
+  owns #18 (the web app). He opened #28 (brand kit and design system) late that night; none of his own
+  work was merged today.
+
+**What failed**
+
+- **Merge conflicts on `ai_usage.md`, three times.** Between #3 and #4 (written up in `failures.md`),
+  then #13 and #14, then #16 against the result. Every branch appended a row at the same last line of one
+  shared table. The fix was a rule rather than more careful merging: #20 stopped PRs from adding rows.
+- **A test that could not fail.** In #14, the parser for the contract table also read the manifest table,
+  so `B1`–`B10` counted as constraint types and `{"type": "B1"}` would have passed. Found in review, fixed
+  with a test that fails against the old regex.
+- **A branch name that drifted from the roadmap.** `SA-04` was opened on `feature/solver-api` while the
+  roadmap said `feature/api-server`; roadmap row 3 was corrected on the PR's branch.
+
+**Pull Requests merged today,** in the order they merged: #3, #4, #14, #13, #20, #21, #16, #23.
+**Still open at the end of the day:** #2, #22, #24, #25, #27, #28.
