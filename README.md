@@ -191,14 +191,18 @@ box — `QUAI:BOX:QUAI-BOX-0001` is the fragile parcel, 40 × 30 × 25 cm, 8 kg.
 QUAI label and a QUAI label for a box that is not on this van are told apart, because they are
 different mistakes on a loading dock.
 
-Two things it does not do yet. The **camera** is not wired here: the code is typed rather than
-scanned, and `web/src/scan/scanCode.js` is the seam a decoder drops into, so the screen above it does
-not change. `LP-20` (#55) has since installed `jsqr` and built that camera loop for `/login`, inline
-in `Login.jsx` — wiring it here is a matter of lifting that loop into something both screens call,
-once #55 has merged. And scanning does not **add** the parcel to the load: it is
-already in `web/src/data/manifest.js` alongside the eighteen loaded boxes. Modelling a box that is
-scanned *into* a van — out of the static list, into app state, marked not yet loaded — changes that
-module and the dictate screen, so it is its own task rather than a side effect of this one.
+Reading that label is what puts the parcel **in the van**. `BOXES` in `web/src/data/manifest.js` is
+the eighteen boxes already loaded; the parcel is held apart from them as `SCANNED_PARCEL`, and a scan
+moves it into app state. So `/app/dictate` then asks the model about nineteen boxes and the solver
+plans nineteen — without the scan, both see eighteen. The count on `/app` follows the same list, so it
+cannot say eighteen while the plan holds nineteen. Scan the same label twice and it is recognised, not
+added again.
+
+One thing it does not do yet: the **camera**. The code is typed rather than scanned, and
+`web/src/scan/scanCode.js` is the seam a decoder drops into, so the screen above it does not change.
+`LP-20` (#55) has since installed `jsqr` and built that camera loop for `/login`, inline in
+`Login.jsx` — wiring it here is a matter of lifting that loop into something both screens call, once
+#55 has merged.
 
 ### Prompt evaluation
 
