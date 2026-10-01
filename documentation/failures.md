@@ -775,3 +775,58 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   stop order, #60's `on_top` pair, `HY-17`'s route-time tile), and every one was caught the same way,
   by changing the code to see whether the test noticed.
 - Related branch / PR: `fix/speech-language`, `HY-20`; follows `HY-19`, #68.
+---
+
+## 2026-10-01 — What happens when the model places the boxes itself
+
+- What happened: `CLAUDE.md` has said since the first week that the LLM never computes placement. It was
+  a design decision nobody had measured, so `SA-06` measured it. The model was asked to do the solver's
+  job directly — the eleven boxes of `src/demo.py`, the same van, coordinates out — ten times at
+  temperature 0 and ten at temperature 1, with every reply scored by `quai.checks.find_problems()`, the
+  same independent check the solver answers to. `claude-haiku-4-5-20251001`, the model `.env` names.
+
+  | | temperature 0 | temperature 1 | solver |
+  |---|---|---|---|
+  | replies that parsed | 10/10 | 10/10 | — |
+  | **physically valid plans** | **1/10** | **0/10** | always |
+  | distinct plans | 7 of 10 | 10 of 10 | 1 |
+  | problems per plan | 6.4 | 4.6 | 0 |
+  | most common fault | unsupported (32) | rotation (22) | — |
+
+  The failures are not near-misses. Across the twenty runs the checks found 41 boxes floating with
+  nothing under them, 41 laid on their side when the load is "this way up", 20 overlapping another box,
+  5 outside the van, and 3 never placed at all.
+
+- Why it is worth writing down rather than filing as "LLM bad": **the model is good at the part that
+  looks hard and bad at the part that looks easy.** It answered in the right JSON shape 20 times out of
+  20, and it placed all eleven boxes in 17 of them where the solver places ten and leaves the mattress
+  on the dock. What it cannot do is arithmetic that has to hold across eleven objects at once: whether
+  *this* box at *this* height has 75 % of its base on something, given the ten boxes already placed.
+  That is the whole of the job, and it is the thing a loop with a rectangle intersection does perfectly.
+
+- The result that complicates the story: **the one valid plan was better than the solver's.** At
+  temperature 0, run 10 placed all eleven boxes, every one upright, minimum support 0.81, nothing
+  overlapping, nothing outside — 46.9 % fill against the solver's 39.3 %. Once in twenty tries the model
+  beat the greedy first-fit by seven and a half points and fitted the mattress the solver gives up on.
+  That is not an argument for letting it place boxes; it is an argument about `solve()` being greedy,
+  which the roadmap already lists as a known limitation. It also suggests the shape a later experiment
+  could take: let the model propose, let `find_problems()` judge, keep it only when it is valid and
+  better, fall back to the solver otherwise. The checks are what make that safe, and they already exist.
+
+- The other finding, which lands on a live argument: **temperature 0 is not determinism.** Ten runs at
+  temperature 0 produced seven different plans. `documentation/prompt_evaluation.md` already says a
+  temperature of 0 "reduces variability; it has never guaranteed identical outputs" and that the three
+  runs per sentence are what measures the variability — this is that sentence with a number against it.
+  A solver that answered differently seven times out of ten would not be a solver.
+
+- What we learned: the rule stands, and now it stands on twenty runs rather than on taste. The useful
+  form of it is narrower than "the LLM is unreliable": the model is fluent about structure and unreliable
+  about constraint arithmetic, so the architecture should ask it for structure — translating a sentence
+  into validated JSON — and never for arithmetic. That is exactly the split `quai.constraints` and
+  `quai.solver` already draw, which is reassuring, and it is now a measured boundary rather than an
+  assumed one.
+
+- Reproduce it: `python3 src/run_placement_experiment.py` (20 calls, needs `ANTHROPIC_API_KEY` and
+  `LLM_MODEL`). Replies land in `outputs/placement/`, which is Git-ignored; `notebooks/llm_vs_solver.ipynb`
+  re-derives every number above from a stored run without calling the model again.
+- Related branch / PR: `experiment/llm-only-placement`, `SA-06`.
