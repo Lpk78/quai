@@ -186,6 +186,23 @@ are in `documentation/screenshots/`.
 The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
 the same eleven-box demo load as `src/demo.py`, and says so.
 
+The operator's path through the app is `/app` → `/app/scan` → `/app/dictate` → `/app/plan`: read the
+label on the package in your hands, say what to do with it, see where the solver put it.
+
+**`/app/scan`** reads a label shaped `QUAI:BOX:<id>` and shows what the manifest knows about that
+box — `QUAI:BOX:QUAI-BOX-0001` is the fragile parcel, 40 × 30 × 25 cm, 8 kg. A code that is not a
+QUAI label and a QUAI label for a box that is not on this van are told apart, because they are
+different mistakes on a loading dock.
+
+Two things it does not do yet. The **camera** is not wired here: the code is typed rather than
+scanned, and `web/src/scan/scanCode.js` is the seam a decoder drops into, so the screen above it does
+not change. `LP-20` (#55) has since installed `jsqr` and built that camera loop for `/login`, inline
+in `Login.jsx` — wiring it here is a matter of lifting that loop into something both screens call,
+once #55 has merged. And scanning does not **add** the parcel to the load: it is
+already in `web/src/data/manifest.js` alongside the eighteen loaded boxes. Modelling a box that is
+scanned *into* a van — out of the static list, into app state, marked not yet loaded — changes that
+module and the dictate screen, so it is its own task rather than a side effect of this one.
+
 ### Phone demo
 
 Both servers listen on localhost by default, which a phone cannot reach, and on a phone `127.0.0.1`

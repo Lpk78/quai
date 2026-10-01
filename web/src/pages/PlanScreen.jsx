@@ -19,7 +19,7 @@ import { DEMO_REQUEST } from "../plan/demoLoad.js";
 function Summary({ plan, requested }) {
   const placed = plan.placements.length;
   return (
-    <section className="plan-summary" aria-label="Plan summary">
+    <section className="card plan-summary" aria-label="Plan summary">
       <p className="plan-count">
         <strong data-testid="placed-count">{placed} / {requested}</strong> placed
       </p>
@@ -131,7 +131,7 @@ function NotAppliedList({ notApplied }) {
 function Failure({ error, onRetry }) {
   const unreachable = error.kind === "unreachable";
   return (
-    <section className="plan-failure" role="alert">
+    <section className="card plan-failure" role="alert">
       <h2>No plan to show</h2>
       <p>{error.message}</p>
       {unreachable && (
