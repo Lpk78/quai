@@ -168,6 +168,15 @@ not match the contract, never reaches the caller: it is a `502` with the validat
 call (rate limit, refusal, network error, after retries) is a `503`. CORS uses the same allowlist as
 `/plan` — not authentication; tracked as a gap on issue #19.
 
+Two more, and they are the ones worth recognising on a dock. **`ANTHROPIC_API_KEY` or `LLM_MODEL`
+missing** from `.env` — or the `anthropic` package not installed — is a `503` naming both variables:
+the server is running, it simply has nothing to translate with. **A key that is present but wrong** is
+a `502` saying the model refused the request, because the key passes the server's own check and only
+the API can reject it. Neither is reported as an unreachable server: an unhandled exception would
+answer `500` through a handler that sits outside the CORS middleware, and a response the browser
+cannot read becomes "could not reach the solver" on screen — the one diagnosis that sends you to
+restart a server that is working.
+
 
 ### The web app
 
