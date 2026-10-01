@@ -418,3 +418,82 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   directions. Next time, an experiment with four independent changes should expect to be read as four
   results.
 - Related branch / PR: `prompt/constraint-translation-v4-few-shot`, #12.
+
+---
+
+## 2026-10-01 — Worked examples narrow what the model thinks an answer can look like
+
+- What happened: v4 broke T13 by over-generalising one example. v5 fixed that precisely — a
+  counter-example placed beside the rule, labelled as its limit — and **T13 passed again on all three
+  runs**. In the same run, **T06 and T24 failed for the first time**, and both had passed in v3 (no
+  examples) and in v4 (four examples). The Total went 22 back down to 21.
+- Why: all three of v5's examples produce a non-empty `unresolved`, and two pair it with an empty
+  `constraints`. T06 is a clear sentence with a reason attached — "Load the toolbox last, I need it
+  first on site" — and v5 emits the right `load_last` and then reports the *reason* as
+  `out_of_scope`, manufacturing doubt that is not there. T24 matches none of the three examples and
+  comes back as two empty lists, the failure v1 had. The examples stopped being illustrations of
+  decisions and became the space of permitted answers.
+- What we tried: kept the result and reported it per sentence against both ancestors rather than as a
+  Total, because the Total says "21, no better than v3" and the per-sentence table says three
+  different things: the bound worked, two new sentences broke in the same direction, and three
+  sentences have now resisted prose, four examples and three bounded examples alike.
+- What we learned: an example is not an additive instruction. v4's lesson was that an example teaches
+  the decision it shows *plus* whatever generalisation the reader draws; v5's is the other half —
+  the set of examples also tells the model what an answer is allowed to look like, so a case covered
+  by none of them gets answered in the nearest shape rather than from the contract. Adding an example
+  changes the sentences it does not mention. Both regressions were invisible in the Total and obvious
+  in the per-sentence diff, which is the second time that table has been the whole value of a run.
+- Related branch / PR: `prompt/constraint-translation-v5-bounded-examples`, #12.
+
+- **Decision, 2026-10-01 (`Lpk78`, AI-layer owner): example-based iteration stops here.** v5 is
+  recorded as it stands — 21/26 is a result, and *each example fixes its target and breaks something
+  else* is the finding. **v4 (22/26) remains the version `POST /constraints` (#19) uses in
+  production.** The evidence is the per-sentence table across the three versions that could be
+  scored, which no Total shows:
+
+  | | v3 | v4 | v5 |
+  |---|---|---|---|
+  | T13 "Put the fragile stuff on top." | pass | **C2, C3** | pass |
+  | T20 "…don't stack the microwave" | **C2, C3** | pass | pass |
+  | T14 "the heavy things on the light ones" | **C5** | pass | pass |
+  | T06 "Load the toolbox last, I need it first on site." | pass | pass | **C5** |
+  | T24 "What's the weather in Rouen tomorrow?" | pass | pass | **C1, C5** |
+  | T10, T16, T17 | fail | fail | fail |
+  | **Total** | **21** | **22** | **21** |
+
+  Read down the columns rather than along the bottom row: every example-based version fixed the
+  sentences its examples depicted and broke sentences they did not. v4 bought T20 and T14 with T13;
+  v5 bought T13 back with T06 and T24. Three sentences moved for nobody. A sixth version would be a
+  fourth draw from the same distribution, and the next example's side effects are not predictable
+  from the last one's.
+
+
+---
+
+## 2026-10-01 — The wiring we specified for `load_last` would have done nothing at all
+
+- What happened: `SA-16` was specified as "reorder that item to the end of the boxes list passed to
+  the solver (the solver places in list order, so this achieves loaded last)". The solver does not
+  place in list order. `solve()` places `loading_order(boxes, constraints)`, and `loading_order`
+  always sorts — by stop, then `load_last`, then descending volume, then id. Passing the list in a
+  different order was checked against the real solver: reversing the input gave a **byte-identical
+  plan**, and moving the box to the end of the list left its x unchanged at 0. The feature would have
+  shipped, passed a careless test, and done nothing.
+- Why: the premise was about a solver that does not exist. Worse, `load_last` is already in the
+  solver's `HONOURED` set and already implemented in `loading_order` via `last_group` — the work was
+  not to build the behaviour but to open a door to it. Three lines of wiring through
+  `quai.constraints.parse()` move the box from x=0 (loaded first, back wall) to x=70 (loaded last,
+  nearer the doors), which is the whole visible effect that was asked for.
+- What we tried: the premise was tested before it was built, which is the only reason this entry is
+  not a bug report. Two checks, both against `quai.solver` rather than against a reading of it:
+  reorder the input list and compare the plan (identical), then pass a `load_last` constraint through
+  `parse()` and compare (changed). The first attempt at the *test* was wrong in the same family — it
+  used a box that the volume tie-break was already loading last, so it asserted nothing; and the
+  first container was a 100 cm cube, where every box stacks at x=0 and "nearer the doors" cannot be
+  observed even when the ordering is correct. Both are now chosen deliberately, with the reason in a
+  comment.
+- What we learned: a task that says "the solver does X, so do Y" is two claims, and the cheap one to
+  check is the first. The reorder was plausible — plenty of packers do consume list order — and
+  nothing about the specification looked wrong until `loading_order` was read. For a solver this
+  layer does not own, read the function before wiring to its supposed behaviour.
+- Related branch / PR: `feature/plan-constraints`, `SA-16`.
