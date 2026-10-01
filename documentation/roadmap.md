@@ -13,7 +13,7 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | In review (#27) |
 | 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
 | 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | In review (#33) |
-| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `MORHI11` | `Lpk78` | To do |
+| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `SamDana-maker` | `MORHI11` | Plan screen in review (#PR); 3D view next |
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
 
 Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` wrote the v1 solver,

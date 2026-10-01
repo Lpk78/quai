@@ -95,6 +95,20 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
 dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
 
+### The web app
+
+```bash
+cd web && npm install && npm run dev      # http://localhost:5173
+```
+
+`/` is the landing page and `/app` the application shell. `/app/plan` asks the solver for a plan and
+shows it: where each box goes, and which ones did not fit. It needs the API running
+(`uvicorn server:app --app-dir src`), and reads its address from `VITE_API_URL`, defaulting to
+`http://127.0.0.1:8000`. Screenshots at phone width are in `documentation/screenshots/`.
+
+The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
+the same eleven-box demo load as `src/demo.py`, and says so.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
