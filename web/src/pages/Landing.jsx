@@ -6,7 +6,9 @@ import {
   Hero,
   HowItWorks,
   IconStrip,
+  LoadingPlanReady,
   Nav,
+  RouteOrder,
   WhyQuai,
 } from "../landing/sections.jsx";
 import "../landing.css";
@@ -19,6 +21,8 @@ export default function Landing() {
         <Hero />
         <HowItWorks />
         <Features />
+        <LoadingPlanReady />
+        <RouteOrder />
         <IconStrip />
         <WhyQuai />
         <DayOnTheDock />

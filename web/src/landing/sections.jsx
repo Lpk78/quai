@@ -4,6 +4,7 @@ import logoLight from "../../../assets/brand/logo/quai-logo-light.svg";
 import logoOnNavy from "../../../assets/brand/logo/quai-logo-on-navy.svg";
 import {
   IconBraces,
+  IconClock,
   IconBox,
   IconCube,
   IconMic,
@@ -231,7 +232,7 @@ const PANELS = [
     ],
     shot: "phone_route_map",
     alt: "The QUAI app showing the stops for the day and the route between them.",
-    planned: "planned",
+    planned: "planned, not shipped",
   },
 ];
 
@@ -241,8 +242,11 @@ export function Features() {
       {PANELS.map((panel) => (
         <article className="panel" key={panel.eyebrow}>
           <div className="panel__text">
-            <p className="eyebrow">
-              {panel.eyebrow}
+            <p className="eyebrow">{panel.eyebrow}</p>
+            {/* Its own row, the same height in every card so the titles still line up. "planned"
+                alone read as *planned route* on this card, which is the one claim design.md
+                forbids — a label that can be read as the feature is not a label (#34). */}
+            <p className="panel__badge">
               {panel.planned && <span className="tag">{panel.planned}</span>}
             </p>
             <h2>{panel.title}</h2>
@@ -263,7 +267,11 @@ export function Features() {
   );
 }
 
-/* 5 — the navy band is the site footer: it closes the page rather than interrupting it ---------- */
+/* 5 — the navy band is the site footer (landing_ref_1's treatment, at the end of the page) -------
+
+   #34 moved it here and the review of #42 moved it back: the strongest element on the page should
+   close it rather than interrupt it. The reference's own words are not used — it carries two
+   taglines design.md forbids. */
 
 export function FooterBand() {
   return (
@@ -271,26 +279,116 @@ export function FooterBand() {
       <div className="band__text">
         <img className="band__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
         <p className="band__line">People talk. We load.</p>
-        <ul className="band__links">
+        <p className="band__copyright">© 2026 QUAI</p>
+      </div>
+      <nav className="band__links" aria-label="Footer">
+        <ul>
+          <li className="band__heading">Product</li>
           {NAV_LINKS.map(([label, href]) => (
             <li key={href}>
               <a href={href}>{label}</a>
             </li>
           ))}
+        </ul>
+        <ul>
+          <li className="band__heading">Get started</li>
+          <li>
+            <Link to="/app">Open the app</Link>
+          </li>
           <li>
             <Link to="/app">Log in</Link>
           </li>
         </ul>
-        <p className="band__copyright">© 2026 QUAI</p>
-      </div>
+      </nav>
       <Picture
         className="band__image"
-        name="operator-cut"
+        name="operator_bust"
         widths={[360, 720]}
-        sizes="(max-width: 760px) 45vw, 18vw"
+        sizes="(max-width: 760px) 34vw, 15vw"
         alt="An operator checking a parcel on a phone."
       />
     </footer>
+  );
+}
+
+/* 5b — loading plan ready (landing_ref_3) ------------------------------------------------------- */
+
+const EXAMPLE_VAN = [
+  [<IconBox key="i" />, "124", "Parcels"],
+  [<IconPin key="i" />, "28", "Stops"],
+  [<IconClock key="i" />, "4h 20m", "Estimated route time"],
+];
+
+export function LoadingPlanReady() {
+  return (
+    <section className="plan">
+      <div className="plan__text">
+        <h2>Loading plan ready</h2>
+        <p className="plan__body">
+          Built from the rules you said and the stop order on your delivery list. Every parcel has a
+          place before anyone picks one up.
+        </p>
+        <ul className="plan__tiles">
+          {EXAMPLE_VAN.map(([icon, value, label]) => (
+            <li key={label}>
+              <span className="plan__icon" aria-hidden="true">{icon}</span>
+              <span>
+                <strong className="data">{value}</strong>
+                <span>{label}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {/* design.md: figures that are not measurements must say so. These are one example van. */}
+        {/* Two different things to say, and the review of #42 found that saying only the first
+            reads as "the number is illustrative but the feature is here": these are one example
+            van's figures, *and* the estimated route time is not shipped (#35). */}
+        <p className="plan__notes">
+          <span className="tag">Example van — not a measured result</span>
+          <span className="tag">Estimated route time — planned, not shipped</span>
+        </p>
+      </div>
+      <PhoneShot name="phone_home" alt="The QUAI app home screen on a phone." />
+    </section>
+  );
+}
+
+/* 5c — route and delivery order (landing_ref_2) -------------------------------------------------- */
+
+const STOP_GROUPS = [
+  ["one", "At the doors", "comes off first"],
+  ["two", "Middle", "the stops after it"],
+  ["three", "At the back", "comes off last"],
+];
+
+export function RouteOrder() {
+  return (
+    <section className="route">
+      <div className="route__text">
+        <h2>Route &amp; delivery order</h2>
+        <p className="route__body">
+          QUAI groups and places your parcels so the right ones are near the right doors. The order is
+          your delivery list&rsquo;s, not ours.
+        </p>
+        <ul className="route__legend">
+          {STOP_GROUPS.map(([tone, where, when]) => (
+            <li key={where}>
+              <span className={`route__dot route__dot--${tone}`} aria-hidden="true" />
+              <span>
+                <strong>{where}</strong> — {when}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Picture
+        className="route__van"
+        name="van_topdown"
+        widths={[640, 1024, 1600]}
+        sizes="(max-width: 900px) 95vw, 55vw"
+        alt="A van seen from above, its parcels grouped in three colours by delivery stop."
+      />
+    </section>
   );
 }
 
@@ -306,6 +404,13 @@ const STRIP = [
 export function IconStrip() {
   return (
     <section className="strip">
+      <Picture
+        className="strip__boxes"
+        name="boxes_quai"
+        widths={[480, 960]}
+        sizes="(max-width: 1100px) 0px, 12vw"
+        alt=""
+      />
       <ul>
         {STRIP.map(([icon, title, body]) => (
           <li key={title}>
@@ -319,6 +424,13 @@ export function IconStrip() {
           </li>
         ))}
       </ul>
+      <Picture
+        className="strip__operator"
+        name="operator_thumbsup"
+        widths={[400, 800]}
+        sizes="(max-width: 1100px) 0px, 10vw"
+        alt=""
+      />
     </section>
   );
 }
@@ -376,8 +488,8 @@ export function DayOnTheDock() {
     <section className="dock">
       <h2>A day on the dock</h2>
       <div className="dock__tiles">
-        {TILES.map(([name, widths, caption, alt]) => (
-          <figure className="dock__tile" key={name}>
+        {TILES.map(([name, widths, caption, alt, kind]) => (
+          <figure className={`dock__tile ${kind === "cutout" ? "dock__tile--cutout" : ""}`} key={name}>
             <Picture name={name} widths={widths} sizes="(max-width: 760px) 90vw, 23vw" alt={alt} />
             <figcaption>{caption}</figcaption>
           </figure>

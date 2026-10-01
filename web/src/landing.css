@@ -342,7 +342,7 @@
   align-items: stretch;
   gap: 1.5rem;
   /* Room above the row for the phones to stand out of their cards. */
-  padding-top: calc(var(--space-section) + 110px);
+  padding-top: calc(var(--space-section) + 90px);
 }
 
 .panel {
@@ -376,9 +376,10 @@
 
 .panel .phone-shot {
   align-self: end;
-  /* Negative top margin is what lets it overflow upward: the phone contributes 210 px to the row
-     and stands 110 px above the card. */
-  margin-top: -110px;
+  /* Negative top margin is what lets it overflow upward. The value has to beat the text column's
+     height, which grew when the badge row was added — measured, not guessed: at -110px the phone
+     had stopped protruding and started 8 px *inside* the card. */
+  margin-top: -185px;
   height: 320px;
 }
 
@@ -415,65 +416,69 @@
   filter: drop-shadow(0 18px 30px rgba(16, 34, 56, 0.26));
 }
 
-/* --- 5. navy band ---------------------------------------------------------------------------- */
+/* --- 5. compact navy banner between sections (landing_ref_1) ----------------------------------- */
 
-/* The footer is a card in the same column as every other section, not a full-bleed strip: it is a
-   <footer> rather than a <section>, so it has to say so itself. */
 .band {
   position: relative;
   max-width: 84rem;
-  margin-left: auto;
-  margin-right: auto;
+  width: calc(100% - var(--gutter) * 2);
+  margin: calc(var(--space-section) + 4rem) auto var(--space-block);
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  /* Room for the operator to run past the top edge without the band growing to fit him. */
-  margin-top: calc(var(--space-section) + 4rem);
-  gap: 2rem;
-  margin-top: var(--space-section);
-  padding: clamp(1.75rem, 2.4vw, 2.5rem) clamp(2rem, 3vw, 3.25rem);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-right: clamp(12rem, 27vw, 23.5rem);
+  align-items: end;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(1.75rem, 2.4vw, 2.5rem) clamp(1.75rem, 2.4vw, 2.75rem);
   background: var(--quai-navy);
   border-radius: var(--radius);
   overflow: visible;
 }
 
-/* The plaque-free lockup: white mark and wordmark on transparency, so the band's own navy shows
-   through rather than a second navy rectangle sitting on it. */
 .band__logo {
   display: block;
-  height: 3.4rem;
+  height: 3rem;
   width: auto;
 }
 
 .band__line {
-  margin-top: 0.9rem;
+  margin-top: 0.85rem;
   color: var(--quai-surface);
   font-family: var(--quai-font-display);
   font-weight: 700;
-  font-size: clamp(1.7rem, 3.2vw, 2.8rem);
+  font-size: clamp(1.5rem, 2.8vw, 2.4rem);
   line-height: 1.12;
   letter-spacing: -0.02em;
 }
 
-.band__image {
-  display: block;
-  align-self: end;
-  width: clamp(8rem, 15vw, 12.5rem);
-  height: auto;
-  margin-right: clamp(0.5rem, 3vw, 3rem);
-  /* He stands on the band's floor and out of its top. No drop-shadow: on navy it reads as the dark
-     halo the cut-out exists to remove. */
-  margin-bottom: calc(clamp(1.75rem, 2.4vw, 2.5rem) * -1);
-  margin-top: -5rem;
+.band__copyright {
+  margin-top: 1.1rem;
+  color: var(--quai-surface);
+  opacity: 0.6;
+  font-size: 0.85rem;
 }
 
 .band__links {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin: 1.5rem 0 0;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-self: center;
+}
+
+.band__links ul {
+  margin: 0;
   padding: 0;
   list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.band__heading {
+  color: var(--quai-surface);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 0.2rem;
 }
 
 .band__links a {
@@ -481,23 +486,55 @@
   text-decoration: none;
   opacity: 0.85;
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .band__links a:hover {
   opacity: 1;
 }
 
-.band__copyright {
-  margin-top: 1rem;
-  color: var(--quai-surface);
-  opacity: 0.6;
-  font-size: 0.85rem;
+/* He stands out of the band's top edge on the right. No drop-shadow: on navy it reads as the dark
+   halo the cut-out exists to remove. */
+.band__image {
+  display: block;
+  align-self: end;
+  width: clamp(8rem, 15vw, 13rem);
+  height: auto;
+  /* Feet on the band's floor, head above its top edge. Sized from the band rather than guessed:
+     100% of its height plus 3.5rem is exactly how far he stands out, whatever the band's content
+     makes it. Three earlier attempts with margins and translates all left him inside, because with
+     align-self:end a negative margin-top changes the room reserved, not the position. */
+  position: absolute;
+  right: clamp(1rem, 4vw, 3.5rem);
+  bottom: 0;
+  height: calc(100% + 3.5rem);
+  width: auto;
 }
 
 /* --- 6. icon strip ----------------------------------------------------------------------------- */
 
 .strip {
+  position: relative;
   padding-top: var(--space-block);
+}
+
+/* The two cut-outs sit against the strip's ends, as in landing_ref_6. They are decoration: the alt
+   text is empty and they are dropped rather than shrunk when the row gets tight. */
+.strip__boxes,
+.strip__operator {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.strip__boxes {
+  left: var(--gutter);
+  width: clamp(7rem, 11vw, 10rem);
+}
+
+.strip__operator {
+  right: var(--gutter);
+  width: clamp(6rem, 9vw, 8.5rem);
 }
 
 .strip ul {
@@ -506,6 +543,8 @@
   gap: 1rem;
   margin: 0;
   padding: 1.5rem clamp(1.25rem, 2vw, 2rem);
+  padding-left: clamp(9rem, 13vw, 12rem);
+  padding-right: clamp(8rem, 11vw, 10.5rem);
   list-style: none;
   background: var(--quai-surface);
   border-radius: var(--radius);
@@ -631,10 +670,19 @@
 
 .dock__tile img {
   width: 100%;
+  /* Reserved before the image arrives, so the row never collapses and then jumps. */
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: var(--radius-sm);
   box-shadow: var(--lift-sm);
+}
+
+/* A transparent cut-out is a portrait, not a photograph: cropping it square to match the others
+   takes her head off. Shown whole on the brand background instead. */
+.dock__tile--cutout img {
+  object-fit: contain;
+  background: var(--quai-surface);
+  padding: 0.5rem;
 }
 
 .dock__tile figcaption {
@@ -661,6 +709,178 @@
   flex-wrap: wrap;
   gap: 0.85rem;
   margin-top: 2rem;
+}
+
+/* --- 5b. loading plan ready (landing_ref_3) ---------------------------------------------------- */
+
+/* Two balanced columns, centred, rather than text hard left and a small phone hard right with the
+   middle empty — measured at 902 px of text against 266 px of phone before (#42). */
+.plan {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  align-items: center;
+  justify-items: center;
+  gap: 4rem;
+  max-width: 75rem;
+  padding-top: var(--space-section);
+}
+
+.plan__text {
+  max-width: 30rem;
+  justify-self: end;
+}
+
+.plan h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.8rem);
+  color: var(--quai-navy);
+}
+
+.plan__body {
+  margin-top: 1rem;
+  color: var(--quai-text-muted);
+}
+
+.plan__tiles {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan__tiles li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--quai-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--lift-sm);
+}
+
+.plan__icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: none;
+  border-radius: 0.9rem;
+  background: var(--quai-background);
+  color: var(--quai-navy);
+}
+
+.plan__tiles strong {
+  display: block;
+  font-size: 1.4rem;
+  color: var(--quai-navy);
+  line-height: 1.1;
+}
+
+.plan__tiles span span {
+  font-size: 0.88rem;
+  color: var(--quai-text-muted);
+}
+
+.plan .phone-shot {
+  height: clamp(22rem, 34vw, 32rem);
+}
+
+/* Two notes, each its own pill: one about the figures, one about the feature. */
+.plan__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+/* --- 5c. route and delivery order (landing_ref_2) ------------------------------------------------ */
+
+.route {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding-top: var(--space-section);
+}
+
+.route h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  color: var(--quai-navy);
+}
+
+.route__body {
+  margin-top: 0.75rem;
+  color: var(--quai-text-muted);
+  font-size: 0.95rem;
+}
+
+.route__legend {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+  color: var(--quai-text-muted);
+}
+
+.route__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.route__legend strong {
+  color: var(--quai-navy);
+}
+
+.route__dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  border-radius: 999px;
+}
+
+/* The three stop colours. design.md: colour never carries the meaning on its own, which is why
+   every row is also named in words. */
+.route__dot--one { background: var(--quai-orange); }
+.route__dot--two { background: var(--quai-stop-1); }
+.route__dot--three { background: var(--quai-stop-2); }
+
+.route__van {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+/* --- 10. a plain light footer ------------------------------------------------------------------- */
+
+.foot {
+  max-width: 84rem;
+  margin: var(--space-section) auto 0;
+  padding: 1.75rem var(--gutter) 2.5rem;
+  border-top: 1px solid rgba(16, 34, 56, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--quai-text-muted);
+  font-size: 0.9rem;
+}
+
+.foot ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.foot a {
+  color: var(--quai-text-muted);
+  text-decoration: none;
 }
 
 /* --- responsive ---------------------------------------------------------------------------------- */
@@ -745,21 +965,40 @@
     align-self: center;
   }
 
-  /* The band keeps its two columns on a phone: stacking would put the operator on top of the links
-     and the copyright, and he is a cut-out with no background to hide behind. */
-  .band {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem;
+  .banner {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "logo image" "line image";
+    row-gap: 0.5rem;
   }
 
-  .band__image {
-    width: 6.5rem;
-    margin-top: -3rem;
-    margin-right: 0;
+  .banner__logo { grid-area: logo; }
+  .banner__line { grid-area: line; }
+  .banner__image { grid-area: image; width: 5.5rem; }
+
+  .plan,
+  .route {
+    grid-template-columns: 1fr;
   }
 
-  .band__links {
-    gap: 1rem;
+  .plan .phone-shot {
+    justify-self: center;
+    height: 22rem;
+  }
+
+  /* The flanking cut-outs are decoration; on a phone the row needs all its width. */
+  .strip__boxes,
+  .strip__operator {
+    display: none;
+  }
+
+  .strip ul {
+    padding-left: clamp(1.25rem, 2vw, 2rem);
+    padding-right: clamp(1.25rem, 2vw, 2rem);
+  }
+
+  .foot {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

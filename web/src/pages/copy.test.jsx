@@ -104,6 +104,47 @@ describe("no features the app does not have", () => {
   });
 });
 
+describe("an unbuilt feature carries its warning", () => {
+  /* #34: the badge drifted from "Route view, estimated times and hand-off — planned, not shipped"
+     to the single word "planned", which on a card headed "Route and stop order" reads most
+     naturally as *planned route* — the one claim design.md forbids. design.md says a planned
+     feature described as though it shipped is the same dishonesty one step along, and nothing
+     pinned the label, so it drifted. This pins it. */
+  it("says the route feature is not shipped, in words that cannot be read as the feature", () => {
+    expect(textOf("/")).toContain("planned, not shipped");
+  });
+
+  it("puts that warning on every surface that mentions an unbuilt feature", () => {
+    /* The first version of this test pinned the label to the route *panel*. The rule is about the
+       page: the review of #42 found "Estimated route time" on a second surface with no warning,
+       which is the same gap that let the badge drift in the first place. So the test now walks
+       every section and asks the question of each one that raises the claim. */
+    const { container } = render(
+      <MemoryRouter initialEntries={["/"]}>
+        <App />
+      </MemoryRouter>,
+    );
+    const CLAIMS = /estimated route time|navigation (app|and live)|hand-?off|delivery progress/i;
+    const surfaces = [...container.querySelectorAll("section, .panel")].filter(
+      (node) =>
+        CLAIMS.test(node.textContent) &&
+        // only the innermost surface that raises it, so a parent is not blamed for its child
+        ![...node.querySelectorAll("section, .panel")].some((child) =>
+          CLAIMS.test(child.textContent),
+        ),
+    );
+    expect(surfaces.length).toBeGreaterThan(0);
+    for (const surface of surfaces) {
+      expect(surface.textContent).toContain("planned, not shipped");
+    }
+  });
+
+  it("never labels it with the bare word, which reads as a planned route", () => {
+    const badges = [...document.querySelectorAll(".tag")].map((b) => b.textContent.trim());
+    for (const badge of badges) expect(badge).not.toBe("planned");
+  });
+});
+
 describe("QUAI never chooses the route or the stop order", () => {
   /* The architectural rule the relaxed feature rule makes easier to break: the delivery list is an
      input. QUAI shows it, loads to match it, and hands off to a navigation app — it does not compute
