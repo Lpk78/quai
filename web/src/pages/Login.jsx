@@ -12,11 +12,11 @@ import "../app.css";
  * video element, the framing and every failure state below are ours, styled from tokens.css like
  * the rest of the app.
  *
- * The camera needs a secure context, and `http://` on a LAN address is not one, so the phone demo
- * (README, "Phone demo") cannot scan: `navigator.mediaDevices` is simply absent there. That is not
- * an error state to apologise for — it is the manual-entry state, the same shape as the dictate
- * screen's text field when speech recognition is missing. jsdom has no camera either, which is how
- * the tests reach it.
+ * The camera needs a secure context. The phone demo serves HTTPS for that reason (README, "Phone
+ * demo"), but a machine with no certificate, a phone that does not trust the one there is, and jsdom
+ * all land in the same place: `navigator.mediaDevices` absent. That is not an error state to
+ * apologise for — it is the manual-entry state, the same shape as the dictate screen's text field
+ * when speech recognition is missing, and it is how the tests reach this path.
  */
 
 // How long the operator's name stays on screen before the app opens. Long enough to read who was

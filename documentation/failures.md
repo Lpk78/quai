@@ -544,8 +544,13 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   `false` and `navigator.mediaDevices` is absent. Same build, same port, same browser.
 - What we learned: the screen was built so that the absent camera is a state and not a crash — the
   same shape the dictate screen already uses when speech recognition is missing. `/login` detects it
-  and offers the code typed in instead, so the phone demo still signs in, and scanning works from the
-  Mac at `localhost`. The honest fix is HTTPS on the LAN (`mkcert`, or a tunnel), which is not built:
-  it needs a certificate the phone trusts, which is its own task. Worth knowing before the demo, so
-  the card is scanned from the laptop and the phone is driven by hand.
-- Related branch / PR: `feature/phone-demo-login`, `LP-20`.
+  and offers the code typed in instead, so the phone demo still signs in either way. That fallback is
+  what made the finding survivable rather than fatal, and it is still the behaviour on any machine
+  without a certificate.
+- **Resolved the same evening (`LP-21`).** mkcert issues a certificate for the Mac's LAN address,
+  `vite.config.js` picks it up when `.certs/` exists, and both servers run over HTTPS. Measured
+  again at `https://192.168.1.201:5173`: `isSecureContext` is now `true`, `getUserMedia` exists, and
+  the scanner reaches its `scanning` state — the camera opens. The remaining manual step is on the
+  device and not in the repository: the phone trusts the Mac's CA only once its root is installed
+  *and* enabled there, which the README now spells out.
+- Related branch / PR: `feature/phone-demo-login`, `LP-20`; fixed by `feature/https-lan`, `LP-21`.
