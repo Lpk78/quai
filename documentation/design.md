@@ -193,11 +193,32 @@ explains the result.
 | "AI-powered loading order" | "Loading order follows your delivery stops" |
 | "Smart AI stacking" | "Stacking that respects the limits you stated" |
 
-**Do not describe features the app does not have.** No route map, no ETA, no live tracking, no driver
-tracking, no pricing or billing, no fleet management, no barcode catalogue, no integrations. The bonus
-list in `documentation/roadmap.md` is a list of things we have *not* built; it is not marketing copy.
-If a mockup shows a feature we do not have, the mockup is a mood image and must not be captioned as a
-screenshot.
+**Only describe features that are built or planned.** Changed on 2026-10-01: the route view, an
+estimated time per stop, handing off to a navigation app and delivery progress are **planned** — the
+server work is `SA-12` — issue #35, `POST /route` — and the app screen follows it. They may be described. What is still out of
+scope, and still forbidden: pricing and billing, fleet management, a barcode catalogue, integrations.
+The bonus list in `documentation/roadmap.md` is a list of things we have *not* built and is not
+marketing copy.
+
+**But QUAI never chooses the route or the stop order.** This is the same architectural rule as above,
+and relaxing the first rule makes it easier to break, not harder. The delivery list arrives with the
+manifest; QUAI shows it, loads to match it, and can hand the driver to a navigation app. It does not
+compute it, reorder it or improve it.
+
+| Do not write | Write instead |
+|---|---|
+| "Optimised route" / "we optimise your route" | "Your route" — it is the operator's |
+| "QUAI plans the best order of stops" | "QUAI loads to match your stop order" |
+| "AI-optimised delivery order" | Nothing: the order is an input |
+| "Faster routes" | Nothing: that is a measured saving we have not measured |
+
+**Say when something is not built yet.** A planned feature described as though it shipped is the same
+dishonesty the old rule guarded against, one step along. Label it.
+
+**These rules are executable.** `web/src/pages/copy.test.jsx` renders every page and fails on the
+phrases above — the invented slogans, any claim that the AI or QUAI plans the load or chooses the
+stops, a measured saving, pricing, and any mention of a school or a course. Read it before writing
+copy: it is faster than reading this section, and it is the version that will actually stop you.
 
 **No real brand marks in published images.** No real carrier, retailer, van, or software logo, no
 recognisable real packaging, no real company name on a box, a truck, a building or a screen. Generated

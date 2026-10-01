@@ -15,7 +15,10 @@ function at(path) {
 describe("routing", () => {
   it("shows the landing page at /", () => {
     at("/");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("People talk. We load.");
+    // The headline is broken over two lines, as the mockup sets it, so textContent has no space.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(/People talk\./);
+    expect(heading).toHaveTextContent(/We load\./);
   });
 
   it("shows the application shell at /app", () => {
@@ -30,7 +33,11 @@ describe("routing", () => {
 
   it("lets the landing page reach the application", () => {
     at("/");
-    expect(screen.getAllByRole("link", { name: /open the app/i }).length).toBeGreaterThan(0);
+    const toApp = screen
+      .getAllByRole("link")
+      .filter((a) => a.getAttribute("href") === "/app");
+    expect(toApp.length).toBeGreaterThan(0);
+    expect(toApp.some((a) => /get started/i.test(a.textContent))).toBe(true);
   });
 });
 
