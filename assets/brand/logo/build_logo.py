@@ -58,8 +58,14 @@ def _masks(box):
     return navy, orange, art & ~navy & ~orange, art
 
 
-def _to_path(mask, decimals=1):
-    """Trace one mask into SVG path data, scaled back to 1x."""
+def _to_path(mask, decimals=1, turdsize=20):
+    """Trace one mask into SVG path data, scaled back to 1x.
+
+    `turdsize` is potrace's speckle filter, in pixels at UPSCALE. The default is enough for the two
+    lockups and the icon, where every shape is large. The on-navy variant needs far more: its crop
+    sits inside the navy plaque, so the sheet's own compression noise along that edge traces as a
+    scatter of tiny white dots — a faint dotted frame around the logo, spotted in review on #34.
+    """
     import numpy as np
     import potrace
 
@@ -72,7 +78,7 @@ def _to_path(mask, decimals=1):
     def pt(p):
         return f"{round(p.x * scale, decimals)},{round(p.y * scale, decimals)}"
 
-    for curve in bmp.trace(turdsize=20, alphamax=1.0, opticurve=True, opttolerance=0.2):
+    for curve in bmp.trace(turdsize=turdsize, alphamax=1.0, opticurve=True, opttolerance=0.2):
         out.append(f"M{pt(curve.start_point)}")
         for seg in curve:
             if seg.is_corner:
@@ -104,7 +110,8 @@ def files() -> dict[str, str]:
             # The crop is inside the plaque, so anything that is neither navy nor orange is a white
             # letter. The usual `white` mask cannot be used: white letters are within tolerance of
             # the sheet's own paper colour and would be dropped as background.
-            paths = [(_to_path(~(navy | orange)), WHITE), (_to_path(orange), ORANGE)]
+            paths = [(_to_path(~(navy | orange), turdsize=600), WHITE),
+                     (_to_path(orange, turdsize=600), ORANGE)]
         else:
             paths = [(_to_path(art), NAVY), (_to_path(white), WHITE), (_to_path(orange), ORANGE)]
         out[name] = _svg(box, paths)
@@ -117,7 +124,28 @@ def build(out_dir: Path) -> None:
         (out_dir / name).write_text(svg)
 
 
+def record_fingerprint() -> str:
+    """Write the hash of the sheet, this script and the four SVGs beside them.
+
+    `tests/test_brand.py` compares it on every run and only re-traces when it no longer matches, so
+    the six-second check costs nothing on the runs where nothing about the logo moved.
+    """
+    import hashlib
+
+    here = Path(__file__).resolve().parent
+    names = ["quai-logo-v2-sheet.png", "build_logo.py", *files()]
+    digest = hashlib.sha256()
+    for name in names:
+        digest.update(f"logo/{name}".encode())
+        digest.update((here / name).read_bytes())
+    value = digest.hexdigest()
+    (here / "traced.sha256").write_text(value + "\n")
+    return value
+
+
 if __name__ == "__main__":
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent
     build(target)
     print(f"traced {len(JOBS)} files into {target}")
+    if target == Path(__file__).resolve().parent:
+        print(f"fingerprint {record_fingerprint()[:16]}…")
