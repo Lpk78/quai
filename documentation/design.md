@@ -38,11 +38,12 @@ rendering of everything above and would be the largest file we own.
 | `surface` | `#FFFFFF` | Cards, sheets and anything that sits on the background |
 | `text` | `#1F2937` | All body text |
 | `primary_safety_orange` | `#FF8A00` | The action colour: primary buttons, the microphone, the selected state |
-| Navy | `#102238` | The logo's dock, dark surfaces, and **all text placed on orange** |
+| `navy` | `#102238` | The logo's dock, dark surfaces, and **all text placed on orange** |
 
-Navy `#102238` is in the logo and the app icon but not in `tokens.json`. It is a real part of the
-identity and this document treats it as one; adding it to the token file is a job for whoever next
-edits the kit.
+Navy arrived in the logo and the app icon but not in the supplied `tokens.json`. It is now a token:
+it is the mandatory text colour on orange, so an interface built from the token file alone would
+otherwise be missing the one colour the central accessibility rule requires. `tests/test_brand.py`
+reads it from the tokens rather than hardcoding it, so the rule and the palette cannot drift apart.
 
 ### Status
 
@@ -283,7 +284,6 @@ those rules win — and they do conflict, in the ways listed under *Copy rules*.
 
 ## What is not decided yet
 
-- Navy `#102238` is used throughout but is not a token; it should be added to `tokens.json`.
 - No dark theme is defined. The dark logo exists, but the surface, text and status colours for a dark
   interface do not.
 - No spacing scale, type scale or elevation scale. Whoever builds #18 should propose one and add it here

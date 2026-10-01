@@ -18,9 +18,11 @@ BRAND = ROOT / "assets" / "brand"
 TOKENS = json.loads((BRAND / "tokens.json").read_text())
 DESIGN = (ROOT / "documentation" / "design.md").read_text()
 
-NAVY = "#102238"        # the logo's dock colour, and the only text colour allowed on orange
-DARK_ORANGE = "#C2410C"  # orange as *text*, where #FF8A00 is far too light
-WHITE = "#FFFFFF"
+# Read from the tokens, never hardcoded: the contrast rules below are only a guarantee about the
+# palette if they are computed from the same file the interface will be built from.
+NAVY = TOKENS["colors"]["navy"]          # the only text colour allowed on orange
+WHITE = TOKENS["colors"]["surface"]
+DARK_ORANGE = "#C2410C"                  # orange as *text*; not a brand token, a derived one
 
 # WCAG 2.1: body text needs 4.5:1, text at 24px (or 19px bold) and above needs 3:1.
 AA_SMALL = 4.5
@@ -59,7 +61,16 @@ class TestTokens(unittest.TestCase):
         self.assertEqual(colours["background"], "#F7F6F3")
         self.assertEqual(colours["surface"], "#FFFFFF")
         self.assertEqual(colours["text"], "#1F2937")
+        self.assertEqual(colours["navy"], "#102238")
         self.assertEqual(colours["primary_safety_orange"], "#FF8A00")
+
+    def test_navy_is_a_token_and_not_only_a_rule_in_prose(self):
+        """It is the mandatory text colour on orange, so it has to reach the interface as a token."""
+        self.assertIn("navy", TOKENS["colors"])
+        for colour in TOKENS["colors"].values():
+            if isinstance(colour, str):
+                with self.subTest(colour):
+                    self.assertRegex(colour, r"^#[0-9A-F]{6}$")
 
     def test_the_three_fonts_are_the_ones_design_md_documents(self):
         for font in ("Plus Jakarta Sans", "Inter", "JetBrains Mono"):
