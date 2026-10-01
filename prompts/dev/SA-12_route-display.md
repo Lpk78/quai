@@ -18,3 +18,26 @@ README.
 
 ## Outcome
 
+- **PR:** https://github.com/Lpk78/quai/pull/35 (reviewer: `MORHI11`)
+- **What the AI produced:** `src/quai/routing.py` (the geocoder and router clients, their named failures
+  and the arrival-offset arithmetic), `POST /route` in `src/server.py` with the error mapping,
+  `tests/test_routing.py` and the `TestRouteEndpoint` class in `tests/test_server.py` — 29 tests, all HTTP
+  mocked — the README section documenting both services and their limits, and the `failures.md` entry.
+- **What was changed by hand:** two things, both about not trusting the work.
+  The response shapes were taken from the live services before any client was written, not from memory:
+  one call each to `api-adresse.data.gouv.fr` and `router.project-osrm.org`, which is how the leg/waypoint
+  structure and the "empty `features` list rather than an error" behaviour were established.
+  Then the order guard was mutation-tested, and the first version of the test fixture did not catch a
+  sort. Fixed and written up (see below).
+- **Verified:** 290 tests pass. The reordering guard was mutation-tested four ways — sort by longitude,
+  sort by latitude, reverse the list, and swap `/route` for `/trip` — and each now fails the suite. The
+  README's example response is a real one: the pipeline was run end to end against both live services on
+  2026-10-01 and the numbers pasted from what came back, rather than an example written to look right.
+- **What went wrong:** the two tests asserting stop order passed against `sorted(points, key=lon)`,
+  because the fixture drove Amiens → Paris → Lille, which is already in ascending longitude. The test
+  looked like it was about sequence while the data made sequence irrelevant. The fixture now drives
+  Lille → Amiens → Paris, which differs from every plausible sort. `documentation/failures.md`,
+  *The order test that could not fail*.
+- **Scope note:** no issue and no roadmap row existed for this work. A `feature/route-display` row was
+  added to the roadmap's *Later* table rather than leaving it untracked; the PR asks the reviewer whether
+  it should have been an issue first.
