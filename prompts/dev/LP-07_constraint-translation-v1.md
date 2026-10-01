@@ -14,7 +14,7 @@
 
 ## Outcome
 
-- **PR:** (filled when opened; reviewer `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/30 (reviewer: `SamDana-maker`)
 - **What the AI produced:** `prompts/constraint-translation/v1_zero_shot.md` — the first version of the
   family — the `prompt_text()` extraction in `src/evaluate_prompt.py` with its five tests, the results
   row, and the `documentation/failures.md` entry on what the run found.
