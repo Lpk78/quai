@@ -3,11 +3,13 @@
 Run from the repository root:  uvicorn server:app --app-dir src --reload
 """
 from collections import Counter
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from quai import routing
 from quai.models import Box, Container
 from quai.solver import solve
 
@@ -92,4 +94,76 @@ def plan(request: PlanRequest) -> PlanResponse:
         unplaced=[b.id for b in result.unplaced],
         fill_rate=result.fill_rate,
         total_weight=result.total_weight,
+    )
+
+
+class StopIn(BaseModel):
+    id: str = Field(min_length=1, description="the stop id used everywhere else, e.g. S1")
+    address: str = Field(min_length=1, description="a postal address in France")
+
+
+class RouteRequest(BaseModel):
+    """The stops of one delivery list, in the order they will be driven.
+
+    That order is an input, not a question: QUAI never reorders stops. It comes with the manifest
+    and the solver loads the vehicle against it, so a route drawn in any other order would describe
+    a different journey from the one that was loaded.
+    """
+    stops: list[StopIn] = Field(min_length=routing.MIN_STOPS)
+    departure_time: datetime | None = Field(
+        default=None,
+        description="when the vehicle leaves the first stop; absolute ETAs are returned when given")
+
+
+class StopOut(BaseModel):
+    id: str
+    address: str
+    label: str              # the address as the geocoder read it, for spotting a wrong match
+    lon: float
+    lat: float
+    eta_seconds: float      # driving time from the first stop; 0 at the first stop
+    eta: datetime | None    # the same instant, only when a departure_time was given
+
+
+class RouteResponse(BaseModel):
+    stops: list[StopOut]
+    geometry: dict          # GeoJSON LineString for the map
+    total_distance_m: float
+    total_duration_s: float
+
+
+@app.post("/route")
+def route(request: RouteRequest) -> RouteResponse:
+    """Geocode the stops, route through them in order, and time the arrivals.
+
+    Driving time only: nothing in QUAI knows yet how long unloading a stop takes.
+    """
+    duplicates = sorted(i for i, n in Counter(s.id for s in request.stops).items() if n > 1)
+    if duplicates:
+        raise HTTPException(status_code=422, detail=f"duplicate stop ids: {", ".join(duplicates)}")
+
+    with routing.build_client() as client:
+        try:
+            points = [routing.geocode(stop.address, client) for stop in request.stops]
+            road = routing.road_route(points, client)
+        except routing.AddressNotFound as error:
+            # The input is at fault rather than the service, the same as a negative dimension is.
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        except routing.ServiceTimeout as error:
+            raise HTTPException(status_code=504, detail=str(error)) from error
+        except routing.ServiceUnavailable as error:
+            raise HTTPException(status_code=502, detail=str(error)) from error
+        except routing.RouteError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    offsets = routing.arrival_offsets(road)
+    return RouteResponse(
+        stops=[StopOut(id=stop.id, address=stop.address, label=point.label,
+                       lon=point.lon, lat=point.lat, eta_seconds=offset,
+                       eta=None if request.departure_time is None
+                       else request.departure_time + timedelta(seconds=offset))
+               for stop, point, offset in zip(request.stops, points, offsets)],
+        geometry=road.geometry,
+        total_distance_m=road.distance_m,
+        total_duration_s=road.duration_s,
     )
