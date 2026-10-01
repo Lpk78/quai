@@ -202,7 +202,11 @@ function TalkStep({
 }) {
   return (
     <>
-      <h1>Tell QUAI your loading rules</h1>
+      <h1>
+        Tell QUAI your
+        <br />
+        loading rules
+      </h1>
       <p className="muted">
         Speak naturally. We’ll turn your words into rules the solver can check.
       </p>

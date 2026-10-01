@@ -11,7 +11,11 @@ export default function Home() {
 
   return (
     <>
-      <h1>Good morning. Let’s load.</h1>
+      <h1>
+        Good morning,
+        <br />
+        Let’s load.
+      </h1>
       <p className="muted">
         {OPERATOR_NAME} · {STOPS.length} stops · {boxes.length} boxes
       </p>

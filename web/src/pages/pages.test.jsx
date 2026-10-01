@@ -23,12 +23,17 @@ describe("routing", () => {
 
   it("shows the application home at /app", () => {
     at("/app");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Good morning. Let’s load.");
+    // Broken over two lines, as the mockup sets it, so textContent has no space.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(/Good morning,/);
+    expect(heading).toHaveTextContent(/Let’s load\./);
   });
 
   it("shows the dictate screen at /app/dictate, inside the same shell", () => {
     at("/app/dictate");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tell QUAI your loading rules");
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(/Tell QUAI your/);
+    expect(heading).toHaveTextContent(/loading rules/);
     expect(screen.getByAltText("QUAI")).toBeInTheDocument();
   });
 
