@@ -1,4 +1,4 @@
-/* "Today's van": the Madrid round from src/demo_fixtures.py (`SA-15`, #50 — not yet merged to
+/* "Today's van": the Paris round from src/demo_fixtures.py (`SA-15`, #50 — not yet merged to
    `main` at the time of writing). Ported by hand, since there is no format shared between the
    Python fixture and the web app; re-sync against that file if its data changes before it merges.
 
@@ -18,15 +18,31 @@ export const OPERATOR_CARD_ID = "QUAI-OP-7842";
 
 export const VAN = { length: 300, width: 170, height: 170, max_weight: 1200 };
 
+/* The round, in delivery order. `address` is what `POST /route` geocodes; `name` is what the
+   screens show. Both are needed and neither is derived from the other: the Base Adresse
+   Nationale wants a postal address, an operator reads a district.
+
+   Paris rather than Madrid because that geocoder covers France only — a Spanish address returns
+   a 422 that no amount of front-end work can fix. All eight resolve; three of them match at
+   street level rather than house number, and `/app/route` shows the label the geocoder returned
+   rather than the one we asked for, so a wrong match is visible instead of hidden. */
 export const STOPS = [
-  { id: "S1", name: "Depot-Centro" },
-  { id: "S2", name: "Chamberí" },
-  { id: "S3", name: "Salamanca" },
-  { id: "S4", name: "Retiro" },
-  { id: "S5", name: "Arganzuela" },
-  { id: "S6", name: "Carabanchel" },
-  { id: "S7", name: "Latina" },
-  { id: "S8", name: "Moncloa-Aravaca" },
+  { id: "S1", name: "Hôtel de Ville",
+    address: "4 Rue de Lobau, 75004 Paris" },
+  { id: "S2", name: "Champs-Élysées",
+    address: "25 Avenue des Champs-Élysées, 75008 Paris" },
+  { id: "S3", name: "Bastille",
+    address: "5 Place de la Bastille, 75011 Paris" },
+  { id: "S4", name: "Convention",
+    address: "18 Rue de la Convention, 75015 Paris" },
+  { id: "S5", name: "Voltaire",
+    address: "42 Boulevard Voltaire, 75011 Paris" },
+  { id: "S6", name: "Faubourg Saint-Antoine",
+    address: "7 Rue du Faubourg Saint-Antoine, 75012 Paris" },
+  { id: "S7", name: "Saint-Germain",
+    address: "33 Rue de Rennes, 75006 Paris" },
+  { id: "S8", name: "Opéra",
+    address: "2 Rue de la Paix, 75002 Paris" },
 ];
 
 export const BOXES = [

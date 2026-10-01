@@ -337,7 +337,7 @@ With no key it says so and prints no scores. The method is described in that doc
 
 ### Demo fixture
 
-The data the live demo runs on — one operator card, a Madrid round of eight stops, eighteen boxes
+The data the live demo runs on — one operator card, a Paris round of eight stops, eighteen boxes
 already in the van, and the parcel scanned on stage. No key and no network:
 
 ```bash

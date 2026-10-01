@@ -1,4 +1,4 @@
-"""Fixture data for the live demo: one operator, one Madrid round, a loaded van, one scanned parcel.
+"""Fixture data for the live demo: one operator, one Paris round, a loaded van, one scanned parcel.
 
 Run from the repository root:  python3 src/demo_fixtures.py
 
@@ -40,17 +40,21 @@ from quai.solver import solve
 # The van the round is driven in. Same vehicle as `src/demo.py`, so the two demos are comparable.
 VAN = Container(length=300, width=170, height=170, max_weight=1200)
 
-# The route, in delivery order: stop 1 is left first, stop 8 last. The depot is the first stop of
-# the operator's own round, which is how their card reads it.
+# The route, in delivery order: stop 1 is left first, stop 8 last.
+#
+# Paris, not Madrid: `POST /route` geocodes through the Base Adresse Nationale, which covers
+# France only, so a Spanish address can never resolve and the map screen could never draw this
+# round. The addresses themselves live in `web/src/data/manifest.js`, next to the screen that
+# needs them — the solver only ever sees these ids.
 STOPS = [
-    {"id": "S1", "name": "Depot-Centro"},
-    {"id": "S2", "name": "Chamberí"},
-    {"id": "S3", "name": "Salamanca"},
-    {"id": "S4", "name": "Retiro"},
-    {"id": "S5", "name": "Arganzuela"},
-    {"id": "S6", "name": "Carabanchel"},
-    {"id": "S7", "name": "Latina"},
-    {"id": "S8", "name": "Moncloa-Aravaca"},
+    {"id": "S1", "name": "Hôtel de Ville"},
+    {"id": "S2", "name": "Champs-Élysées"},
+    {"id": "S3", "name": "Bastille"},
+    {"id": "S4", "name": "Convention"},
+    {"id": "S5", "name": "Voltaire"},
+    {"id": "S6", "name": "Faubourg Saint-Antoine"},
+    {"id": "S7", "name": "Saint-Germain"},
+    {"id": "S8", "name": "Opéra"},
 ]
 
 OPERATOR = {
