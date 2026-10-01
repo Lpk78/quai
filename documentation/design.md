@@ -215,6 +215,11 @@ compute it, reorder it or improve it.
 **Say when something is not built yet.** A planned feature described as though it shipped is the same
 dishonesty the old rule guarded against, one step along. Label it.
 
+**These rules are executable.** `web/src/pages/copy.test.jsx` renders every page and fails on the
+phrases above — the invented slogans, any claim that the AI or QUAI plans the load or chooses the
+stops, a measured saving, pricing, and any mention of a school or a course. Read it before writing
+copy: it is faster than reading this section, and it is the version that will actually stop you.
+
 **No real brand marks in published images.** No real carrier, retailer, van, or software logo, no
 recognisable real packaging, no real company name on a box, a truck, a building or a screen. Generated
 illustrations are prone to producing them by accident — check every image before it is published, and

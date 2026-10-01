@@ -341,7 +341,8 @@
   grid-template-columns: repeat(3, 1fr);
   align-items: stretch;
   gap: 1.5rem;
-  padding-top: var(--space-section);
+  /* Room above the row for the phones to stand out of their cards. */
+  padding-top: calc(var(--space-section) + 110px);
 }
 
 .panel {
@@ -351,8 +352,8 @@
   gap: 0.75rem;
   /* Top-aligned, so eyebrows, titles and lists line up across the three cards. */
   align-items: start;
-  /* The phone runs past the bottom edge, as in mockup v2's lower row. */
-  padding-bottom: 5.5rem;
+  /* The phone runs past the *top* edge, as in mockup v2's lower row: its foot lines up with the
+     bottom of the card's text, and the rest of it stands above the card. Nothing is clipped. */
   overflow: visible;
   background: var(--quai-surface);
   border-radius: var(--radius);
@@ -375,7 +376,9 @@
 
 .panel .phone-shot {
   align-self: end;
-  margin-bottom: -72px;
+  /* Negative top margin is what lets it overflow upward: the phone contributes 210 px to the row
+     and stands 110 px above the card. */
+  margin-top: -110px;
   height: 320px;
 }
 
@@ -414,8 +417,13 @@
 
 /* --- 5. navy band ---------------------------------------------------------------------------- */
 
+/* The footer is a card in the same column as every other section, not a full-bleed strip: it is a
+   <footer> rather than a <section>, so it has to say so itself. */
 .band {
   position: relative;
+  max-width: 84rem;
+  margin-left: auto;
+  margin-right: auto;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -450,11 +458,40 @@
 .band__image {
   display: block;
   align-self: end;
-  width: clamp(8rem, 15vw, 12rem);
+  width: clamp(8rem, 15vw, 12.5rem);
   height: auto;
-  margin-right: clamp(1rem, 4vw, 4rem);
-  margin-bottom: -0.5rem;
-  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.3));
+  margin-right: clamp(0.5rem, 3vw, 3rem);
+  /* He stands on the band's floor and out of its top. No drop-shadow: on navy it reads as the dark
+     halo the cut-out exists to remove. */
+  margin-bottom: calc(clamp(1.75rem, 2.4vw, 2.5rem) * -1);
+  margin-top: -5rem;
+}
+
+.band__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.band__links a {
+  color: var(--quai-surface);
+  text-decoration: none;
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+.band__links a:hover {
+  opacity: 1;
+}
+
+.band__copyright {
+  margin-top: 1rem;
+  color: var(--quai-surface);
+  opacity: 0.6;
+  font-size: 0.85rem;
 }
 
 /* --- 6. icon strip ----------------------------------------------------------------------------- */
@@ -626,33 +663,6 @@
   margin-top: 2rem;
 }
 
-.foot {
-  max-width: 84rem;
-  margin: clamp(3rem, 6vw, 5rem) auto 0;
-  padding: 1.75rem var(--gutter) 2.5rem;
-  border-top: 1px solid rgba(16, 34, 56, 0.1);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--quai-text-muted);
-  font-size: 0.9rem;
-}
-
-.foot ul {
-  display: flex;
-  gap: 1.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.foot a {
-  color: var(--quai-text-muted);
-  text-decoration: none;
-}
-
 /* --- responsive ---------------------------------------------------------------------------------- */
 
 @media (max-width: 1180px) {
@@ -735,19 +745,21 @@
     align-self: center;
   }
 
+  /* The band keeps its two columns on a phone: stacking would put the operator on top of the links
+     and the copyright, and he is a cut-out with no background to hide behind. */
   .band {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
   }
 
   .band__image {
-    width: 100%;
-    max-width: 14rem;
-    aspect-ratio: 16 / 10;
+    width: 6.5rem;
+    margin-top: -3rem;
+    margin-right: 0;
   }
 
-  .foot {
-    flex-direction: column;
-    align-items: flex-start;
+  .band__links {
+    gap: 1rem;
   }
 }
 

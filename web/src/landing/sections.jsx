@@ -263,23 +263,34 @@ export function Features() {
   );
 }
 
-/* 5 — the navy band ----------------------------------------------------------------------------- */
+/* 5 — the navy band is the site footer: it closes the page rather than interrupting it ---------- */
 
-export function Band() {
+export function FooterBand() {
   return (
-    <section className="band">
+    <footer className="band">
       <div className="band__text">
-        <img className="band__logo" src={logoOnNavy} alt="QUAI" width="994" height="338" />
+        <img className="band__logo" src={logoOnNavy} alt="QUAI" width="970" height="314" />
         <p className="band__line">People talk. We load.</p>
+        <ul className="band__links">
+          {NAV_LINKS.map(([label, href]) => (
+            <li key={href}>
+              <a href={href}>{label}</a>
+            </li>
+          ))}
+          <li>
+            <Link to="/app">Log in</Link>
+          </li>
+        </ul>
+        <p className="band__copyright">© 2026 QUAI</p>
       </div>
       <Picture
         className="band__image"
         name="operator-cut"
         widths={[360, 720]}
-        sizes="(max-width: 760px) 50vw, 20vw"
+        sizes="(max-width: 760px) 45vw, 18vw"
         alt="An operator checking a parcel on a phone."
       />
-    </section>
+    </footer>
   );
 }
 
@@ -391,20 +402,5 @@ export function FinalCta() {
         </Link>
       </div>
     </section>
-  );
-}
-
-export function LandingFooter() {
-  return (
-    <footer className="foot">
-      <p>© 2026 QUAI · People talk. We load.</p>
-      <ul>
-        {NAV_LINKS.map(([label, href]) => (
-          <li key={href}>
-            <a href={href}>{label}</a>
-          </li>
-        ))}
-      </ul>
-    </footer>
   );
 }
