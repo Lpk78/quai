@@ -95,6 +95,44 @@ curl -X POST http://127.0.0.1:8000/plan -H "Content-Type: application/json" -d '
 A box that fits nowhere is listed in `unplaced`; it is not an error. Invalid input (a zero or negative
 dimension, a negative weight, duplicate box ids, a missing field) returns `422` with the reason as JSON.
 
+`POST /plan/recompute` replans a load that is already half in the van. It takes what is already loaded
+(with the positions the operator put it in), what is still on the dock, and the one thing that just
+changed — a box `missing`, `damaged` or `added`. The boxes already in the vehicle never move; only what
+is left is planned, against the same constraints and the same stop order as the first plan.
+
+```bash
+curl -X POST http://127.0.0.1:8000/plan/recompute -H "Content-Type: application/json" -d '{
+  "container": {"length": 300, "width": 170, "height": 170, "max_weight": 1200},
+  "loaded": [{"box": {"id": "sofa", "length": 200, "width": 90, "height": 80, "weight": 45},
+              "x": 0, "y": 0, "z": 0, "dx": 200, "dy": 90, "dz": 80}],
+  "waiting": [{"id": "washer", "length": 60, "width": 60, "height": 85, "weight": 70},
+              {"id": "tv", "length": 130, "width": 20, "height": 80, "weight": 15}],
+  "incident": {"kind": "damaged", "box_id": "washer"}
+}'
+```
+
+```json
+{"placements": [{"id": "sofa", "x": 0, "y": 0, "z": 0, "dx": 200, "dy": 90, "dz": 80},
+                {"id": "tv", "x": 0, "y": 90, "z": 0, "dx": 130, "dy": 20, "dz": 80}],
+ "unplaced": [], "fill_rate": 0.190080738177624, "total_weight": 60.0}
+```
+
+That is a real response: the sofa keeps the place the operator put it in, the damaged washing machine is
+out of the plan, and only the television is placed around what was already there.
+
+| incident | still on the dock | already in the vehicle |
+|---|---|---|
+| `missing` | cannot be found, so it leaves the plan | refused: a box in the van is not missing |
+| `damaged` | unusable, so it leaves the plan | it comes out, and the space it frees is replanned |
+| `added` | refused: it is already in the plan | refused: it is already in the vehicle |
+
+`added` carries the box itself rather than just an id, because dimensions and weight cannot be inferred
+from a name. `missing` on a box the operator says is already loaded is refused rather than guessed: the
+box is either in the van or it is not, and the two readings give different plans — the operator is
+standing next to the vehicle and can say which. `constraints` are optional; when given, `stops` must come
+with them, and the whole set is re-validated against the load as it now stands, because a box may have
+left it.
+
 ### Prompt evaluation
 
 Score a prompt version on the fixed test inputs (needs `ANTHROPIC_API_KEY` and `LLM_MODEL` in
