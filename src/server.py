@@ -2,10 +2,14 @@
 
 Run from the repository root:  uvicorn server:app --app-dir src --reload
 """
+import math
 from collections import Counter
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from quai.models import Box, Container
@@ -37,6 +41,35 @@ app.add_middleware(
 )
 
 
+def _json_safe(value):
+    """The same structure with `nan` and `inf` turned into their names.
+
+    Only used on the text of a validation error, never on a plan.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return repr(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+@app.exception_handler(RequestValidationError)
+async def refused_input(request: Request, error: RequestValidationError) -> JSONResponse:
+    """Answer a rejected request with the reason, even when the reason cannot be serialised.
+
+    FastAPI's own handler echoes the offending value back inside the 422, and `JSONResponse` then
+    refuses to serialise it if that value is `NaN` or an infinity — so a request carrying a bare
+    `NaN` literal came back as an unhandled error, which is a `500`, instead of the `422` #16 set as
+    the standard for bad input. A Python client reaches this by accident: `json.dumps` emits `NaN`
+    unless told not to. Pydantic was already rejecting the value correctly; only the answer was
+    broken. Found while checking the claim in #26 that this endpoint was safe from `NaN`.
+    """
+    return JSONResponse(status_code=422,
+                        content={"detail": _json_safe(jsonable_encoder(error.errors()))})
+
+
 class BoxIn(BaseModel):
     id: str = Field(min_length=1)
     length: int = Field(gt=0, description="cm")
@@ -51,7 +84,8 @@ class ContainerIn(BaseModel):
     height: int = Field(gt=0, description="cm")
     # `ge=0`, not `gt=0`: the model allows a limit of 0 and `models.py` pins that, so refusing it
     # here would make this second layer stricter than the first. "Nothing may be loaded" is a real
-    # state for an empty or out-of-service vehicle.
+    # state for an empty or out-of-service vehicle. Pydantic rejects NaN for a bounded float either
+    # way, which is the other half of #26.
     max_weight: float | None = Field(default=None, ge=0, description="kg; omitted means no limit")
 
 

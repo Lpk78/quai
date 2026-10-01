@@ -142,8 +142,26 @@ class TestTheWeightLimitThroughTheAPI(unittest.TestCase):
                                               "boxes": []})
         self.assertEqual(response.status_code, 422)
 
+    def test_a_nan_limit_is_a_422_and_not_a_crash(self):
+        """Pydantic always rejected `NaN`; the 422 it produced could not be serialised.
+
+        FastAPI echoes the offending value inside the error, and `JSONResponse` refuses to write a
+        `NaN` — so the request came back as an unhandled error, a 500, where #16 set 422 as the
+        answer for bad input. A Python client reaches this by accident: `json.dumps` emits `NaN`
+        unless told not to.
+        """
+        response = self.raw("NaN")
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"][0]["input"], "nan")
+        self.assertEqual(response.json()["detail"][0]["loc"][-1], "max_weight")
+
     def test_an_infinite_limit_is_accepted_as_no_limit(self):
         self.assertEqual(self.raw("Infinity").status_code, 200)
+
+    def test_a_negative_infinite_limit_is_refused_without_crashing(self):
+        response = self.raw("-Infinity")
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"][0]["input"], "-inf")
 
     def test_an_omitted_limit_still_means_no_limit(self):
         heavy = {"id": "heavy", "length": 50, "width": 50, "height": 50, "weight": 99999}
