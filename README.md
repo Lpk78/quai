@@ -189,27 +189,42 @@ the same eleven-box demo load as `src/demo.py`, and says so.
 ### Phone demo
 
 Both servers listen on localhost by default, which a phone cannot reach, and on a phone `127.0.0.1`
-is the phone — so the app also has to be told where the API is:
+is the phone — so the app also has to be told where the API is. It is served over HTTPS, because
+`/login` scans a QR code and `getUserMedia` exists only in a secure context: `http://` on a LAN
+address is not one, and the camera is then not blocked but absent.
+
+First, once per machine, a certificate for this Mac's own address — `.certs/` is gitignored, since a
+private key is not committed and the address is this machine's:
 
 ```bash
-LAN=$(ipconfig getifaddr en0)                                 # e.g. 192.168.1.201
-
-QUAI_LAN_ORIGIN="http://$LAN:5173" \
-  uvicorn server:app --app-dir src --host 0.0.0.0             # API: http://<LAN>:8000
-
-cd web && VITE_API_URL="http://$LAN:8000" npm run dev:phone   # app: http://<LAN>:5173
+brew install mkcert && mkcert -install        # a local CA, in this Mac's trust store
+LAN=$(ipconfig getifaddr en0)                 # e.g. 192.168.1.201
+mkdir -p .certs
+mkcert -key-file .certs/key.pem -cert-file .certs/cert.pem localhost 127.0.0.1 ::1 "$LAN"
 ```
 
-Then open `http://<LAN>:5173` on the phone. `QUAI_LAN_ORIGIN` is what puts that origin on the API's
+Then, to run:
+
+```bash
+QUAI_LAN_ORIGIN="https://$LAN:5173" \
+  uvicorn server:app --app-dir src --host 0.0.0.0 \
+  --ssl-keyfile .certs/key.pem --ssl-certfile .certs/cert.pem    # API: https://<LAN>:8000
+
+cd web && VITE_API_URL="https://$LAN:8000" npm run dev:phone     # app: https://<LAN>:5173
+```
+
+Then open `https://<LAN>:5173` on the phone. `QUAI_LAN_ORIGIN` is what puts that origin on the API's
 CORS allowlist (`DEV_ORIGINS` in `src/server.py`), which otherwise only knows localhost; it falls
 back to the address this was written on, so the variable is what keeps it working after DHCP hands
-out a different one.
+out a different one — and what carries the `https://` scheme here. `vite.config.js` picks the
+certificate up on its own when `.certs/` exists, and serves plain HTTP when it does not, so a clone
+without one still runs.
 
-**The camera does not work over this URL.** `getUserMedia` is only available in a secure context,
-and `http://` on a LAN address is not one — so `/login` cannot reach the camera from the phone and
-offers manual code entry instead. Scanning works at `http://localhost:5173` on the Mac, where
-localhost counts as secure. Serving the LAN over HTTPS is not built; see
-`documentation/failures.md`.
+**The phone has to be told to trust the CA as well.** `mkcert -install` installs the root into this
+Mac's trust store and nowhere else. Send `"$(mkcert -CAROOT)/rootCA.pem"` to the phone, install it as
+a profile, and on iOS enable it under *Settings → General → About → Certificate Trust Settings* —
+installing the profile is not enough on its own. Without that, Safari refuses the certificate and
+`/login` falls back to the typed code, which still signs the operator in.
 
 ### Prompt evaluation
 
