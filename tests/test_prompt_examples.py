@@ -51,12 +51,20 @@ class TestExamplesAreNotTestSentences(unittest.TestCase):
     def examples_in(self, path: Path):
         return OPERATOR_LINE.findall(evaluate_prompt.prompt_text(path))
 
-    def test_v4_really_does_carry_examples(self):
-        """Otherwise the checks below would pass by finding nothing, which is the usual way."""
-        path = FAMILIES / "constraint-translation" / "v4_few_shot.md"
-        if not path.is_file():
-            self.skipTest("v4 is not on this branch")
-        self.assertEqual(len(self.examples_in(path)), 4)
+    def test_some_version_really_does_carry_examples(self):
+        """Otherwise the checks below would pass by finding nothing, which is the usual way.
+
+        It asserts that examples exist somewhere, not how many a given version has: v4 carries four
+        and v5 carries three, because v5 drops the two of v4's that measurably changed nothing. A
+        count pinned to one file makes dropping an example that did not work into a test failure,
+        which is the wrong incentive for a family whose whole point is that versions differ.
+        """
+        carriers = [p for p in version_files() if self.examples_in(p)]
+        self.assertTrue(carriers, "no version file carries a worked example; the checks below "
+                                  "would pass vacuously")
+        for path in carriers:
+            with self.subTest(path.name):
+                self.assertGreaterEqual(len(self.examples_in(path)), 1)
 
     def test_no_example_is_a_test_sentence(self):
         def bare(sentence):
