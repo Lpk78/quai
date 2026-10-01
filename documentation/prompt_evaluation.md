@@ -54,6 +54,13 @@ solver. Several items loaded last at one stop are *not* such a case — see the 
 { "constraints": [], "unresolved": [] }
 ```
 
+**The reply is parsed exactly as it arrives, and the whole reply has to be the object.** A code fence,
+a preamble, a closing sentence or any other prose around it is a C1 failure whatever the JSON inside
+says. This is not a formatting preference: `POST /constraints` (#19) hands the reply to `parse()`
+unchanged, so an output that needs something stripped off it first is an output the solver never
+receives. C1 asks "would this reach the solver?", and for a fenced reply the answer is no. A sentence
+that fails C1 fails the other seven with it, because there is no object left to check.
+
 Both keys are always present, even when empty. A sentence that yields nothing usable gives an empty
 `constraints` list and at least one `unresolved` entry — never an invented constraint.
 
@@ -113,7 +120,7 @@ nothing is scored by impression: a criterion is Yes for a sentence or it is not.
 
 | # | Criterion | Yes when |
 |---|---|---|
-| C1 | Valid JSON matching the contract | Both keys present, every constraint a declared type with exactly its fields |
+| C1 | Valid JSON matching the contract | The whole reply is the object: both keys present, every constraint a declared type with exactly its fields |
 | C2 | Items are real | Every `item` is in the manifest, and anything named but absent is reported as `unknown_item` rather than bound to the nearest match |
 | C3 | Nothing invented | No constraint the operator did not say, including facts already in the manifest restated as constraints |
 | C4 | Units normalised | Every length in cm and every weight in kg, whatever the operator used |
@@ -344,6 +351,14 @@ How a version is run — fixed for every version, so that the scores stay compar
   only be measured honestly if the harness itself never mixes speech with instructions.
 - **The reply is plain text, parsed afterwards.** The API can force a reply to match a JSON schema,
   which would make C1 true by construction. C1 asks whether the prompt gets there on its own.
+- **The reply is parsed exactly as it arrives**, with nothing trimmed, unwrapped or extracted first,
+  because that is what `POST /constraints` will do with it. A code fence or a line of prose around
+  the object is therefore a C1 failure — see the *Output contract* above. v1 scored 0/26 on this
+  alone, which is the rule working rather than the harness surprising us.
+- **Only the prompt is sent, not the version file.** A version file carries its task, its expected
+  output and its change log, and a change log names the sentences a version found hard. The script
+  sends what lies between `<!-- PROMPT START -->` and `<!-- PROMPT END -->`; a file without markers
+  is sent whole. Without this a version would be scored having been shown the test set.
 - **`temperature 0` is sent** — and recorded as what was sent, not as what makes a score
   repeatable. See *On the temperature column* below.
 - **Three calls per sentence.** The same question asked twice does not always get the same answer,
