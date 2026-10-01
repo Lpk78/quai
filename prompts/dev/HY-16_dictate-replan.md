@@ -43,4 +43,20 @@ against.
 
 ## Outcome
 
-_Filled after the PR is opened._
+- **PR:** https://github.com/Lpk78/quai/pull/52 (reviewer: `Lpk78`), stacked on #47, which is stacked
+  on `main`
+- **What the AI produced:** `web/src/data/manifest.js`'s Madrid-round port, the `OPERATOR_NAME` swap
+  in `Home.jsx`, the `postPlan` wiring and `PLAN_BOXES` stripping in `Dictate.jsx`, the
+  `location.state` seeding and `NotAppliedList` in `PlanScreen.jsx`, and the two new confirm-flow
+  tests plus the fiber/drei stubs in `app.test.jsx`.
+- **How it was checked:** `npm test` (59 web tests) and `python -m unittest discover tests` (336,
+  unaffected by this PR) both run locally. A third cross-branch dependency surfaced while building —
+  `src/demo_fixtures.py` lives only on #50, also unmerged — ported its data by hand from the current
+  tip of that branch rather than merging it in, the same way `web/src/api.js` was built against #46's
+  documented shape before #46 existed on `main`.
+- **What was changed by hand:** the decisions. Replacing `VAN_ID` ("Van 12", invented in `HY-14`) with
+  the operator's real name rather than leaving a fabricated label next to real Madrid stops. Sending
+  `postPlan` the already-fetched plan through router state instead of having `PlanScreen` fetch it
+  again, so "don't duplicate the API client logic" extended to not duplicating the API *call*.
+  Stripping boxes to `{id, length, width, height, weight}` before `/plan` to match `demoLoad.js`'s
+  established shape, rather than relying on pydantic silently ignoring the extra fields.
