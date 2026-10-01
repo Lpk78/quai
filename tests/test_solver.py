@@ -516,6 +516,33 @@ class TestPlanningAroundWhatIsAlreadyLoaded(unittest.TestCase):
             solve([], CONTAINER, fixed=overlapping)
         self.assertIn("valid load", str(refused.exception))
 
+    def test_a_start_that_already_breaks_a_stack_limit_is_refused(self):
+        """Silent before: `overloads()` finds a pre-existing violation in every candidate plan, so
+        nothing could be placed and the operator got an empty plan with no cause (#36 review)."""
+        base = Box("base", 100, 100, 20, 5)
+        heavy = Box("heavy", 100, 100, 20, 30)
+        waiting = [Box("new", 100, 100, 20, 1)]
+        fixed = [Placement(base, 0, 0, 0, 100, 100, 20),
+                 Placement(heavy, 0, 0, 20, 100, 100, 20)]
+        limited = constraint_set([base, heavy, *waiting], ("S1",),
+                                 {"type": "max_weight_on", "item": "base", "limit_kg": 10})
+        with self.assertRaises(ImpossibleStart) as refused:
+            solve(waiting, Container(200, 100, 100, max_weight=500), limited, fixed=fixed)
+        self.assertIn("base", str(refused.exception))
+        self.assertIn("10 kg limit", str(refused.exception))
+
+    def test_the_same_start_is_fine_when_the_limit_allows_it(self):
+        """The refusal is the pre-existing violation, not the geometry: only the limit changes."""
+        base = Box("base", 100, 100, 20, 5)
+        heavy = Box("heavy", 100, 100, 20, 30)
+        waiting = [Box("new", 100, 100, 20, 1)]
+        fixed = [Placement(base, 0, 0, 0, 100, 100, 20),
+                 Placement(heavy, 0, 0, 20, 100, 100, 20)]
+        allowed = constraint_set([base, heavy, *waiting], ("S1",),
+                                 {"type": "max_weight_on", "item": "base", "limit_kg": 50})
+        plan = solve(waiting, Container(200, 100, 100, max_weight=500), allowed, fixed=fixed)
+        self.assertEqual(plan.unplaced, [])
+
     def test_a_box_cannot_be_both_loaded_and_waiting(self):
         with self.assertRaises(ImpossibleStart) as refused:
             solve([Box("a", 10, 10, 10, 1)], CONTAINER, fixed=[self.slab("a", 0)])

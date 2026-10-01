@@ -61,7 +61,7 @@ def solve(boxes: list[Box], container: Container,
     """
     refuse_unhandled(constraints)
     already = list(fixed or [])
-    refuse_impossible_start(already, boxes, container)
+    refuse_impossible_start(already, boxes, container, constraints)
     placements: list[Placement] = list(already)
     unplaced: list[Box] = []
     corners: set[tuple[int, int, int]] = {(0, 0, 0)}
@@ -124,18 +124,24 @@ def refuse_unhandled(constraints: ConstraintSet | None) -> None:
             "See issue #29.")
 
 
-def refuse_impossible_start(fixed: list[Placement], boxes: list[Box],
-                            container: Container) -> None:
+def refuse_impossible_start(fixed: list[Placement], boxes: list[Box], container: Container,
+                            constraints: ConstraintSet | None = None) -> None:
     """Refuse a starting state that is not a state the vehicle could be in.
 
     Planning around boxes that overlap, float or hang out of the container would produce a plan that
     looks valid and describes a vehicle that cannot exist, so the checks run on what the caller says
     is already loaded before anything is added to it. A box that is both already loaded and waiting
     to be loaded is the same kind of impossibility, one list over.
+
+    The stack limits are part of that question and not a separate one. A box already carrying more
+    than the operator allowed is a state that should not exist, exactly like an overlap — and if it
+    is let through, `overloads()` finds that same violation in every candidate plan, so nothing can
+    be placed and the operator is handed an empty plan with no cause named. Refusing here turns that
+    silence into a sentence naming the box. Found by `MORHI11` reviewing #36.
     """
     if not fixed:
         return
-    problems = find_problems(fixed, container)
+    problems = find_problems(fixed, container, max_weight_on=stack_limits(constraints))
     if problems:
         raise ImpossibleStart("the boxes said to be already loaded do not make a valid load: "
                               + "; ".join(problems))
