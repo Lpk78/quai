@@ -43,7 +43,7 @@ so #22 has to be merged after #21.
 |---|---|---|---|
 | `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
 | `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
-| `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | In review (#PR) |
+| `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | In review (#35) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
 | `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Now part of #17 |
