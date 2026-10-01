@@ -219,6 +219,91 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - Related branch / PR: `feature/constraint-schema`, #21.
 
 ---
+## 2026-09-30 — The prompt that produced the solver is unrecoverable
+
+- What happened: `LP-16` backfilled `prompts/dev/` with the six development prompts given before the
+  `/task` skill existed, recovering each one from this machine's Claude Code session history. Five came
+  back verbatim. The sixth, `LP-02` — the solver behind #3 — did not. The solver commits `134abd3` to
+  `6a1e0be` are dated 2026-09-28T13:09:05Z and #3 was opened at 13:09:10Z, but the oldest prompt kept
+  anywhere on this machine for this repository is 13:36:57Z, about 28 minutes later. The only recorded
+  solver prompt, "Commit the solver already written…", ran at 13:40:44Z, found the five commits already
+  pushed and produced nothing.
+- Why: the rule that every development prompt is saved in `prompts/dev/` was written *by* #4, and the
+  solver was written before it. Session history is not an archive: it only holds what was typed into
+  Claude Code, on the machine where it was typed, and the solver was not written that way.
+- What we tried: searched every session file under
+  `~/.claude/projects/-Users-leo-paulkerrinckx-Desktop-data-project/`, the other project directory, and all
+  384 entries of `~/.claude/history.jsonl`. Confirmed the gap from two directions — the earliest recorded
+  prompt is 28 minutes after the PR was opened, and the recorded prompt's own wording, "already written",
+  says the code came from elsewhere. Then recorded `prompts/dev/LP-02_solver.md` as incomplete, stating
+  what is missing and how that was established, rather than inventing a prompt that would have looked
+  right.
+- What we learned: a prompt that is not saved when it is given is usually lost, so the `/task` rule earns
+  its place — it is cheaper to write the file up front than to reconstruct it two days later. Where a
+  record cannot be honest it should be visibly empty: the Git history is graded on authenticity, and one
+  file saying "this was not recovered, here is the proof" is worth more than six that all look complete.
+- Related branch / PR: `docs/backfill-dev-prompts`, `LP-16`; the unrecoverable prompt belongs to #3.
+
+---
+## 2026-10-01 — A brand kit whose own mockups failed accessibility
+
+- What happened: the approved design pack arrived with the primary action buttons drawn as white text
+  on safety orange `#FF8A00` — the "Get started" and "Loaded, next" buttons visible in
+  `assets/brand/reference/mobile-ui.png`. That combination measures 2.36:1, which fails WCAG AA at
+  every size, including large display text. The same pack's palette invites `#FF8A00` to be used as a
+  text colour on the `#F7F6F3` background, which is 2.19:1. Checking the rest of the palette the same
+  way found four more: `success`, `warning`, `error` and the stop-2 green all fail AA as body text on
+  our background, between 1.99:1 and 3.49:1.
+- Why: the pack was designed as images. Orange on white looks confident in a rendering at full size on
+  a laptop, and nothing in the process measured it. Nobody was careless — the failure mode is that a
+  visual identity is approved by looking at it, and contrast is the one property that looking at it on
+  a good screen cannot tell you.
+- What we tried: text on orange is navy `#102238` (6.79:1), orange text is `#C2410C` (4.79:1), and the
+  status and stop colours are documented as fills that carry an icon or a badge, never body text.
+  `documentation/design.md` states each rule with its measured ratio and says explicitly that where the
+  mockups disagree with it, the mockups lose. `tests/test_brand.py` computes the ratios from
+  `assets/brand/tokens.json` and fails if any of them stops holding — including a test that white on
+  orange still *fails*, so the rule cannot be quietly reverted by someone who reads the mockup instead
+  of the document.
+- We also found that the two supplied wordmark SVGs asked for Arial, which is neither the brand display
+  font nor installed everywhere. They now name Plus Jakarta Sans with a fallback stack, but the
+  wordmark is still live `<text>` and should be converted to outlines before the logo is used publicly.
+  That needs a vector editor; it is written down in `design.md` rather than left to be rediscovered.
+- What we learned: a design system is a set of claims, and claims can be tested. Colours are numbers,
+  and contrast is arithmetic — so the accessibility section of a design document belongs in the test
+  suite exactly like the constraint contract does. The reference renderings are now explicitly
+  non-normative: sampling a pixel out of `colour-palette.png` gives `#FB830C` where the token says
+  `#FF8A00`, so anyone eyedropping a mockup is already working from the wrong colour.
+- Related branch / PR: `docs/brand-kit`, `HY-10`.
+
+---
+## 2026-10-01 — Mockups that advertised a product we are not building
+
+- What happened: the second round of brand images arrived with a full website mockup and a brand
+  applications board. Read as marketing copy rather than looked at as pictures, they describe a different
+  product: "Follow your optimised route and get live updates", an "Est. route time 4h 20m" tile, a route
+  map, and a Pricing item in the navigation. QUAI computes no routes, estimates no times, tracks nothing
+  live and has no pricing. The same sheets carry three slogans that are not ours — "Smart loading.
+  Delivery confidence.", "Smarter Delivery Ahead.", "People. Parcels. Forward." — alongside the real one,
+  a business card with an invented employee, email, phone number and domain, and a phone home screen
+  showing real third-party app icons.
+- Why: an image generator asked for "a logistics SaaS landing page" produces the landing page of the
+  average logistics SaaS, because that is what it has seen. Nothing in the brief said which features
+  exist, so it supplied the usual ones. The route map is the sharpest case: route optimisation is in
+  `documentation/roadmap.md` under *rejected scope*, and the mockup put it in the hero.
+- What we tried: `documentation/design.md` gained a **Copy rules** section — one slogan, never saying the
+  AI plans the load or orders the stops, no features the app does not have, no real brand marks in
+  published images, navy text on orange buttons. It names each violation in each sheet, so the images
+  stay useful for mood and layout without their words leaking into the product. Two of the rules are
+  checked by `tests/test_brand.py`.
+- What we learned: a mockup is an argument about what the product is, not only about how it looks, and it
+  is persuasive precisely because nobody reads it as a claim. The dangerous ones were not the invented
+  slogans, which are obviously wrong, but "optimised route" — plausible, adjacent, and a direct
+  contradiction of the one architectural rule the project is built on. Reference images now get read for
+  what they assert, not just looked at.
+- Related branch / PR: `docs/brand-kit`, `HY-10`.
+
+---
 
 ## 2026-10-01 — The first prompt version scored zero on a code fence
 
