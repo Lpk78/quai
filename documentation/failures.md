@@ -25,6 +25,14 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 - What we learned:
 - Related branch / PR:
 -->
+## 2026-09-23 — Commit pushed to an already merged PR
+- What happened: the commit adding @MORHI11 to the README was pushed to `docs/fill-repository-details` one minute after Sam merged PR #1, so it never reached `main`.
+- Why: a PR merges the branch as it is at merge time; later commits on that branch are not included.
+- What we tried: recovered the commit with `git cherry-pick` on a new branch and opened a new PR.
+- What we learned: check the PR status (`gh pr view`) before pushing more work to its branch.
+
+---
+
 ## 2026-09-28 — The tests workflow is red until the solver branch is merged
 
 - What happened: `tests.yml` runs `python -m unittest discover tests`, but `tests/` does not exist on
