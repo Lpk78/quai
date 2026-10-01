@@ -302,3 +302,26 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   contradiction of the one architectural rule the project is built on. Reference images now get read for
   what they assert, not just looked at.
 - Related branch / PR: `docs/brand-kit`, `HY-10`.
+
+---
+
+## 2026-10-01 — The order test that could not fail
+
+- What happened: `SA-12` adds `POST /route`, and the one rule it exists to protect is that QUAI never
+  reorders stops — OSRM's `/trip` would happily return a shorter journey in a different order. Two tests
+  asserted the order, and both passed. Then the guard was mutation-tested by replacing the stop list with
+  `sorted(points, key=lambda q: q.lon)`: the whole suite still passed. The fixture drove Amiens → Paris →
+  Lille, which is already in ascending longitude, so sorting it was a no-op and the assertion compared a
+  list to itself.
+- Why: the addresses were picked for being real and far apart, not for being in an awkward order. The
+  test looked like it was about sequence while the data made sequence irrelevant — so it asserted a
+  property the fixture guaranteed regardless of the code.
+- What we tried: reordered the fixture to Lille → Amiens → Paris, which differs from sorting by longitude,
+  by latitude *and* alphabetically, and re-ran the mutations. All four now fail the suite: sort by
+  longitude, sort by latitude, reverse, and swapping `/route` for `/trip`. The reason the order was chosen
+  is written into the fixture's docstring so the next person does not "tidy" it back.
+- What we learned: this is the second time the same shape has caught us — #14 had a parser test that
+  passed because the regex matched the wrong table, and both were found by changing the code to see
+  whether the test noticed. A test that has never been seen to fail is a claim, not evidence. Where a test
+  protects a rule, write the fixture so that breaking the rule changes the answer.
+- Related branch / PR: `feature/route-display`, `SA-12`.
