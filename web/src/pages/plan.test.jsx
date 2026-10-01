@@ -1,6 +1,16 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+
+/* WebGL does not exist in jsdom, so the scene renders as plain elements here. The 3D view has its
+   own tests in plan/scene.test.jsx, which check the parts that are arithmetic rather than pixels —
+   what a canvas actually draws is not something this suite can see, and pretending otherwise would
+   be a test that cannot fail. */
+vi.mock("@react-three/fiber", () => ({
+  Canvas: ({ children, ...rest }) => <div data-testid="scene" {...rest}>{children}</div>,
+}));
+vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
 
 import App from "../App.jsx";
 import PlanScreen from "./PlanScreen.jsx";
@@ -57,6 +67,37 @@ describe("the plan the solver returned", () => {
       expect(screen.getByText(`${Math.round(PLAN_FIXTURE.fill_rate * 100)}%`)).toBeInTheDocument(),
     );
     expect(screen.getByText(`${Math.round(PLAN_FIXTURE.total_weight)} kg`)).toBeInTheDocument();
+  });
+});
+
+describe("the 3D view", () => {
+  it("is on the screen once there is a plan", async () => {
+    show(resolves(PLAN_FIXTURE));
+    await waitFor(() => expect(screen.getByTestId("scene")).toBeInTheDocument());
+  });
+
+  it("is not shown when there is no plan to draw", async () => {
+    show(vi.fn().mockRejectedValue(new ApiError("unreachable", "no solver")));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.queryByTestId("scene")).not.toBeInTheDocument();
+  });
+
+  it("says what to do before a box is chosen", async () => {
+    show(resolves(PLAN_FIXTURE));
+    const hint = "Tap a box to see what it is.";
+    await waitFor(() => expect(screen.getByText(hint)).toBeInTheDocument());
+    expect(screen.queryByTestId("inspector")).not.toBeInTheDocument();
+  });
+
+  it("shows the box that was tapped", async () => {
+    const user = userEvent.setup();
+    show(resolves(PLAN_FIXTURE));
+    await waitFor(() => expect(screen.getAllByTestId("placed-box")).not.toHaveLength(0));
+    const first = PLAN_FIXTURE.placements[0];
+    await user.click(screen.getAllByTestId("placed-box")[0]);
+    const inspector = screen.getByTestId("inspector");
+    expect(inspector).toHaveTextContent(first.id);
+    expect(inspector).toHaveTextContent(`${first.dx} × ${first.dy} × ${first.dz} cm`);
   });
 });
 
