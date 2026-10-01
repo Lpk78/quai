@@ -124,6 +124,22 @@ runs passed, and the row to paste into the results table of `documentation/promp
 With no key it says so and prints no scores. The method is described in that document, under
 *Running an evaluation*.
 
+### Demo fixture
+
+The data the live demo runs on — one operator card, a Madrid round of eight stops, eighteen boxes
+already in the van, and the parcel scanned on stage. No key and no network:
+
+```bash
+python3 src/demo_fixtures.py
+```
+
+It prints the placement table and the fill rate the real solver computes, before and after the
+parcel is scanned: **77.8% with the eighteen loaded boxes, 78.2% once the parcel is in**, all
+nineteen placed. The route reaches the solver as a `ConstraintSet` built by
+`quai.constraints.parse()`, the same path `POST /constraints` feeds, so the numbers come from the
+production code and not from a second implementation. Import it as `demo_fixtures` to reuse the
+same load elsewhere; `tests/test_demo_fixtures.py` holds the fill rate to the quoted range.
+
 ### Web app
 
 The front end lives in `web/`. It needs Node 20 or later.
