@@ -554,3 +554,37 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   device and not in the repository: the phone trusts the Mac's CA only once its root is installed
   *and* enabled there, which the README now spells out.
 - Related branch / PR: `feature/phone-demo-login`, `LP-20`; fixed by `feature/https-lan`, `LP-21`.
+
+---
+
+## 2026-10-02 — An unhandled exception told the operator the server was unreachable
+
+- What happened: `POST /constraints` caught `llm.CallFailed` and nothing else. `_translate` calls
+  `llm.from_env()`, which raises `MissingKey`, `MissingModel` or a bare `NotConfigured` when `.env`
+  has no key, no model, or the `anthropic` package is absent — and `Translator.translate` raises
+  `FatalCall` when the API rejects the request, which is what a key that is *present but wrong* does.
+  **Four of the five ways that call can fail were unhandled**, and each answered a bare `500`.
+- Why the `500` was the smaller half of the problem: FastAPI's default exception handler sits
+  **outside** `CORSMiddleware`, so its response carries no `access-control-allow-origin`. The browser
+  refuses to let the page read it, `fetch` throws, and `web/src/api.js` maps a thrown fetch to
+  `kind: "unreachable"`. The screen then says *"Could not reach the solver at
+  http://127.0.0.1:8000"* — about a server that is running, listening, and answering. Measured rather
+  than reasoned: the same endpoint's handled `422` carries the header, and the same request shape
+  tripping `MissingKey` came back `500` with no header at all. Same server, same origin, only the
+  exception type differing.
+- What we tried: catching `NotConfigured` by its **base class** rather than naming `MissingKey` and
+  `MissingModel`. That covers the "anthropic is not installed" case, which is raised directly as
+  `NotConfigured` and which neither of the two reports of this bug had noticed, and it covers whatever
+  `from_env` learns to require next without anyone remembering to come back here. `FatalCall` is caught
+  separately as a `502`: the model answered, just not usably, which is what the existing `502` for a
+  reply that fails validation already means.
+- What we learned: on an endpoint a browser calls, an unhandled exception is not "a 500 instead of a
+  nice message" — it is a *different error class* by the time it reaches the user, because the handler
+  that produces it is outside the middleware that makes it readable. The wrong diagnosis was the real
+  cost: "could not reach the solver" sends an operator to restart a healthy process, which is the one
+  action that cannot help. Worth asking of every `except` on this layer: what does the browser see for
+  the exceptions this does *not* name?
+- Found in end-to-end retesting the evening before the demo, independently by `MORHI11` and by
+  `Lpk78`, which is the argument for retesting a path end to end after the screens around it change
+  rather than trusting that each piece still works.
+- Related branch / PR: `fix/constraints-config-errors`, `SA-18`.
