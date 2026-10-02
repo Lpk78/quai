@@ -148,10 +148,13 @@
   .plan-dims { grid-column: auto; }
 }
 
-/* The 3D view. A fixed height rather than an aspect ratio: on a phone the scene must leave room for
-   the list under it, and a square canvas pushes everything below the fold. */
+/* The 3D view. Viewport-relative rather than an aspect ratio: on a phone the scene must leave room
+   for the list under it, and a square canvas pushes everything below the fold — but 15rem was too
+   literal a reading of that. At 390 x 844 the old height left 240px, of which the stacked view
+   controls took 196 and the card covered the top, so the load itself had a corner. Half the
+   viewport is a scene the operator can actually read, and still leaves the list a screenful. */
 .plan-scene {
-  height: 15rem;
+  height: clamp(18rem, 52vh, 28rem);
   border-radius: 1.4rem; /* matches .card, same as the summary and failure surfaces below it */
   overflow: hidden;
   background: var(--quai-surface);
@@ -221,11 +224,15 @@
   position: relative;
 }
 
+/* Still along the top, which `SA-23` chose and which is right: the load sits on the floor and builds
+   upwards, so the top of the frame is the emptiest part of a three-quarter view and the bottom is
+   where the boxes are. What changed is the width — it runs the full span now, because the column of
+   buttons it used to keep clear of has moved out from beside it. */
 .plan-next {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
-  right: 5.5rem;   /* clear of the view controls */
+  right: 0.75rem;
   padding: 0.625rem 0.75rem;
   z-index: 2;
 }
@@ -253,19 +260,39 @@
   font-size: 0.8125rem;
 }
 
-/* 3D / Top / Left / Right, stacked down the right. 2.75rem is the 44px touch target design.md asks
-   for, and this one is pressed with handling gloves on. */
+/* 3D / Top / Left / Right. 2.75rem is the 44px touch target design.md asks for, and this one is
+   pressed with handling gloves on — the size is `SA-23`'s and stays.
+
+   The axis is what changed. Stacked, four of them came to 196px down a 240px canvas: the controls
+   were taller than the picture they controlled. In a row along the bottom they cost that height
+   once, over the near floor corner, leaving the middle of the frame to the load. They go back to a
+   column on a wide screen, where there was never a shortage of height. */
 .plan-views {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.25rem;
   padding: 0.25rem;
   background: var(--quai-surface);
   border-radius: 1rem;
   z-index: 2;
+}
+
+@media (min-width: 40rem) {
+  .plan-views {
+    top: 0.75rem;
+    bottom: auto;
+    left: auto;
+    right: 0.75rem;
+    transform: none;
+    flex-direction: column;
+  }
+
+  /* The column is back in the top-right corner, so the card stops short of it again. */
+  .plan-next { right: 5.5rem; }
 }
 
 .plan-view {
