@@ -37,4 +37,30 @@ la règle. NE TOUCHE PAS À Home.jsx. Tests et README. Dans le PR, le même tabl
 
 ## Outcome
 
-To be filled when the pull request is opened.
+- **PR:** https://github.com/Lpk78/quai/pull/64 (reviewer: `Lpk78`, since `MORHI11` is on `HY-17`)
+- **What the AI produced:** `VIEWS` and `CameraPreset` in `web/src/plan/LoadScene.jsx`; the view
+  switch, Next box card, view controls and progress panel in `web/src/pages/PlanScreen.jsx`; the
+  stylesheet additions in `web/src/plan.css`; fifteen tests; the README section.
+- **What was changed by hand:** nothing in the committed code.
+- **The gate, answered before writing anything:** the task asked whether the existing 3D view could
+  carry camera presets without a rewrite. It can — `@react-three/fiber` 9.8.1 exports `useThree` and
+  drei 10.7.9's `OrbitControls` is `forwardRef`-able, so a preset is one component rendered inside the
+  existing `<Canvas>` plus a `view` prop. The meshes, scaling, lighting and selection are untouched.
+- **What the mockup asked for and did not get, and why:** the photograph of a loaded van (a marketing
+  render — the canvas keeps drawing the solver's plan), `A-12` (a storage reference we hold nowhere),
+  `Medium` (a size bucket we do not have, so the real centimetres are shown), the leader line from the
+  card to the box (a line pointing at nothing is decoration pretending to be information), `124 / 124`
+  (the real count of the plan in hand), white on orange (2.36:1, fails AA at every size) and the `?`
+  button (no behaviour defined). Each is listed on the PR with its reason, as `#63` did.
+- **The conditional that matters:** `All items placed` renders only when `unplaced` **and**
+  `not_applied` are both empty; otherwise the real counts appear. Three tests hold it, including one
+  that puts an unapplied rule on a perfectly placed load and asserts the tick stays away.
+- **What `Loaded, next` actually does:** advances an index through `plan.placements`, which *is* the
+  solver's loading order, so the button is reading the plan rather than inventing a sequence. It stops
+  at the end instead of looping.
+- **Three test files needed updating, all for the same honest reason:** the next box's id now appears
+  in the card as well as the list, so `getByText(id)` found two. The assertions were scoped to the
+  list rather than loosened. The `@react-three/fiber` mocks also gained a `useThree` stub, without
+  which the preset's effect threw and the whole screen rendered empty.
+- **Verified:** 130 web tests (115 before), 399 Python tests, 1 skip, `npm run build` clean.
+  `Home.jsx` untouched, as asked — `MORHI11` is rewriting it.
