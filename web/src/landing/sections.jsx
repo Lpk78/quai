@@ -91,6 +91,20 @@ const HERO_POINTS = [
   [<IconPin key="i" />, "Stop order", "Right parcels at the doors"],
 ];
 
+/* Start the film the hero button points at.
+ *
+ * Found through the DOM rather than a ref because `Hero` and `HowItWorks` are siblings under
+ * `Landing`, and threading a ref between them would add shared state to a page that is otherwise a
+ * list of independent sections. The anchor does the scrolling by itself; this only presses play.
+ *
+ * `play()` returns a promise that rejects when a browser declines — Safari refuses playback it does
+ * not consider user-initiated, and refusing is its right. The catch is deliberate: the operator is
+ * already being scrolled to a player with visible controls, so the fallback is "press the big play
+ * button you are now looking at", not an error. */
+function playTheFilm() {
+  document.getElementById("quai-film")?.play?.().catch(() => {});
+}
+
 export function Hero() {
   return (
     <section className="hero" id="top">
@@ -118,7 +132,11 @@ export function Hero() {
             <Link className="button button--lg" to="/login">
               Get started <span aria-hidden="true">→</span>
             </Link>
-            <a className="button button--lg button--film" href="#how-it-works">
+            {/* Kept as an anchor, so the scroll works with no JavaScript at all; the click handler
+                only adds the playback on top. The label is the one that was already here and it is
+                now true — until `HY-21` this button promised a film and delivered a scroll to a
+                page of prose. */}
+            <a className="button button--lg button--film" href="#how-it-works" onClick={playTheFilm}>
               <span className="button__play" aria-hidden="true">
                 <IconPlay width="14" height="14" />
               </span>
@@ -167,6 +185,35 @@ export function HowItWorks() {
     <section className="how" id="how-it-works">
       <div className="how__card">
         <h2>How QUAI works</h2>
+
+        {/* `preload="none"` is the part that matters, and it is not the same thing as not
+            autoplaying. Without it a browser is free to pull metadata — or, with `auto`, the whole
+            file — before anyone has asked to watch anything, which would put 3.2 MB on every phone
+            that loads the landing page. Nothing is fetched until the play button is pressed; what
+            is on screen until then is the 44 KB poster.
+
+            `playsInline` so iPhones play it in place instead of taking over the screen, and the
+            controls are the browser's own: a custom player would be more code and fewer features
+            than the one already on the device. */}
+        <figure className="film">
+          <video
+            id="quai-film"
+            className="film__player"
+            poster="/quai-video-poster.webp"
+            preload="none"
+            controls
+            playsInline
+          >
+            <source src="/quai-video.mp4" type="video/mp4" />
+            {/* Reached only by a browser that cannot play MP4 at all, which is why it is a link to
+                the file rather than an apology. */}
+            <a href="/quai-video.mp4">Download the film instead (MP4, 3.2 MB).</a>
+          </video>
+          <figcaption className="film__caption muted">
+            32 seconds, and it explains the whole thing.
+          </figcaption>
+        </figure>
+
         <div className="how__grid">
           <ol className="how__steps">
             {STEPS.slice(0, 2).map(([title, body], i) => (

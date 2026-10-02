@@ -273,6 +273,30 @@
   margin-bottom: var(--space-block);
 }
 
+/* The explainer film (`HY-21`). Capped rather than full-bleed: at 1920 wide the card would make a
+   32-second motion piece the loudest thing on the page, above the steps it is meant to introduce. */
+.film {
+  margin: 0 auto var(--space-block);
+  max-width: 48rem;
+}
+
+.film__player {
+  display: block;
+  width: 100%;
+  /* Reserves the 16:9 box before any bytes arrive, so pressing play does not shove the steps below
+     it down the page — the poster and the video are the same shape, and the layout knows it. */
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background: var(--quai-navy);
+}
+
+.film__caption {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
 .how__grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
