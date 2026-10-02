@@ -689,3 +689,29 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   input through and read the answer rather than the status. The honest placeholder is also the cheap
   one: it cost one `—` and it was already right when the data moved underneath it.
 - Related branch / PR: `feature/home-dictate-alignment`, `HY-17`; unblocked by `SA-21`, #63.
+
+---
+
+## 2026-10-02 — The merge gate read the review's state, not the review
+
+- What happened: #62 was merged on an approval whose own first line said it was not the one to merge
+  on. `SamDana-maker` had reviewed `MORHI11`'s PR as a second opinion and opened with: *"A second
+  opinion, not the rotation's review — `Lpk78` is the requested reviewer and CLAUDE.md puts MORHI11's
+  work with him. Flagged here so the approval below is not mistaken for the one that merges."* The
+  rotation's review was written but not yet posted, and the merge did not wait for it.
+- Why: the pre-merge check read `gh pr view --json reviewDecision,reviews`, which returned
+  `APPROVED` and a list of approver logins. Both were true. The qualification that mattered existed
+  only in the review's prose, and no field in the API carries it. `reviewDecision` answers "is there
+  an approval", never "is it the approval this repository's rotation calls for".
+- What we tried: the merge stands — the PR was green, approved by a team member, and the rotation's
+  own assessment, written before the merge and posted after it, raised no objection. It went onto the
+  PR as a comment rather than as an approval, saying plainly that it followed the merge instead of
+  gating it: backdating the record would have been a second and worse version of the same mistake.
+- What we learned: a status field is a summary, and a summary cannot carry a caveat its author wrote
+  in prose beside it. Where a convention lives in a document rather than in branch protection — ours
+  lives in the rotation table in `CLAUDE.md` — no API field will enforce it, so the check has to read
+  what the reviewer wrote and compare the approver against the table. This is the same shape as the
+  review posted on #64 eight minutes earlier, where a PR description claimed the diff did something the
+  diff did not: in both cases a summary was trusted in place of the thing it summarises.
+- Related branch / PR: #62, `feature/home-dictate-alignment`, `HY-17`; the review it should have
+  waited for is now a comment on #62.
