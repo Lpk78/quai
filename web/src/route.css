@@ -31,35 +31,98 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
 }
 
+.route-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.route-summary h2 {
+  margin: 0;
+}
+
 .route-list {
   list-style: none;
   margin: 0;
-  padding: 0.25rem 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
+/* One card per stop, as the mockup has it, rather than rows inside a single card. */
 .route-stop {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.75rem 0.875rem;
 }
 
-.route-stop + .route-stop {
-  border-top: 1px solid rgb(255 255 255 / 8%);
+/* The stop the van is at. Pale orange, derived from the fill token rather than a second colour, so
+   it follows the palette if the palette moves. */
+.route-stop--here {
+  background: color-mix(in srgb, var(--quai-orange) 12%, var(--quai-surface));
+}
+
+/* The number is the delivery order, which is what this screen exists to say.
+   Navy on orange, never white: 2.36:1 fails AA at every size — see design.md, Accessibility. The
+   mockup uses white here and the rule overrides it. */
+.route-pill {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+  font-family: var(--quai-font-data);
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+
+/* Stops not yet reached are grey, so the orange ones read as progress through the round. */
+.route-pill--ahead {
+  background: color-mix(in srgb, var(--quai-navy) 22%, var(--quai-surface));
+  color: var(--quai-navy);
 }
 
 .route-stop__where {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.0625rem;
   /* Takes the slack so the arrival time stays hard right: the eye scans that column down the list. */
   flex: 1;
   min-width: 0;
 }
 
+.route-stop__detail,
+.route-stop__label {
+  font-size: 0.8125rem;
+}
+
+.route-stop__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .route-stop__eta {
   color: var(--quai-text);
   white-space: nowrap;
+}
+
+/* The darkened orange, not the fill: orange as type is 2.19:1 on our background. design.md again. */
+.route-stop--here .route-stop__eta,
+.route-stop--here .route-stop__chevron {
+  color: var(--quai-orange-text);
+}
+
+.route-stop__chevron {
+  flex: none;
+  color: var(--quai-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
 }

@@ -4,7 +4,8 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet"
 import L from "leaflet";
 
 import { ApiError, postRoute } from "../api.js";
-import { STOPS } from "../data/manifest.js";
+import { STOPS, loadWith } from "../data/manifest.js";
+import { useScannedParcel } from "../scan/scannedParcel.jsx";
 import "leaflet/dist/leaflet.css";
 import "../route.css";
 
@@ -82,7 +83,7 @@ export default function Route() {
         ← Home
       </Link>
 
-      <h1>Today’s round</h1>
+      <h1>Route &amp; delivery order</h1>
       <p className="muted">
         {STOPS.length} stops, in the order they are driven. QUAI never reorders them.
       </p>
@@ -100,11 +101,36 @@ export default function Route() {
   );
 }
 
+/* How many parcels come off at each stop, counted from the load actually in the van — the scanned
+   parcel included once it is aboard. The mockup's second line reads "2 parcels · Rear doors"; we have
+   no door data and will not invent any, so the count is the whole line. */
+function parcelsByStop(parcel) {
+  const counts = {};
+  for (const box of loadWith(parcel)) {
+    counts[box.stop] = (counts[box.stop] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/* Where the van is in the round, from the arrival times the server gave and the clock — never a
+   guess. The current stop is the last one whose time has arrived; before any of them have, the round
+   has not started and the first stop is the one in hand. */
+function currentIndex(stops, now = Date.now()) {
+  let current = 0;
+  stops.forEach((stop, index) => {
+    if (stop.eta && Date.parse(stop.eta) <= now) current = index;
+  });
+  return current;
+}
+
 function Journey({ route }) {
   // GeoJSON is [lon, lat]; Leaflet wants [lat, lon]. Getting this backwards puts Paris in Somalia,
   // which is at least obvious on sight.
   const line = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
   const names = Object.fromEntries(STOPS.map((stop) => [stop.id, stop.name]));
+  const { parcel } = useScannedParcel();
+  const parcels = parcelsByStop(parcel);
+  const current = currentIndex(route.stops);
 
   return (
     <>
@@ -128,25 +154,38 @@ function Journey({ route }) {
         </MapContainer>
       </section>
 
-      <p className="muted data">
-        {(route.total_distance_m / 1000).toFixed(1)} km ·{" "}
-        {Math.round(route.total_duration_s / 60)} min driving
-      </p>
+      <div className="route-summary">
+        <h2>{route.stops.length} stops</h2>
+        <span className="muted data">
+          {(route.total_distance_m / 1000).toFixed(1)} km ·{" "}
+          {Math.round(route.total_duration_s / 60)} min driving
+        </span>
+      </div>
 
-      <ol className="card route-list">
-        {route.stops.map((stop, index) => (
-          <li className="route-stop" key={stop.id}>
-            <span className="badge">{index + 1}</span>
-            <span className="route-stop__where">
-              <strong>{names[stop.id] ?? stop.id}</strong>
-              {/* The address as the geocoder read it, not as we asked for it. Three of these match at
-                  street level rather than house number, and an operator seeing the wrong street is
-                  the reason this is shown rather than the input echoed back. */}
-              <span className="muted data">{stop.label}</span>
-            </span>
-            <span className="data route-stop__eta">{clockOf(stop)}</span>
-          </li>
-        ))}
+      <ol className="route-list">
+        {route.stops.map((stop, index) => {
+          const here = index === current;
+          const done = index < current;
+          return (
+            <li className={`card route-stop${here ? " route-stop--here" : ""}`} key={stop.id}>
+              <span className={`route-pill${done || here ? "" : " route-pill--ahead"}`}>
+                {index + 1}
+              </span>
+              <span className="route-stop__where">
+                <strong>{names[stop.id] ?? stop.id}</strong>
+                <span className="muted route-stop__detail">
+                  {parcels[stop.id] ?? 0} {(parcels[stop.id] ?? 0) === 1 ? "parcel" : "parcels"}
+                </span>
+                {/* The address as the geocoder read it, not as we asked for it. Three of the eight
+                    match at street level rather than house number, and an operator seeing the wrong
+                    street is the reason this is shown rather than the input echoed back. */}
+                <span className="muted data route-stop__label">{stop.label}</span>
+              </span>
+              <span className="data route-stop__eta">{clockOf(stop)}</span>
+              <span className="route-stop__chevron" aria-hidden="true">›</span>
+            </li>
+          );
+        })}
       </ol>
     </>
   );

@@ -138,6 +138,36 @@ describe("the round screen", () => {
     expect(items[2]).toMatch(/^3/);
   });
 
+  it("shows the real parcel count per stop, and invents no door", async () => {
+    // The mockup's second line reads "2 parcels · Rear doors". We have no door data anywhere in the
+    // manifest, so the count is the whole line — the mockup gives the layout, not the content.
+    postRoute.mockResolvedValue(ANSWER);
+    at("/app/route");
+    await screen.findByTestId("map");
+    expect(screen.getAllByText(/\d+ parcels?$/).length).toBe(3);
+    for (const invented of [/rear doors/i, /front doors/i, /side entrance/i, /middle/i]) {
+      expect(screen.queryByText(invented)).not.toBeInTheDocument();
+    }
+  });
+
+  it("marks one stop as the one in hand, from the clock and the real times", async () => {
+    postRoute.mockResolvedValue(ANSWER);
+    at("/app/route");
+    await screen.findByTestId("map");
+    const here = screen.getAllByRole("listitem").filter((li) =>
+      li.className.includes("route-stop--here"));
+    expect(here).toHaveLength(1);
+  });
+
+  it("names the stops from the manifest, not Stop 1 / Stop 2", async () => {
+    // The mockup's labels are placeholders; the round has real names.
+    postRoute.mockResolvedValue(ANSWER);
+    at("/app/route");
+    // In the list and in the pin's popup, like every stop name on this screen.
+    expect(await screen.findAllByText("Hôtel de Ville")).toHaveLength(2);
+    expect(screen.queryByText(/^Stop 1$/)).not.toBeInTheDocument();
+  });
+
   it("shows the distance and driving time from the answer", async () => {
     postRoute.mockResolvedValue(ANSWER);
     at("/app/route");
