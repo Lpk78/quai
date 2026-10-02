@@ -71,7 +71,7 @@ is idle and `readyState` is `HAVE_NOTHING`. After the button is pressed, `networ
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/72 (reviewer: `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/73 (reviewer: `SamDana-maker`)
 - **What the AI produced:** the poster extraction and conversion, the `<figure class="film">` block
   and `playTheFilm` in `sections.jsx`, the `.film` styles, and the ten tests in
   `web/src/pages/landingVideo.test.jsx`.
