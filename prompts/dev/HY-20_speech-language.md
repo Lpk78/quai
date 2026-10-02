@@ -76,7 +76,7 @@ device-locale read fails loudly rather than silently.
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/70 (reviewer: `Lpk78`)
+- **PR:** https://github.com/Lpk78/quai/pull/71 (reviewer: `Lpk78`)
 - **What the AI produced:** the `SPEECH_LANGUAGE` constant and its use in `Dictate.jsx`, the three
   tests in `dictateSpeech.test.jsx`, and the `documentation/failures.md` entry.
 - **How it was checked:** `npm test` and `python3 -m unittest discover tests` after each commit (178
