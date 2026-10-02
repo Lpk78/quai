@@ -4,6 +4,12 @@
 - **Date:** 2026-10-02
 - **Branch:** `feature/landing-video`
 - **Issue:** none (adds to the landing page built in `HY-06` / #34 and `HY-12` / #42)
+- **Reviewer:** `SamDana-maker` by one-off swap — the rotation in CLAUDE.md puts `MORHI11`'s work on
+  `Lpk78`, but `Lpk78` commissioned this video, and asking him to review the integration of his own
+  asset is the weaker of the two available checks: the question this PR needs answered is whether the
+  file is wired in honestly, not whether the film is good. The rotation is unchanged; this is the
+  exception, recorded so that the documented rotation and the practised one do not diverge without a
+  trace.
 
 ## Prompt as typed
 
