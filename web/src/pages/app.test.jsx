@@ -6,6 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // it renders as plain elements here — same stub plan/plan.test.jsx uses for the same reason.
 vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children, ...rest }) => <div data-testid="scene" {...rest}>{children}</div>,
+  // `useThree` reaches the renderer's camera, which the camera presets move (`SA-23`). There is no
+  // renderer here, so it hands back a camera-shaped object: the preset's effect runs without throwing
+  // and the rest of the screen stays testable. What the camera *sees* is not something jsdom can tell
+  // us either way — `plan/scene.test.jsx` asserts the view positions directly instead.
+  useThree: (selector) => {
+    const camera = { position: { set: () => {} }, lookAt: () => {} };
+    return selector ? selector({ camera }) : { camera };
+  },
 }));
 vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
 
@@ -146,7 +154,8 @@ describe("confirm sends the dictated constraints to /plan and shows what it retu
       expect.objectContaining({ constraints: [{ type: "load_last", item: "B18" }] }),
     );
     // Not just any plan: the one /plan returned for this constraint, not the no-constraint default.
-    expect(screen.getByText("B18")).toBeInTheDocument();
+    // Twice now: in the list and in the "Next box" card, since B18 is first in the loading order.
+    expect(screen.getAllByText("B18").length).toBeGreaterThan(0);
     // Eighteen, not nineteen: this test enters at /app/dictate without passing through /app/scan, so
     // the fragile parcel is not aboard. SA-17b took it out of BOXES — scanning its label is what adds
     // it. The nineteen-box path is covered in scan.test.jsx.

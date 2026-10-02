@@ -187,3 +187,141 @@
 .plan-item--selected { outline: 2px solid var(--quai-orange); }
 
 .plan-item .plan-swatch { align-self: center; }
+
+/* ---- SA-23: the dressing from phone_3d_plan.png. The scene itself is untouched. ---- */
+
+/* Load view | Delivery order. A link, not a tab bar: the two are separate routes. */
+.plan-switch {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.75rem 1rem 0;
+  padding: 0.25rem;
+  background: var(--quai-surface);
+  border-radius: 999px;
+}
+
+.plan-switch__tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.625rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--quai-navy);
+}
+
+/* Navy on orange, never white — 2.36:1 fails AA at every size. design.md, Accessibility rule 1. */
+.plan-switch__tab--on {
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+}
+
+/* The scene, with the card and the view controls over it. */
+.plan-stage {
+  position: relative;
+}
+
+.plan-next {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 5.5rem;   /* clear of the view controls */
+  padding: 0.625rem 0.75rem;
+  z-index: 2;
+}
+
+.plan-next h2 {
+  margin: 0 0 0.125rem;
+  font-size: 0.9375rem;
+}
+
+.plan-next p {
+  margin: 0;
+}
+
+.plan-next__who {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.plan-next__stop {
+  font-weight: 600;
+}
+
+.plan-next__rank {
+  font-size: 0.8125rem;
+}
+
+/* 3D / Top / Left / Right, stacked down the right. 2.75rem is the 44px touch target design.md asks
+   for, and this one is pressed with handling gloves on. */
+.plan-views {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--quai-surface);
+  border-radius: 1rem;
+  z-index: 2;
+}
+
+.plan-view {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--quai-navy);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.plan-view--on {
+  background: var(--quai-orange);
+  color: var(--quai-navy);
+}
+
+.plan-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.plan-progress__count {
+  flex: 1;
+  min-width: 9rem;
+}
+
+.plan-progress__bar {
+  margin-top: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--quai-navy) 12%, var(--quai-surface));
+  overflow: hidden;
+}
+
+.plan-progress__fill {
+  height: 100%;
+  background: var(--quai-orange);
+}
+
+.plan-progress__state {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Green is a fill colour, not a text colour, on our background — so the tick carries the colour and
+   the words stay navy. design.md: success #16A34A is 3.05:1 and fails as body text. */
+.plan-progress__state--ok span {
+  color: var(--quai-success);
+}
+
+.plan-progress__state--warn {
+  color: var(--quai-orange-text);
+}

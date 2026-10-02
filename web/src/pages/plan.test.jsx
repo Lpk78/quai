@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -9,6 +9,14 @@ import { describe, expect, it, vi } from "vitest";
    be a test that cannot fail. */
 vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children, ...rest }) => <div data-testid="scene" {...rest}>{children}</div>,
+  // `useThree` reaches the renderer's camera, which the camera presets move (`SA-23`). There is no
+  // renderer here, so it hands back a camera-shaped object: the preset's effect runs without throwing
+  // and the rest of the screen stays testable. What the camera *sees* is not something jsdom can tell
+  // us either way — `plan/scene.test.jsx` asserts the view positions directly instead.
+  useThree: (selector) => {
+    const camera = { position: { set: () => {} }, lookAt: () => {} };
+    return selector ? selector({ camera }) : { camera };
+  },
 }));
 vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
 
@@ -38,9 +46,12 @@ describe("the plan the solver returned", () => {
     await waitFor(() =>
       expect(screen.getAllByTestId("placed-box")).toHaveLength(PLAN_FIXTURE.placements.length),
     );
-    // Not just the count: each id the server sent is on the screen.
+    // Not just the count: each id the server sent is in the list. Scoped to the list because the
+    // next box's id also appears in the "Next box" card above it (`SA-23`), so a bare text query
+    // would now find two of one id and none of the rest.
+    const listed = screen.getAllByTestId("placed-box").map((row) => row.textContent);
     for (const placement of PLAN_FIXTURE.placements) {
-      expect(screen.getByText(placement.id)).toBeInTheDocument();
+      expect(listed.some((text) => text.includes(placement.id))).toBe(true);
     }
   });
 
@@ -176,5 +187,114 @@ describe("the route", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { level: 1, name: "Load plan" })).toBeInTheDocument();
+  });
+});
+
+describe("the dressing from the mockup (SA-23)", () => {
+  // A plan with everything placed and nothing unapplied, so the green state is reachable.
+  const CLEAN = {
+    placements: [
+      { id: "a", x: 0, y: 0, z: 0, dx: 60, dy: 40, dz: 40 },
+      { id: "b", x: 60, y: 0, z: 0, dx: 50, dy: 40, dz: 40 },
+    ],
+    unplaced: [],
+    fill_rate: 0.5,
+    total_weight: 30,
+    not_applied: [],
+  };
+  const REQUEST = {
+    container: { length: 200, width: 100, height: 100, max_weight: 500 },
+    boxes: [{ id: "a", length: 60, width: 40, height: 40, weight: 12 },
+            { id: "b", length: 50, width: 40, height: 40, weight: 18 }],
+  };
+
+  function showPlan(plan) {
+    return render(
+      <MemoryRouter>
+        <PlanScreen loadPlan={() => Promise.resolve(plan)} request={REQUEST} />
+      </MemoryRouter>,
+    );
+  }
+
+  it("offers the delivery order as a link rather than restructuring the navigation", async () => {
+    showPlan(CLEAN);
+    await screen.findByTestId("loaded-count");
+    expect(screen.getByRole("link", { name: "Delivery order" }))
+      .toHaveAttribute("href", "/app/route");
+  });
+
+  it("names the next box from the plan, with its real size and weight", async () => {
+    showPlan(CLEAN);
+    const card = await screen.findByRole("complementary", { name: "Next box" });
+    expect(card).toHaveTextContent("a");
+    expect(card).toHaveTextContent("60 × 40 × 40 cm");
+    expect(card).toHaveTextContent("12 kg");
+  });
+
+  it("invents no storage reference and no size bucket", async () => {
+    // The mockup reads "Stop 3 · A-12 / Medium · 8 kg". We have no slot reference and no size
+    // buckets, so neither appears — the same rule that kept the doors off the route screen.
+    showPlan(CLEAN);
+    const card = await screen.findByRole("complementary", { name: "Next box" });
+    expect(card).not.toHaveTextContent(/A-\d+/);
+    expect(card).not.toHaveTextContent(/medium|small|large/i);
+  });
+
+  it("advances through the loading order when the operator says loaded", async () => {
+    showPlan(CLEAN);
+    expect(await screen.findByTestId("loaded-count")).toHaveTextContent("0 / 2 loaded");
+    const next = screen.getByRole("button", { name: /loaded, next/i });
+    fireEvent.click(next);
+    expect(screen.getByTestId("loaded-count")).toHaveTextContent("1 / 2 loaded");
+    // And the card moves on to the box that is genuinely next in the solver's order.
+    expect(screen.getByRole("complementary", { name: "Next box" })).toHaveTextContent("b");
+  });
+
+  it("stops at the end rather than looping round", async () => {
+    showPlan(CLEAN);
+    await screen.findByTestId("loaded-count");
+    const next = screen.getByRole("button", { name: /loaded, next/i });
+    fireEvent.click(next);
+    fireEvent.click(next);
+    expect(screen.getByTestId("loaded-count")).toHaveTextContent("2 / 2 loaded");
+    expect(next).toBeDisabled();
+    expect(screen.getByRole("complementary", { name: "Next box" })).toHaveTextContent(/all loaded/i);
+  });
+
+  it("shows the green state only when the plan really is complete", async () => {
+    showPlan(CLEAN);
+    expect(await screen.findByTestId("plan-state")).toHaveTextContent(/all items placed/i);
+  });
+
+  it("refuses the green tick when a box could not be placed", async () => {
+    // The lie this project exists to refuse: a tick over an incomplete plan.
+    showPlan({ ...CLEAN, unplaced: ["c"] });
+    const state = await screen.findByTestId("plan-state");
+    expect(state).not.toHaveTextContent(/all items placed/i);
+    expect(state).toHaveTextContent("1 not placed");
+  });
+
+  it("refuses it when a rule went unapplied, even with everything placed", async () => {
+    showPlan({ ...CLEAN, not_applied: [{ type: "at_bottom", item: "a", reason: "issue #29" }] });
+    const state = await screen.findByTestId("plan-state");
+    expect(state).not.toHaveTextContent(/all items placed/i);
+    expect(state).toHaveTextContent("1 rule not applied");
+  });
+
+  it("counts the plan in hand, not the mockup's 124", async () => {
+    showPlan(CLEAN);
+    expect(await screen.findByTestId("loaded-count")).toHaveTextContent("/ 2 loaded");
+  });
+
+  it("offers the four camera views, each a large enough target to press in gloves", async () => {
+    showPlan(CLEAN);
+    await screen.findByTestId("loaded-count");
+    for (const name of ["3D", "Top", "Left", "Right"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Top" }));
+    expect(screen.getByRole("button", { name: "Top" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "false");
   });
 });
