@@ -711,7 +711,7 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   in prose beside it. Where a convention lives in a document rather than in branch protection — ours
   lives in the rotation table in `CLAUDE.md` — no API field will enforce it, so the check has to read
   what the reviewer wrote and compare the approver against the table. This is the same shape as the
-  review posted on #64 an hour earlier, where a PR description claimed the diff did something the
+  review posted on #64 eight minutes earlier, where a PR description claimed the diff did something the
   diff did not: in both cases a summary was trusted in place of the thing it summarises.
 - Related branch / PR: #62, `feature/home-dictate-alignment`, `HY-17`; the review it should have
   waited for is now a comment on #62.
