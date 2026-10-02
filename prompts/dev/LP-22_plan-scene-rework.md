@@ -95,7 +95,20 @@ All three are done. The third turned out not to be hypothetical. `PlanScreen` wa
 `selected={selected ?? nextPlacement?.id ?? null}` into the scene — **one id answering two different
 questions** — so the highlight really did move to whatever was tapped, and the screen read as though
 a tap chose what went into the van. It is now `nextId` and `consultedId`, two props that cannot be
-confused, and four tests hold the line.
+confused.
+
+**The first four tests did not hold that line, and the review caught it.** They asserted on the
+next-box card and the detail panel, both of which read `nextPlacement` straight from the plan and so
+behave identically whether the props are split or not: `SamDana-maker` restored
+`nextId={selected ?? nextPlacement?.id}` and all 182 passed. Reproduced here before fixing it. The
+distinction lives in what the scene is *told*, so the scene is now mocked in `plan.test.jsx` and the
+props are read directly; mutation-tested both ways, the restored line fails exactly two of the three
+new tests with `expected 'c' to be 'a'` and `expected 'c' to be 'b'`.
+
+This is the third time tonight the same shape has come up on this team — a description believed over
+a diff on #64, a test whose environment already satisfied it on #71 — and the first time it was
+mine. The tests were not wrong; they were about the HTML, while the commit message was about the
+props. A test that cannot fail for the reason the commit gives is not evidence for that commit.
 
 ## Outcome
 
