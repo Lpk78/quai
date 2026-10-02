@@ -715,3 +715,35 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   diff did not: in both cases a summary was trusted in place of the thing it summarises.
 - Related branch / PR: #62, `feature/home-dictate-alignment`, `HY-17`; the review it should have
   waited for is now a comment on #62.
+
+---
+
+## 2026-10-02 — Six different speech failures all looked like a button that does nothing
+
+- What happened: on an iPhone over HTTPS, the microphone on `/app/dictate` transcribed nothing and
+  said nothing. `HY-14` had wired exactly two events on `SpeechRecognition` — `onresult` and
+  `onend` — and `onend` only flips the button back to its resting state. So `not-allowed`,
+  `service-not-allowed`, `no-speech`, `network`, `audio-capture`, `aborted`, a `nomatch`, and a
+  `start()` that throws `InvalidStateError` synchronously all produced the identical screen: a mic
+  button that lights up, goes out, and leaves an empty field.
+- Why: the handler that would have reported any of it was never attached. Not a wrong message — no
+  message. And `recognition.start()` was called unwrapped inside a click handler, so a synchronous
+  throw died there too. The failure was therefore invisible to the only person who could see it,
+  standing on a dock with the phone in their hand, and undiagnosable by anyone not holding it.
+- What we tried: the diagnosis was made possible before it was attempted, which is the whole shape
+  of this entry. `onerror`, `onnomatch` and `onend` now record the browser's own `event.error`
+  verbatim, `start()` is wrapped and reports the thrown `name`, `navigator.permissions.query({name:
+  "microphone"})` is read where it exists — and where it throws, *that* is recorded, since Safari
+  refusing the query is itself a fact about the device. All of it is printed on the screen it
+  happened on, in mono, never behind a console a phone does not have.
+- The fix that is conditional on the answer: when the browser names a permission problem
+  specifically — and only then — the screen offers to call `getUserMedia({audio: true})`, which on
+  Safari raises the prompt `SpeechRecognition.start()` sometimes does not. It is not run on load and
+  not offered for the other codes, because a prompt nobody asked for would hide which of the two
+  APIs the device is unhappy with.
+- What we learned: "it does nothing" is not a bug report, it is the absence of one, and the cost is
+  paid by whoever is furthest from the keyboard. Every handler an API offers for reporting failure
+  is worth wiring before the feature is called done — the asymmetry is stark, since wiring them is
+  minutes and not wiring them turned a five-minute fix into a remote debugging session. What the
+  code says about which cause it was: nothing yet. That answer arrives with one tap on the phone.
+- Related branch / PR: `fix/dictate-speech-diagnostics`, `HY-19`.
