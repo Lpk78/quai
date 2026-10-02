@@ -23,6 +23,22 @@ function planBoxesOf(boxes) {
 // browser does.
 const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+/* The language the recogniser listens in. Fixed, and named here so it can be changed in one place.
+ *
+ * It was `navigator.language || "en-US"` until `HY-20`, which read as careful and was not: on an
+ * iPhone set to French it handed the engine `fr-FR`, and a French model transcribing an English
+ * sentence returns something unusable rather than nothing — the kind of failure that looks like bad
+ * recognition instead of a bad setting. The `|| "en-US"` never fired, because `navigator.language`
+ * is never empty on a real device; the branch that made the line look right was the branch that
+ * never ran.
+ *
+ * Deferring to the device is the right default almost everywhere, and wrong here specifically: what
+ * is being recognised is not the operator's choice of interface language but a fixed English
+ * vocabulary — box labels, stop names, and the sentences `prompts/constraint-translation/` was
+ * scored against. Those exist in one language, so the recogniser is told that language rather than
+ * asked to guess it. If the app is ever translated, this constant is what moves. */
+const SPEECH_LANGUAGE = "en-US";
+
 /* One rule card per constraint the model actually returned: a title naming the item and the rule,
    and a line underneath saying what it means for the load.
 
@@ -146,7 +162,7 @@ export default function Dictate() {
       return;
     }
     const recognition = new SpeechRecognitionImpl();
-    recognition.lang = navigator.language || "en-US";
+    recognition.lang = SPEECH_LANGUAGE;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
