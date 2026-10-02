@@ -747,3 +747,31 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   minutes and not wiring them turned a five-minute fix into a remote debugging session. What the
   code says about which cause it was: nothing yet. That answer arrives with one tap on the phone.
 - Related branch / PR: `fix/dictate-speech-diagnostics`, `HY-19`.
+
+---
+
+## 2026-10-02 — A fallback that never fires, and the test that would have proved nothing
+
+- What happened: `HY-19` made the microphone report its own failures, and the next phone test showed
+  the transcription running but returning nonsense — a French speech model reading an English
+  sentence. The cause was `Dictate.jsx`'s `recognition.lang = navigator.language || "en-US"`: on an
+  iPhone set to French we were handing the engine `fr-FR` on purpose.
+- Why it read as safe: the `|| "en-US"` looks like the English case is covered, and it is — but it
+  fires only when `navigator.language` is empty, which on a real device never happens. **The branch
+  that made the line look correct was the branch that never ran.** Deferring to the device locale is
+  also the right default nearly everywhere; it is wrong here because what is recognised is not the
+  operator's interface language but a fixed English vocabulary — box labels, stop names, and the
+  sentences the constraint prompt was scored against.
+- The near-miss worth recording: the obvious test is `expect(instance.lang).toBe("en-US")`, and it
+  would have been **vacuous**. jsdom's own `navigator.language` is already `"en-US"`, so that
+  assertion passes against the broken line exactly as happily as against the fix. It was checked
+  rather than assumed — the probe printed `"en-US"` — and the tests now set the device to `fr-FR`
+  and `es-ES`, which is what makes the two versions disagree. Mutation-tested both ways: restoring
+  the old line fails all three with `'fr-FR'`, `'es-ES'` and `undefined`.
+- What we learned, twice over. First: an absent value and a wrong value look identical from outside —
+  both give behaviour nobody asked for — but they are found in opposite ways, so read the line before
+  searching for it. Second, and the one this project keeps relearning: a test whose environment
+  already satisfies the assertion is not a test. This is the fourth time (#14's parser regex, #35's
+  stop order, #60's `on_top` pair, `HY-17`'s route-time tile), and every one was caught the same way,
+  by changing the code to see whether the test noticed.
+- Related branch / PR: `fix/speech-language`, `HY-20`; follows `HY-19`, #68.
