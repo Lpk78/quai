@@ -253,8 +253,19 @@ and which ones did not fit. It needs the API running (`uvicorn server:app --app-
 its address from `VITE_API_URL`, defaulting to `http://127.0.0.1:8000`. Screenshots at phone width
 are in `documentation/screenshots/`.
 
-The 3D view of that plan is issue #7 and entering your own boxes is #8; until then the screen plans
-the same eleven-box demo load as `src/demo.py`, and says so.
+**`/app/plan`** shows that plan in three dimensions, with the dressing from
+`QUAI_DA_FINAL/08_SITE_IMAGES/phone_3d_plan.png`: a switch across to the round, a **Next box** card
+naming what to pick up and its real size and weight, camera presets (3D, Top, Left, Right) sized to be
+pressed in handling gloves, and a progress panel. **Loaded, next** walks the solver's own loading order
+one box at a time and stops at the end.
+
+What it renders is the plan the solver computed — the mockup's photograph of a loaded van is a
+marketing render and never replaces the canvas. The green **All items placed** appears only when
+nothing was left unplaced *and* no constraint went unapplied; otherwise the real counts are shown,
+because a tick over an incomplete plan is the one answer this project refuses.
+
+Entering your own boxes is issue #8; until then the screen plans the same eleven-box demo load as
+`src/demo.py`, and says so.
 
 The operator's path through the app is `/app` → `/app/scan` → `/app/dictate` → `/app/plan`: read the
 label on the package in your hands, say what to do with it, see where the solver put it. `/app/route`
