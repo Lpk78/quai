@@ -3,29 +3,43 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { SCANNED_PARCEL, loadWith } from "../data/manifest.js";
 import { identify } from "../scan/scanCode.js";
+import QrScanner from "../scan/QrScanner.jsx";
 import { useScannedParcel } from "../scan/scannedParcel.jsx";
 
 /* The step before dictating: read the label on the package in the operator's hands, so the sentence
    they say next is about something QUAI can name.
 
-   The camera is not here yet. `LP-20` chose the QR library and had not landed when this was written,
-   so rather than guess at a dependency and rip it out later the code arrives through `identify()` from
-   whatever feeds it — a typed field today, decoded frames once #55's `jsqr` loop is shared out of
-   `Login.jsx`. The field is
-   not a placeholder for the demo's sake either: it is the fallback a dock needs when a label is
-   scuffed, wet, or the phone has no camera permission.
+   The camera arrived in `HY-18`, through the `QrScanner` lifted out of `Login.jsx` — which is what
+   this file was written against and said so. It feeds `read()`, the same function the typed field
+   feeds, so a decoded label and a typed one are the same event from here on: same `identify()`, same
+   result card, same confirmation. The camera fills the field the finger used to fill, and nothing
+   more.
+
+   The field stays, above all else. It is what makes this screen safe to demo: a label on a dock is
+   scuffed, wet, in the dark, or behind a camera permission someone declined, and every one of those
+   ends at the same place — type the code under the QR square. The camera is the fast path, never the
+   only one.
 
    A scan puts the parcel into the load (`SA-17b`). `SCANNED_PARCEL` is held out of `BOXES` so that
    there is something to add: reading its label is what moves it from "in the operator's hands" to "in
    the van", and /app/dictate then plans nineteen boxes rather than eighteen. A label for a box that is
-   already aboard is recognised and shown, but adds nothing — it was never outside the load.
+   already aboard is recognised and shown, but adds nothing — it was never outside the load. */
+/* Why there is no viewfinder, in this screen's own words — the operator card is `/login`'s problem,
+   a package label is this one's. Each says what happened and sends the operator to the field below,
+   because a camera that silently does nothing is the failure this project refuses. */
+const NO_CAMERA_TEXT = {
+  insecure: "This page is not on a secure address, so the camera cannot open. "
+    + "Type the code under the QR square instead.",
+  unsupported: "No camera on this device. Type the code under the QR square instead.",
+  refused: "The camera was not allowed. Type the code under the QR square instead, "
+    + "or allow the camera and reload.",
+};
 
-   No new class names: HY-15 is visual polish across these screens, so this screen is built from the
-   shared ones already in `app.css` rather than adding selectors into a file being reworked underneath
-   it. Styling hooks are his to add. */
 export default function Scan() {
   const [code, setCode] = useState("");
   const [found, setFound] = useState(null);
+  // Bumped to let the camera decode again after it has stopped on a label. See `QrScanner`.
+  const [resumeToken, setResumeToken] = useState(0);
   const { parcel, scan } = useScannedParcel();
   const navigate = useNavigate();
 
@@ -35,11 +49,30 @@ export default function Scan() {
   const isParcel = box?.id === SCANNED_PARCEL.id;
   const alreadyAboard = isParcel && Boolean(parcel);
 
-  function handleSubmit(event) {
-    event.preventDefault();
+  /* The one way a code becomes a result, whether a finger typed it or the camera read it.
+     `HY-18` put the camera on this screen by pointing it at this function rather than giving it a
+     path of its own: the field shows what was decoded, the same `identify()` judges it, and the
+     same confirmation button below sends it on. A camera that skipped the confirmation would be one
+     gesture shorter and a second source of truth, which is the worse trade. */
+  function read(raw) {
+    setCode(raw);
     // Matched against the whole load, parcel included, so a second scan of the same label is
     // recognised rather than reported as a box this van is not carrying.
-    setFound(identify(code, loadWith(SCANNED_PARCEL)));
+    setFound(identify(raw, loadWith(SCANNED_PARCEL)));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    read(code);
+  }
+
+  /* The explicit resume. A label is read, shown, and the camera stops — so the operator reads the
+     result rather than watching it flicker between whatever passes the lens. This is what lets them
+     read the next parcel without leaving the screen. */
+  function readAnother() {
+    setFound(null);
+    setCode("");
+    setResumeToken((n) => n + 1);
   }
 
   function handleContinue() {
@@ -58,12 +91,32 @@ export default function Scan() {
         Point the label at the camera, or type the code underneath it.
       </p>
 
-      <div className="card">
-        <p className="muted">
-          The camera step is still being built. Until it lands, the code under the QR square does the
-          same job.
-        </p>
-      </div>
+      {/* The viewfinder sits above the field, and never replaces it: a label on a dock is scuffed,
+          wet or in the dark often enough that typing the code has to stay one glance away. */}
+      <QrScanner
+        onCode={(text) => { read(text); return true; }}
+        resumeToken={resumeToken}
+        fallback={(why) => (
+          <p className="muted scanner__fallback">{NO_CAMERA_TEXT[why] ?? NO_CAMERA_TEXT.unsupported}</p>
+        )}
+      >
+        {(status) => (status === "scanning" ? (
+          <>
+            <p className="muted" role="status">
+              {found
+                ? "Label read. Check it below, or read another."
+                : "Hold the label inside the frame…"}
+            </p>
+            {/* Only while a camera is actually running: with no camera there is nothing to resume,
+                and the field below is already the way to read the next one. */}
+            {found && (
+              <button type="button" className="button button--quiet" onClick={readAnother}>
+                Read another label
+              </button>
+            )}
+          </>
+        ) : null)}
+      </QrScanner>
 
       <form onSubmit={handleSubmit}>
         <label className="field">
