@@ -36,8 +36,12 @@ describe("home", () => {
     // HY-17: the per-box list (id, label, dimensions) moved out of this screen into a compact
     // summary card. Léo-Paul and the two counts are still here; an individual box's own detail,
     // such as B01's label, is not — that is what the stat tiles and the scan step are for now.
-    at("/app");
-    expect(screen.getByText(/Léo-Paul/)).toBeInTheDocument();
+    const { container } = at("/app");
+    // getAllBy, not getBy: the operator's name is now in two places, the subtitle and the header
+    // badge's screen-reader label. A single-match query would fail on the badge rather than on
+    // anything being wrong.
+    expect(container.querySelector(".home-sub").textContent).toMatch(/Léo-Paul/);
+    expect(screen.getAllByText(/Léo-Paul/).length).toBeGreaterThan(0);
     expect(screen.queryByText("B01")).not.toBeInTheDocument();
     expect(screen.queryByText(/washing machine/)).not.toBeInTheDocument();
   });
@@ -56,11 +60,21 @@ describe("home", () => {
     expect(screen.getByText("Stops").previousElementSibling).toHaveTextContent("8");
   });
 
-  it("never tiles an estimated route time next to them, unlike the landing page's example", () => {
-    // HY-17: this screen is the operator's real load, with nothing invented to put a
-    // "planned, not shipped" disclaimer on, unlike `LoadingPlanReady`'s example van.
+  it("shows the route-time tile as a dash, never as a number it does not have", () => {
+    /* The mockup's third tile reads "4h 20m". That figure would have to come from `POST /route`,
+       which geocodes through the France-only Base Adresse Nationale and answers for these Madrid
+       stops with French and Guadeloupean addresses and a nineteen-hour leg — a wrong number rather
+       than an error. So the tile exists, and holds an em dash until the stops carry real addresses.
+
+       The first version of this assertion was vacuous: it searched for "estimated route time" while
+       the tile is labelled "Est. route time", so it passed by matching nothing, both before and
+       after the tile was added. It now reads the tile's own value. */
     at("/app");
-    expect(screen.queryByText(/estimated route time/i)).not.toBeInTheDocument();
+    const label = screen.getByText("Est. route time");
+    const tile = label.closest(".stat-tile");
+    expect(tile).not.toBeNull();
+    expect(tile.querySelector("strong").textContent).toBe("—");
+    expect(tile.textContent).not.toMatch(/\d/);
   });
 });
 
@@ -82,7 +96,10 @@ describe("dictate, with no speech recognition in this environment", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
 
-    expect(await screen.findByText("Keep upright: B3")).toBeInTheDocument();
+    // HY-17: a rule card is now a title and a line of explanation, as in the mockup, rather
+    // than one "Keep upright: B3" string.
+    expect(await screen.findByText("B3 — keep upright")).toBeInTheDocument();
+    expect(screen.getByText("Never laid on its side or turned over.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /confirm/i })).toBeEnabled();
   });
 

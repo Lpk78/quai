@@ -199,7 +199,7 @@ describe("the scan surviving a reload", () => {
     fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
 
     reload("/app");
-    expect(screen.getByText(/19 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/19 parcels/)).toBeInTheDocument();
   });
 
   it("stores the id, not a copy of the box", () => {
@@ -214,11 +214,11 @@ describe("the scan surviving a reload", () => {
   it("ignores a stored id it does not recognise instead of restoring rubbish", () => {
     window.sessionStorage.setItem("quai.scannedParcel", "QUAI-BOX-9999");
     at("/app");
-    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/18 parcels/)).toBeInTheDocument();
   });
 
   it("starts a fresh round at eighteen when nothing was stored", () => {
     at("/app");
-    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/18 parcels/)).toBeInTheDocument();
   });
 });
