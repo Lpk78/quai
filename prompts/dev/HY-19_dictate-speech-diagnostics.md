@@ -64,7 +64,7 @@ points at — written down now so that reading the phone takes seconds rather th
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/67 (reviewer: `Lpk78`)
+- **PR:** https://github.com/Lpk78/quai/pull/68 (reviewer: `Lpk78`)
 - **What the AI produced:** the `onerror`/`onnomatch`/`onend` wiring and the `start()` guard in
   `Dictate.jsx`, the `SpeechReport` panel and its styles, the conditional `getUserMedia` request,
   and the 23 tests in `web/src/pages/dictateSpeech.test.jsx`.
