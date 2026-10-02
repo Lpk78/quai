@@ -83,6 +83,45 @@ Reviewer : SamDana-maker, conforme à la rotation. PR avec le tableau des écart
   `LoadProgress` keep their current behaviour; the tests that hold them are expected to pass
   unmodified, and that is the check that the rework left them alone.
 
+## Additions after the first screenshot
+
+Three more, sent once the layout commit had been seen rendered, in the author's priority order: the
+card goes **above** the canvas rather than over it; the **next parcel keeps its colour while every
+other fades**; and a **tap consults, it never reassigns** — with the instruction that if that last
+distinction could not be made visually obvious in the time available, the tap should be disabled
+rather than left ambiguous, a missing feature being better than a screen that lies about who decides.
+
+All three are done. The third turned out not to be hypothetical. `PlanScreen` was passing
+`selected={selected ?? nextPlacement?.id ?? null}` into the scene — **one id answering two different
+questions** — so the highlight really did move to whatever was tapped, and the screen read as though
+a tap chose what went into the van. It is now `nextId` and `consultedId`, two props that cannot be
+confused, and four tests hold the line.
+
 ## Outcome
 
-- _to fill with the pull request link._
+- **PR:** _to fill with the pull request link._
+- **What the AI produced:** the six commits and their comments, the four `LP-22` tests, and the
+  table of deviations on the PR.
+- **How it was checked:** `npm test` (175, four new) and `python3 -m unittest discover tests` (399,
+  1 skipped — no API key) after every commit. Then at a real 390 × 667 viewport, against a throwaway
+  dev server on port 5199 serving this checkout over HTTP with `/api` proxied to the solver — the
+  demo's own server runs from a different checkout and was never touched. Measured there rather than
+  asserted: scene 347 px, controls 52 px in a row, tabs 173 px for the 173 px they need, no
+  horizontal overflow, and a tap on `tv` leaving the next-box card reading `sofa · 1 of 10`.
+- **What the measurement found that reading the CSS had not:** nothing, as it happens — the
+  diagnosis was read off the stylesheet first (`.plan-scene` 240 px containing `.plan-views` at
+  196 px, so the controls were 82 % of the height of the picture they controlled) and the browser
+  returned those two numbers exactly. What the *screenshot* found, which neither the CSS nor the
+  numbers had said, was that the card still covered the volume's top edge. That is the second
+  addition's origin, and the reason the card is now above the canvas.
+- **What was changed by hand:** the decisions above, and two pieces of text this work falsified —
+  the `.plan-stage` comment still describing a card over the scene, and the `.plan-next__rank` rule
+  nothing used any more.
+- **A Git failure worth recording:** five of these commits first landed on local `main`. The
+  working tree is shared with another window, which checked `main` out underneath this task between
+  two commits (`HEAD@{5}: checkout: moving from feature/plan-scene-rework to main`). Nothing was
+  pushed, and the commits were moved onto the branch with `git cherry-pick`, verified by
+  `git diff 7f912a1 HEAD -- web/` coming back empty. The switch came from elsewhere; not
+  re-checking the branch between commits, in a repository whose first rule is never to commit to
+  `main`, did not.
+- **What is not done, and why:** the delivery zones on the floor — see the table of deviations.
