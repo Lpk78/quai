@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { ApiError, postConstraints, postPlan } from "../api.js";
 import { STOPS, VAN, loadWith } from "../data/manifest.js";
-import { IconMic } from "../landing/icons.jsx";
+import { IconBox, IconCube, IconMic, IconPin } from "../landing/icons.jsx";
 import { useScannedParcel } from "../scan/scannedParcel.jsx";
 
 // `/plan` takes a box the way `POST /plan` has always taken one — id, dimensions, weight — not the
@@ -23,16 +23,35 @@ function planBoxesOf(boxes) {
 // browser does.
 const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+/* One rule card per constraint the model actually returned: a title naming the item and the rule,
+   and a line underneath saying what it means for the load.
+
+   The mockup's four cards (paint cans, glass, frozen items, heavier items) are illustrations, and
+   none of them is hardcoded here — what the operator sees is whatever `/constraints` parsed from the
+   sentence they said. The mockup's per-item pictograms are not reproducible either: a paint tin or a
+   wine glass would have to be inferred from a box label, which is a guess. The icon is chosen from
+   the *rule*, which is known, and there are three of them because there are three kinds of rule. */
 const CONSTRAINT_LABELS = {
-  not_stackable: (c) => `Nothing on top: ${c.item}`,
-  at_bottom: (c) => `Keep at the bottom: ${c.item}`,
-  on_top: (c) => `Keep in the top layer: ${c.item}`,
-  keep_upright: (c) => `Keep upright: ${c.item}`,
-  unload_at: (c) => `Unload at ${c.stop}: ${c.item}`,
-  load_last: (c) => `Load last: ${c.item}`,
-  max_stack_height: (c) => `Max stack height on ${c.item}: ${c.limit_cm} cm`,
-  max_weight_on: (c) => `Max weight on ${c.item}: ${c.limit_kg} kg`,
-  max_total_weight: (c) => `Max total weight: ${c.limit_kg} kg`,
+  not_stackable: (c) => [`${c.item} — nothing on top`, "Nothing may be stacked on this one."],
+  at_bottom: (c) => [`${c.item} — bottom of the load`, "Loaded on the floor of the van."],
+  on_top: (c) => [`${c.item} — top layer`, "Nothing is placed above it."],
+  keep_upright: (c) => [`${c.item} — keep upright`, "Never laid on its side or turned over."],
+  unload_at: (c) => [`${c.item} — unload at ${c.stop}`, "Placed for the stop it comes off at."],
+  load_last: (c) => [`${c.item} — load last`, "Goes in last, nearest the doors."],
+  max_stack_height: (c) => [`${c.item} — stack up to ${c.limit_cm} cm`,
+    "Nothing stacked higher than this above it."],
+  max_weight_on: (c) => [`${c.item} — up to ${c.limit_kg} kg on top`,
+    "The weight resting on it is capped."],
+  max_total_weight: (c) => [`Whole load — up to ${c.limit_kg} kg`,
+    "The van is not loaded past this weight."],
+};
+
+/* Chosen from the rule, never from the item. `unload_at` is the only one that is about a place;
+   the rest are about how the stack is built or how the box is turned. */
+const CONSTRAINT_ICONS = {
+  unload_at: IconPin,
+  keep_upright: IconBox,
+  load_last: IconBox,
 };
 
 const REASON_TEXT = {
@@ -46,7 +65,9 @@ const REASON_TEXT = {
 
 function describeConstraint(constraint) {
   const describe = CONSTRAINT_LABELS[constraint.type];
-  return describe ? describe(constraint) : constraint.type;
+  // An unknown type still gets a card rather than vanishing: the contract says the schema is the
+  // gate, so anything that got through it is real and must be shown, named as best we can.
+  return describe ? describe(constraint) : [constraint.type, "Understood, with no plainer wording."];
 }
 
 export default function Dictate() {
@@ -192,6 +213,20 @@ function Failure({ error, onEdit }) {
   );
 }
 
+// Decorative only: a fixed waveform either side of the mic, not a visualisation of the audio
+// level, which `SpeechRecognitionImpl` does not expose. Five bars, height set in CSS.
+function SoundWave() {
+  return (
+    <span className="sound-wave" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function TalkStep({
   transcript,
   onTranscriptChange,
@@ -202,23 +237,40 @@ function TalkStep({
 }) {
   return (
     <>
-      <h1>Tell QUAI your loading rules</h1>
+      <h1>
+        Tell QUAI your
+        <br />
+        loading rules
+      </h1>
       <p className="muted">
-        Speak naturally. We’ll turn your words into rules the solver can check.
+        Speak naturally. We’ll turn your instructions into structured constraints.
       </p>
 
       {speechSupported ? (
-        <div className="mic-wrap">
-          <button
-            type="button"
-            className={`mic${listening ? " mic--active" : ""}`}
-            onClick={onToggleListening}
-            aria-pressed={listening}
-            aria-label={listening ? "Stop talking" : "Tap to talk"}
-          >
-            <IconMic />
-          </button>
-          <p className="muted">{listening ? "Listening…" : "Tap to talk"}</p>
+        <div className="mic-panel">
+          <div className="mic-wrap">
+            <SoundWave />
+            {/* The mockup's soft concentric rings. Two spans rather than a box-shadow so the
+                listening state can grow them without the layout moving. */}
+            <span className={`mic-rings${listening ? " mic-rings--active" : ""}`} aria-hidden="true">
+              <span />
+              <span />
+            </span>
+            <button
+              type="button"
+              className={`mic${listening ? " mic--active" : ""}`}
+              onClick={onToggleListening}
+              aria-pressed={listening}
+              aria-label={listening ? "Stop talking" : "Tap and speak"}
+            >
+              <IconMic />
+            </button>
+            <SoundWave />
+          </div>
+          <p className="mic-label">{listening ? "Listening…" : "Tap and speak"}</p>
+          <p className="mic-example">
+            “Keep the pallet of tiles upright and load the toolbox last.”
+          </p>
         </div>
       ) : (
         <p className="muted">Speech isn’t available on this device. Type your rules instead.</p>
@@ -253,14 +305,29 @@ function ResultStep({ result, onEdit, onConfirm, confirming }) {
       <h1>Here’s what QUAI understood</h1>
 
       {constraints.length > 0 && (
-        <ul className="constraint-list">
-          {constraints.map((constraint, index) => (
-            <li className="card constraint-card" key={index}>
-              <span className="constraint-card__icon">✓</span>
-              <span>{describeConstraint(constraint)}</span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* No "Edit" link beside this heading and no "+ Add a rule" button under the list,
+              though the mockup has both: neither exists as behaviour. Editing one rule in place,
+              or adding one by hand, means a rule list that accumulates across sentences, which is
+              roadmap row 12. The Edit button in the actions row below is a different thing and is
+              real — it returns to the transcript. */}
+          <h2 className="rules-title">Your loading rules</h2>
+          <ul className="constraint-list">
+            {constraints.map((constraint, index) => {
+              const [title, detail] = describeConstraint(constraint);
+              const Icon = CONSTRAINT_ICONS[constraint.type] ?? IconCube;
+              return (
+                <li className="card constraint-card" key={index}>
+                  <span className="constraint-card__icon" aria-hidden="true"><Icon /></span>
+                  <span className="constraint-card__text">
+                    <strong>{title}</strong>
+                    <span className="muted">{detail}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
       {unresolved.length > 0 && (

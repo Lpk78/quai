@@ -34,7 +34,7 @@ function readCode(value) {
 describe("the scan step", () => {
   it("is where the home screen's main button now goes", () => {
     at("/app");
-    const main = screen.getByRole("link", { name: /scan a package/i });
+    const main = screen.getByRole("link", { name: /start loading/i });
     expect(main).toHaveAttribute("href", "/app/scan");
     // The dictate screen is reached through the scan step now, not straight from home.
     expect(screen.queryByRole("link", { name: /dictate rules/i })).not.toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("the scan putting the parcel into the load", () => {
 
     // Back for a second look at the same label: it is aboard now, and must not be added twice.
     fireEvent.click(screen.getByRole("link", { name: "← Home" }));
-    fireEvent.click(screen.getByRole("link", { name: /scan a package/i }));
+    fireEvent.click(screen.getByRole("link", { name: /start loading/i }));
     readCode("QUAI:BOX:QUAI-BOX-0001");
     expect(screen.getByText(/already added to this load/i)).toBeInTheDocument();
   });
@@ -199,7 +199,7 @@ describe("the scan surviving a reload", () => {
     fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
 
     reload("/app");
-    expect(screen.getByText(/19 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/19 parcels/)).toBeInTheDocument();
   });
 
   it("stores the id, not a copy of the box", () => {
@@ -214,11 +214,11 @@ describe("the scan surviving a reload", () => {
   it("ignores a stored id it does not recognise instead of restoring rubbish", () => {
     window.sessionStorage.setItem("quai.scannedParcel", "QUAI-BOX-9999");
     at("/app");
-    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/18 parcels/)).toBeInTheDocument();
   });
 
   it("starts a fresh round at eighteen when nothing was stored", () => {
     at("/app");
-    expect(screen.getByText(/18 boxes/)).toBeInTheDocument();
+    expect(screen.getByText(/18 parcels/)).toBeInTheDocument();
   });
 });
