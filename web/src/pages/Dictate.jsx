@@ -98,6 +98,30 @@ export default function Dictate() {
     setSpeechLog((log) => [...log, what].slice(-6));
   }
 
+  /* Asking for the microphone directly, and only when the recogniser has actually said the
+     permission is the problem.
+
+     Safari on iOS will report `not-allowed` without ever having shown a prompt, because
+     `SpeechRecognition.start()` does not always raise one — `getUserMedia` does. This is offered
+     rather than run on load for two reasons: a permission sheet nobody asked for is its own kind of
+     rude, and triggering it unprompted would hide which of the two APIs the device is unhappy with.
+     It is driven by the error the browser gave, not by a guess about which browser this is. */
+  async function requestMicrophone() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      note("getUserMedia absent");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Released at once: this was about the permission, not about recording anything.
+      stream.getTracks().forEach((track) => track.stop());
+      note("microphone granted");
+      setMicPermission("granted");
+    } catch (cause) {
+      note(`microphone refused: ${cause?.name ?? cause}`);
+    }
+  }
+
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
   /* Safari exposes `navigator.permissions` but has historically not accepted `microphone` as a
@@ -212,6 +236,7 @@ export default function Dictate() {
           speechSupported={Boolean(SpeechRecognitionImpl)}
           speechLog={speechLog}
           micPermission={micPermission}
+          onRequestMicrophone={requestMicrophone}
         />
       )}
 
@@ -289,7 +314,7 @@ const SPEECH_ADVICE = {
  * `HY-19`: it is on the phone rather than behind a console because the phone is where this breaks
  * and a dock is where it will break next. The codes are verbatim — `event.error` as the API gave it
  * — so what gets read out over a phone call is the same string that can be searched. */
-function SpeechReport({ log, permission }) {
+function SpeechReport({ log, permission, onRequestMicrophone }) {
   const failures = log.filter((entry) => entry.startsWith("error:") || entry.includes("threw"));
   const last = failures[failures.length - 1];
   const code = last?.startsWith("error: ") ? last.slice("error: ".length) : null;
@@ -298,6 +323,13 @@ function SpeechReport({ log, permission }) {
   return (
     <div className={`speech-report${failures.length ? " speech-report--bad" : ""}`} role="status">
       {code && SPEECH_ADVICE[code] && <p>{SPEECH_ADVICE[code]}</p>}
+      {/* Shown only when the browser itself named a permission problem, so it is never a button
+          offering to fix something that is not broken. */}
+      {(code === "not-allowed" || code === "service-not-allowed") && (
+        <button type="button" className="button button--quiet" onClick={onRequestMicrophone}>
+          Ask for the microphone
+        </button>
+      )}
       <p className="data muted">
         mic: {permission ?? "checking…"} · {log.join(" → ")}
       </p>
@@ -314,6 +346,7 @@ function TalkStep({
   speechSupported,
   speechLog,
   micPermission,
+  onRequestMicrophone,
 }) {
   return (
     <>
@@ -351,7 +384,11 @@ function TalkStep({
           <p className="mic-example">
             “Keep the pallet of tiles upright and load the toolbox last.”
           </p>
-          <SpeechReport log={speechLog} permission={micPermission} />
+          <SpeechReport
+            log={speechLog}
+            permission={micPermission}
+            onRequestMicrophone={onRequestMicrophone}
+          />
         </div>
       ) : (
         /* The explicit fallback. The keyboard's own dictation key still works in the field below,

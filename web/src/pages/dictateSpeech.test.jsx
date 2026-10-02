@@ -163,6 +163,81 @@ describe("the dictate screen reporting what the speech API said", () => {
   });
 });
 
+describe("asking for the microphone, only when the browser blamed the permission", () => {
+  const ASK = { name: /ask for the microphone/i };
+
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it("offers it on not-allowed", async () => {
+    const made = await atDictate(recogniser());
+    tapMic();
+    made.instance.onerror({ error: "not-allowed" });
+    expect(await screen.findByRole("button", ASK)).toBeInTheDocument();
+  });
+
+  it("offers it on service-not-allowed", async () => {
+    const made = await atDictate(recogniser());
+    tapMic();
+    made.instance.onerror({ error: "service-not-allowed" });
+    expect(await screen.findByRole("button", ASK)).toBeInTheDocument();
+  });
+
+  it.each(["no-speech", "network", "audio-capture", "aborted"])(
+    "does not offer it on %s, which a permission prompt would not fix",
+    async (code) => {
+      const made = await atDictate(recogniser());
+      tapMic();
+      made.instance.onerror({ error: code });
+      await screen.findByText(new RegExp(`error: ${code}`));
+      expect(screen.queryByRole("button", ASK)).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not offer it when nothing has failed", async () => {
+    const made = await atDictate(recogniser());
+    tapMic();
+    made.instance.onend();
+    await screen.findByText(/start requested → end/);
+    expect(screen.queryByRole("button", ASK)).not.toBeInTheDocument();
+  });
+
+  it("records what getUserMedia answered, granted or refused", async () => {
+    const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [] });
+    navigator.mediaDevices = { getUserMedia };
+    try {
+      const made = await atDictate(recogniser());
+      tapMic();
+      made.instance.onerror({ error: "not-allowed" });
+      fireEvent.click(await screen.findByRole("button", ASK));
+
+      expect(await screen.findByText(/microphone granted/)).toBeInTheDocument();
+      expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+    } finally {
+      delete navigator.mediaDevices;
+    }
+  });
+
+  it("names the exception when the microphone is refused outright", async () => {
+    navigator.mediaDevices = {
+      getUserMedia: vi.fn().mockRejectedValue(
+        Object.assign(new Error("denied"), { name: "NotAllowedError" }),
+      ),
+    };
+    try {
+      const made = await atDictate(recogniser());
+      tapMic();
+      made.instance.onerror({ error: "not-allowed" });
+      fireEvent.click(await screen.findByRole("button", ASK));
+
+      expect(await screen.findByText(/microphone refused: NotAllowedError/)).toBeInTheDocument();
+    } finally {
+      delete navigator.mediaDevices;
+    }
+  });
+});
+
 describe("the dictate screen with no speech recognition at all", () => {
   it("says so and sends the operator to the field, where the keyboard mic works", async () => {
     // jsdom defines neither constructor, which is the same state as a browser without the API.
