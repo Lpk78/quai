@@ -43,7 +43,7 @@ comme ça, montre le label BAN tel qu'il revient. Ordre des arrêts : garde S1�
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/PENDING (reviewer: `MORHI11`)
+- **PR:** https://github.com/Lpk78/quai/pull/63 (reviewer: `MORHI11`)
 - **What the AI produced:** the Paris round in `src/demo_fixtures.py` and `web/src/data/manifest.js`,
   `postRoute` in `web/src/api.js`, `web/src/pages/Route.jsx` and `web/src/route.css`, the route in
   `App.jsx`, the link from `Home.jsx`, fifteen tests and the README section.
