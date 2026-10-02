@@ -47,6 +47,36 @@ task — "fix according to what the error reveals" — is done as far as it hone
 applied are the ones that are correct regardless of which of the known causes it turns out to be, and
 the panel is what will name the actual one on the dock.
 
+## What the log will say, and what each answer means
+
+The panel prints `mic: <permission> · <events>`. The signatures to expect, and the fix each one
+points at — written down now so that reading the phone takes seconds rather than another session:
+
+| What the panel shows | What it means | The fix it points to |
+|---|---|---|
+| `error: not-allowed` | The microphone was refused, possibly without a prompt ever appearing | Tap **Ask for the microphone** — already built, raises the prompt via `getUserMedia` |
+| `error: service-not-allowed` | Safari refused its own speech service, not the mic | Same button; if it persists, the API is unusable on that device and the field is the answer |
+| `start requested → end`, no error, no transcript | The session opened and closed without hearing anything — the classic `continuous` behaviour on Safari iOS | Set `continuous = false` for that engine, or restart on `end` while the operator is still holding the session |
+| `error: no-speech` | The API ran correctly and heard nothing | Not a code bug; the mic is too far or the room too loud |
+| `error: network` | The speech service was unreachable | Nothing in this app fixes it; the field is the answer |
+| `start threw: InvalidStateError` | `start()` was called on a running recogniser | Guard the second tap — the throw is now caught, so this is already survivable |
+| `mic: query-failed: …` or `permissions-api-absent` | The Permissions API does not answer for `microphone` here | Nothing to fix; it just means the permission line is uninformative on that device |
+
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/67 (reviewer: `Lpk78`)
+- **What the AI produced:** the `onerror`/`onnomatch`/`onend` wiring and the `start()` guard in
+  `Dictate.jsx`, the `SpeechReport` panel and its styles, the conditional `getUserMedia` request,
+  and the 23 tests in `web/src/pages/dictateSpeech.test.jsx`.
+- **How it was checked:** `npm test` and `python3 -m unittest discover tests` after every commit
+  (171 web, up from 148; 399 Python, untouched). The panel was then exercised in a real browser:
+  tapping the mic produced `mic: prompt · start requested` from the live Permissions API, stayed in
+  its neutral style because nothing had failed, and offered no "Ask for the microphone" button —
+  which is the behaviour that matters most, since a fix offered for a problem that does not exist is
+  the same dishonesty as a failure hidden.
+- **What was changed by hand:** the decision not to guess. The task sequenced diagnosis before
+  repair, and with no iPhone in the session the repair half cannot honestly be finished — so what
+  shipped is every fix that is correct whatever the cause (the `start()` guard, the button no longer
+  sticking, the explicit fallback) plus one that is *driven by the error at runtime* rather than by
+  a developer's hunch about which browser this is. The table above is the rest of the fix, waiting
+  on one tap.
