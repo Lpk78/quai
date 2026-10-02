@@ -36,4 +36,28 @@ du public. Tout le reste est secondaire. Reviewer : MORHI11. PR normale.
 
 ## Outcome
 
-To be filled when the pull request is opened.
+- **PR:** https://github.com/Lpk78/quai/pull/69 (reviewer: `MORHI11`)
+- **What the AI produced:** the parcel's new identity, size and stop in `src/demo_fixtures.py` and
+  `web/src/data/manifest.js`; `labelOf` and the corrected `stopOf` in `PlanScreen.jsx` with the list and
+  card rebuilt around them; nine new tests; the README section.
+- **What was changed by hand:** nothing in the committed code.
+- **The fixture values were searched for, not chosen.** Three sweeps over stop, dimensions and both
+  loading orders. The first answer — stop 8, 55 × 85 × 40 — was wrong and a live run is what showed it:
+  it buried the parcel in `demo_fixtures.plan()`, which applies the round, but **not** in what the app
+  shows, because `Dictate.jsx` sends `POST /plan` only the dictated constraints and `unload_at` is not
+  among the types that endpoint passes on. The plan on screen is ordered by volume. Only 65 × 85 × 85
+  is large enough to be loaded early under that ordering *and* survive the constraint without being
+  left unplaced; stop 1 is what keeps the route-ordered plan at 19 of 19, where stop 8 ejected two
+  boxes. Both numbers are load-bearing and the fixture says so.
+- **The sentence is part of the scenario.** "This one is fragile, put it on top" returns `ambiguous`
+  with "Which item is fragile?" — correct, and useless on stage. "The unmarked carton is fragile, put
+  it on top" returns the constraint and the box rises 85 cm. Found by running the real endpoint, not by
+  reasoning about the prompt, and recorded in the README as the line to say.
+- **What I broke and caught:** leading with the name made the `.plan-id` cell conditional, so it
+  disappeared for unnamed boxes — the exact selector the assertions tightened on #64 read, which would
+  have left them silently unable to fail. The element is always rendered now and a test covers it.
+- **An assertion that had to move twice:** `SHIFTED_BY_THE_SCAN` went from two boxes to fifteen when the
+  parcel was briefly a stop-8 box, then back to two at stop 1. Re-measured each time rather than
+  loosened, which is how the fifteen-box version was noticed as a symptom rather than accepted.
+- **Verified:** 406 Python tests (399 before), 152 web (148 before), build clean, and the full
+  scenario run against a live server end to end.
