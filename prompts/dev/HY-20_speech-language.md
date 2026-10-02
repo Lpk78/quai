@@ -55,6 +55,35 @@ The lesson worth carrying: "the value is absent" and "the value is wrong" presen
 the outside — both give you a behaviour you did not ask for — but they are found in opposite ways.
 Read the line before searching for it.
 
+## The test nearly proved nothing
+
+Worth recording beside the above, because it is the same shape of mistake one level up. The obvious
+test is:
+
+```js
+expect(made.instance.lang).toBe("en-US");
+```
+
+and it is **vacuous**. jsdom's own `navigator.language` is `"en-US"` — checked, not assumed — so that
+assertion passes against `navigator.language || "en-US"` exactly as happily as against the fixed
+value. It would have been a test that could never fail, guarding the one line it was written for.
+
+The three tests set the device language to `fr-FR` and `es-ES` first, which is what makes the broken
+and fixed versions disagree. Mutation-tested in both directions: with the old line restored they fail
+with `'fr-FR'`, `'es-ES'` and `undefined`; with the fix they pass. The third one removes
+`navigator.language` entirely behind a throwing getter, so any future reintroduction of a
+device-locale read fails loudly rather than silently.
+
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/70 (reviewer: `Lpk78`)
+- **What the AI produced:** the `SPEECH_LANGUAGE` constant and its use in `Dictate.jsx`, the three
+  tests in `dictateSpeech.test.jsx`, and the `documentation/failures.md` entry.
+- **How it was checked:** `npm test` and `python3 -m unittest discover tests` after each commit (178
+  web, up from 174 before the rebase onto `SA-24`; 406 Python, untouched). Then mutation-tested: the
+  old line restored makes all three new tests fail, which is the only evidence that they test
+  anything.
+- **What was changed by hand:** the decision to check jsdom's `navigator.language` before writing the
+  assertion rather than after. The task asked for "a test that asserts the value reaches the
+  instance", and the straightforward reading of that would have shipped a test that passes on broken
+  code. The device-language override is the whole difference between the two.
