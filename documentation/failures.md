@@ -664,3 +664,28 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   not set` from a server nobody intended to test. The message was right and the server was the wrong
   one. Bind to a port you started yourself before concluding anything about configuration.
 - Related branch / PR: `feature/plan-passes-on-top`, `SA-20`.
+
+---
+
+## 2026-10-02 — A geocoder that answers 200 with the wrong continent
+
+- What happened: `HY-17` added an "Est. route time" tile to `/app`, to be filled from `POST /route`
+  rather than from the mockup's `4h 20m`. The round was still the Madrid fixture, and `POST /route`
+  did not refuse it. Asked for `Depot-Centro`, `Chamberí` and `Salamanca`, the Base Adresse
+  Nationale returned **200** with a depot in Sainte-Rose (Guadeloupe), Chambéry, and a street in
+  Saint-Aubin-d'Écrosville, and OSRM dutifully drove between them: a 68 362-second leg, about
+  nineteen hours, for a van crossing Madrid.
+- Why: the geocoder's failure mode is a near match, not an error. `routing.py` raises
+  `AddressNotFound` only on an empty feature list, and a fuzzy French match for a Spanish district
+  name is not an empty list. Every layer behaved correctly and the number was still nonsense —
+  there is no status code for "this answer is about somewhere else".
+- What we tried: the tile shipped showing an em dash rather than a figure, on the rule that a number
+  QUAI did not compute is never displayed. `SA-21` / #63 then moved the demo round to real Paris
+  addresses for its own reasons, which made the lookup correct, and the tile now shows the measured
+  **1h 40m** over 37.7 km. The dash remains the in-flight and request-failed state.
+- What we learned: "the endpoint returned 200" is not "the endpoint answered the question". Where a
+  service resolves free text against a dataset with a boundary — a country, a language, a catalogue
+  — the boundary is a silent correctness condition, and the only way to see it is to run the real
+  input through and read the answer rather than the status. The honest placeholder is also the cheap
+  one: it cost one `—` and it was already right when the data moved underneath it.
+- Related branch / PR: `feature/home-dictate-alignment`, `HY-17`; unblocked by `SA-21`, #63.

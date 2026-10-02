@@ -61,6 +61,32 @@ history if the night ends before it is reached.
   re-import, because `SpeechRecognitionImpl` is read once at module load, so a stub set afterwards
   would never be seen and the two new mic tests would have passed against the fallback path instead.
 
+## Complement, 2026-10-02 — the real visual references
+
+The approved screen mockups (`08_SITE_IMAGES/phone_home.png`, `phone_voice_rules.png`) arrived after
+the six commits above, with an instruction to recreate both screens faithfully from them and to use
+the supplied transparent van PNG rather than invent an illustration.
+
+**The palette instruction was given, then withdrawn, and the work was reverted.** The complement
+first specified colours eyedropped from the mockups — navy `#000B2B`, orange `#FD5101`, background
+`#FDFDF9` — as taking precedence over `tokens.json`. That contradicts `design.md:22`, *"Never eyedrop
+a mockup — read `tokens.json`"*, which the brand tests enforce. The change was applied across
+`tokens.json`, the generated `tokens.css`, `design.md`'s palette and contrast tables, the logo
+constants and the four regenerated logo SVGs — then withdrawn by Léo-Paul before any of it was
+committed, on the grounds that repainting every screen hours before the demo is not a change to make
+at night. All ten files were restored and the suite re-run green. Nothing from it survives.
+
+Two measurements are worth keeping even though the change was reverted, because they are the reason
+the decision is not free: against the deeper `#FD5101`, navy scores 5.87:1 and white 3.31:1 — so
+white on orange, which fails at every size against today's `#FF8A00` (2.36:1), would pass AA for
+*large* text under the sampled palette. `tests/test_brand.py::test_white_on_orange_fails_even_at_
+large_sizes` asserts `< 3.0` and would have had to be restated. Whoever picks the palette up after
+the demo should start there.
+
+**What the mockups did decide:** layout, hierarchy and structure, which is all they are now taken
+for. Home gained the header badge, the van card, three KPI tiles and the "Today's route" step list;
+Dictate gained the mic panel with its rings and the "Your loading rules" card list.
+
 ### One thing worth the reviewer's attention
 
 Point 6 removes real information from the screen, not just styling: the eighteen rows of box id,
@@ -68,3 +94,22 @@ label, dimensions and weight are gone, and nothing else in the app shows that li
 exactly this and the mockup supports it, but it is the one change here a user could notice as a loss
 rather than a tidy-up. `test_shows_the_operator_s_name_and_the_load_s_real_counts` now asserts `B01`
 and *washing machine* are **absent**, so the removal is pinned deliberately rather than left to drift.
+
+### The figures, and a vacuous test caught on the way
+
+The mockups' numbers — `Van 12`, 28 stops, 124 parcels, `4h 20m` — are never copied. Stops and
+parcels are counted from the manifest. `Van 12` has no source at all (the fixture has no van id; it
+was invented in `HY-14` and removed again in `HY-16`), so the operator's name holds that slot.
+
+`Est. route time` was nearly the exception. It has to come from `POST /route`, and while the round
+was still the Madrid fixture that endpoint could not answer honestly: the Base Adresse Nationale
+covers France, and asked for `Depot-Centro` it returned **200** with a depot in Guadeloupe and a
+nineteen-hour leg — a confidently wrong number rather than an error, which is worse. The tile was
+built to show an em dash for that reason. `SA-21` / #63 then moved the round to real Paris addresses,
+so the figure became genuinely available and the tile now shows it: **1h 40m**, measured, with the
+dash kept for in-flight and failed requests.
+
+The first version of that tile's test was **vacuous**: it searched for `estimated route time` while
+the tile is labelled `Est. route time`, so it matched nothing and passed both before and after the
+tile existed. It now reads the tile's own value. Same shape as the order test in #35 and the two
+`on_top` tests in #60 — a test that has never been seen to fail is a claim, not evidence.
