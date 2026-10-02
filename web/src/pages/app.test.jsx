@@ -6,6 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // it renders as plain elements here — same stub plan/plan.test.jsx uses for the same reason.
 vi.mock("@react-three/fiber", () => ({
   Canvas: ({ children, ...rest }) => <div data-testid="scene" {...rest}>{children}</div>,
+  // `useThree` reaches the renderer's camera, which the camera presets move (`SA-23`). There is no
+  // renderer here, so it hands back a camera-shaped object: the preset's effect runs without throwing
+  // and the rest of the screen stays testable. What the camera *sees* is not something jsdom can tell
+  // us either way — `plan/scene.test.jsx` asserts the view positions directly instead.
+  useThree: (selector) => {
+    const camera = { position: { set: () => {} }, lookAt: () => {} };
+    return selector ? selector({ camera }) : { camera };
+  },
 }));
 vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
 
@@ -251,7 +259,12 @@ describe("confirm sends the dictated constraints to /plan and shows what it retu
       expect.objectContaining({ constraints: [{ type: "load_last", item: "B18" }] }),
     );
     // Not just any plan: the one /plan returned for this constraint, not the no-constraint default.
-    expect(screen.getByText("B18")).toBeInTheDocument();
+    // Scoped to the placed list rather than searched for anywhere, because B18 is also named in the
+    // "Next box" card now (`SA-23`). The ids in the list are compared whole: a bare text query would
+    // have found two, and `length > 0` would no longer pin which box or where.
+    const listedIds = screen.getAllByTestId("placed-box")
+      .map((row) => row.querySelector(".plan-id").textContent);
+    expect(listedIds).toEqual(["B18"]);
     // Eighteen, not nineteen: this test enters at /app/dictate without passing through /app/scan, so
     // the fragile parcel is not aboard. SA-17b took it out of BOXES — scanning its label is what adds
     // it. The nineteen-box path is covered in scan.test.jsx.

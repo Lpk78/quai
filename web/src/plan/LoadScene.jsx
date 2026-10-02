@@ -1,5 +1,6 @@
+import { useEffect, useRef } from "react";
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 
 /* The plan as a shape rather than a list.
  *
@@ -15,6 +16,16 @@ import { Canvas } from "@react-three/fiber";
  */
 
 const COLOURS = ["#D7B899", "#B8936B", "#8B6F47", "#2563EB", "#059669", "#7C3AED", "#DC2626"];
+
+/* Where the camera stands for each named view, in the scene's own units — the van is scaled to two
+   units across by `sceneScale`, so these are the same distances whatever vehicle is being planned.
+   Three-quarter by default, because a load is a volume and one flat face hides most of it. */
+export const VIEWS = {
+  "3D": [3.2, 2.4, 3.2],
+  Top: [0, 4.6, 0.001],   // not exactly 0 on z: straight down leaves the camera's up-vector undefined
+  Left: [0, 1.2, 4.4],
+  Right: [4.4, 1.2, 0],
+};
 
 export const colourFor = (index) => COLOURS[index % COLOURS.length];
 
@@ -45,6 +56,26 @@ export function PlacedBox({ placement, colour, selected, onSelect }) {
   );
 }
 
+/* Moves the camera to a named view and hands control back to the orbit. Inside the Canvas because
+   `useThree` needs the renderer's context, and separate from `LoadScene` because the scene itself —
+   the meshes, the scaling, the lighting, the selection — is not what changes when the view does.
+
+   The orbit target is reset with it: without that, a preset would aim the camera from the right place
+   at wherever the operator had last dragged to. */
+function CameraPreset({ view, controls }) {
+  const camera = useThree((state) => state.camera);
+  useEffect(() => {
+    const position = VIEWS[view] ?? VIEWS["3D"];
+    camera.position.set(...position);
+    camera.lookAt(0, 0, 0);
+    if (controls.current) {
+      controls.current.target.set(0, 0, 0);
+      controls.current.update();
+    }
+  }, [view, camera, controls]);
+  return null;
+}
+
 export function Van({ container }) {
   const { length, width, height } = container;
   return (
@@ -56,11 +87,12 @@ export function Van({ container }) {
   );
 }
 
-export default function LoadScene({ plan, container, selected, onSelect }) {
+export default function LoadScene({ plan, container, selected, onSelect, view = "3D" }) {
   const scale = sceneScale(container);
+  const controls = useRef(null);
   return (
     <Canvas
-      camera={{ position: [3.2, 2.4, 3.2], fov: 42 }}
+      camera={{ position: VIEWS["3D"], fov: 42 }}
       onPointerMissed={() => onSelect(null)}
       aria-label="3D view of the load"
     >
@@ -84,7 +116,8 @@ export default function LoadScene({ plan, container, selected, onSelect }) {
       </group>
       {/* Touch: one finger orbits, two pinch to zoom. Panning is off — it is the easiest way to
           lose the van off-screen on a phone, and there is nothing to pan to. */}
-      <OrbitControls enablePan={false} minDistance={1.5} maxDistance={8} />
+      <OrbitControls ref={controls} enablePan={false} minDistance={1.5} maxDistance={8} />
+      <CameraPreset view={view} controls={controls} />
     </Canvas>
   );
 }
