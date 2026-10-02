@@ -17,19 +17,21 @@ heavy items are therefore given late stops: that is what puts the appliances on 
 light cartons above them. Move a 70 kg appliance to an early stop and the plan will stack it on top
 of the cartons — correct for the route, wrong for the van.
 
-**The scanned parcel goes to the first delivery, and two cartons still move.** Stop 2 is late enough
-in the loading order — the parcel goes in 17th of 19 — that nothing is ejected, which a later stop
-does not manage: give it stop 3 or 4 and the first-fit heuristic re-uses corners the boxes after it
-needed, leaving two cartons unplaced.
+**The scanned parcel is buried, until the operator says otherwise.** It is a big box, so when the load
+is ordered by size — which is how the app's `POST /plan` orders it, since that endpoint is given no
+route — it goes in early and the rest is built on top: `B13` and `B17` end up in its column. That is
+the demonstration. An operator says "the unmarked carton is fragile, put it on top", and it rises from
+the floor to `z: 85` with nothing over it, in front of the audience.
 
-What stop 2 does not buy is a load that holds still. `B15` and `B18` are the two stop-1 cartons, and
-stop 1 comes off first so they are loaded *after* the parcel: both land somewhere else once it is in,
-`B15` at (225, 0, 85) → (240, 85, 85) and `B18` at (240, 85, 85) → (185, 0, 90). They stay placed and
-the plan stays valid — but a 3D view driven by real coordinates will show those two jump when the
-parcel is scanned. Planning around what is already in the van is issue #36; until that lands, this is
-a fact of the fixture rather than a bug in it, and `tests/test_demo_fixtures.py` pins which two boxes
-move so a third one cannot appear unnoticed. See the 2026-10-01 entry in
-`documentation/failures.md`.
+Two orderings exist and they differ, which is worth knowing before changing any number here. The app
+sends `POST /plan` only what was dictated, so the plan on screen is ordered by volume. This module's
+own `plan()` passes the round as well, and orders by stop first. The parcel is sized for the first and
+given stop 1 for the second: stop 1 is loaded last, which is what keeps the route-ordered plan at 19
+of 19 instead of ejecting two boxes.
+
+Nothing in this file calls it fragile. That claim is the operator's to make, and a fixture that made it
+first would have turned the demo into a restatement of its own data.
+
 """
 import json
 
@@ -109,21 +111,34 @@ LOADED_ITEMS = [
      "weight":  8, "stop": "S1"},
 ]
 
-# The parcel scanned on stage. It starts outside the load: the demo adds it, and the solver finds it a
-# place without ejecting any of the eighteen already in — two of them do move, though; see *The
-# scanned parcel* in the module docstring.
+# The parcel scanned on stage. It starts outside the load: the demo adds it, and the solver places it
+# with the rest.
 #
-# `fragile` is recorded because the label on the box says so, but nothing downstream reads it. The
-# contract's nearest constraint is `not_stackable`, which `quai.solver` lists outside `HONOURED` and
-# refuses rather than silently ignores — so asking for it here would raise `UnsupportedConstraint`
-# instead of planning. Keeping nothing on top of this parcel is issue #29, not this fixture.
+# **It carries no mark of fragility, and that is the point** (`SA-24`). It was `fragile parcel` with a
+# `fragile: True` flag, which made the demo circular: the operator said "this one is fragile" about a
+# box the fixture had already called fragile, and the sentence added nothing a reader could not have
+# got from the data. Fragility is a fact about the contents that only the person holding the box knows,
+# so it arrives in what they say or it does not arrive at all. The label here is deliberately dull.
+#
+# **The size is what makes the demonstration work, and the stop is what keeps the load intact.** At
+# 65 x 85 x 85 this is among the largest boxes aboard, so the size-ordered plan the app shows loads it
+# fifth and stacks `B13` and `B17` over it; "put it on top" then lifts it from `z: 0` to `z: 85`,
+# loaded last, nothing above. Before this it was a small box bound for stop 2, loaded last and already
+# clear — the constraint was satisfied before it was given and the plan did not change at all, which
+# is the failure this task existed to fix.
+#
+# Stop 1 is not cosmetic either: it is loaded last in the route-ordered plan, which is what keeps that
+# plan at 19 of 19. At stop 8 the same box ejected two others. Changing either number means re-running
+# both orderings, which is why the test below asserts the one the demo actually takes.
+#
+# `tests/test_demo_fixtures.py` holds both halves of that, because a demo whose central moment cannot
+# be asserted is a demo nobody should trust.
 SCANNED_ITEM = {
     "code": "QUAI-BOX-0001",
-    "label": "fragile parcel",
-    "dimensions": [40, 30, 25],
+    "label": "carton, unmarked",
+    "dimensions": [65, 85, 85],
     "weight": 8,
-    "fragile": True,
-    "stop": "S2",
+    "stop": "S1",
 }
 
 

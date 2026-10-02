@@ -364,6 +364,17 @@ With no key it says so and prints no scores. The method is described in that doc
 
 ### Demo fixture
 
+**The demonstration, and the sentence that drives it.** The scanned box is `carton, unmarked` — a dull
+name and no fragility flag, because fragility is something the operator knows and says, not something
+the fixture decides. In the plan as the app builds it, that box sits on the floor with `B13` and `B17`
+stacked over it. Saying **"the unmarked carton is fragile, put it on top"** lifts it 85 cm to the top
+of the load with nothing above it, all nineteen boxes still placed.
+
+The sentence has to name the box. *"This one is fragile, put it on top"* comes back `ambiguous` with
+the question *"Which item is fragile?"* — correctly, since nothing in the audio says which box is
+meant. `tests/test_demo_fixtures.py` asserts both halves of the movement, because a demonstration
+whose central moment cannot be asserted is one nobody should rely on.
+
 The data the live demo runs on — one operator card, a Paris round of eight stops, eighteen boxes
 already in the van, and the parcel scanned on stage. No key and no network:
 

@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { ApiError, postPlan } from "../api.js";
 import LoadScene, { VIEWS, colourFor } from "../plan/LoadScene.jsx";
-import { BOXES } from "../data/manifest.js";
+import { BOXES, SCANNED_PARCEL, STOPS } from "../data/manifest.js";
 import { DEMO_REQUEST } from "../plan/demoLoad.js";
 
 /* The load plan at /app/plan.
@@ -71,7 +71,15 @@ function PlacedList({ placements, selected, onSelect }) {
           <span className="plan-swatch" style={{ background: colourFor(index) }}
                 aria-hidden="true" />
           <span className="plan-order" aria-hidden="true">{index + 1}</span>
-          <span className="plan-id">{p.id}</span>
+          {/* The id element is always present, named and unnamed boxes alike: it is what a test
+              reads to say *which* box a row is, and a row that sometimes has no id cell would make
+              that assertion silently unable to fail. The name leads when there is one. */}
+          <span className="plan-name">
+            {labelOf(p.id) && <strong>{labelOf(p.id)}</strong>}
+            <span className={`plan-id${labelOf(p.id) ? " plan-id--aside data muted" : ""}`}>
+              {p.id}
+            </span>
+          </span>
           <span className="plan-dims data">
             {p.dx} × {p.dy} × {p.dz}
           </span>
@@ -169,7 +177,19 @@ function ViewSwitch() {
  * that keeps the mockup's "A-12" off this screen.
  */
 function stopOf(boxId) {
-  return BOXES.find((box) => box.id === boxId)?.stop ?? null;
+  const stopId = [...BOXES, SCANNED_PARCEL].find((box) => box.id === boxId)?.stop ?? null;
+  // The name, not the id. "S7" is a database key; the operator is looking for Saint-Germain.
+  return STOPS.find((stop) => stop.id === stopId)?.name ?? null;
+}
+
+/* What the box is called, for the screen to lead with.
+ *
+ * `POST /plan` carries no label — the solver is given dimensions and weights — so this is a manifest
+ * lookup, and it comes back empty for the eleven-box demo load whose ids the manifest never heard of.
+ * The id is the fallback there, and the technical detail everywhere else: an operator reading `B16` on
+ * a screen learns nothing, and `SA-24` is the task that noticed people were being shown exactly that. */
+function labelOf(boxId) {
+  return [...BOXES, SCANNED_PARCEL].find((box) => box.id === boxId)?.label ?? null;
 }
 
 /* The box the operator should pick up next, and what they need to know to find it.
@@ -191,9 +211,10 @@ function NextBox({ placement, position, total, weight, stop }) {
     <aside className="card plan-next" aria-label="Next box">
       <h2>Next box</h2>
       <p className="plan-next__who">
-        {stop && <span className="plan-next__stop">{stop}</span>}
-        <strong className="data">{placement.id}</strong>
+        <strong>{labelOf(placement.id) ?? placement.id}</strong>
+        {stop && <span className="plan-next__stop muted">{stop}</span>}
       </p>
+      <p className="muted data plan-next__code">{placement.id}</p>
       <p className="muted data">
         {placement.dx} × {placement.dy} × {placement.dz} cm
         {weight != null && <> · {weight} kg</>}

@@ -73,7 +73,7 @@ describe("the scan screen with a camera", () => {
     // The same result card the typed path produces, and the field showing what was read — the
     // camera fills it rather than bypassing it.
     expect(await screen.findByRole("region", { name: "Scanned package" })).toBeInTheDocument();
-    expect(screen.getByText("fragile parcel")).toBeInTheDocument();
+    expect(screen.getByText("carton, unmarked")).toBeInTheDocument();
     expect(screen.getByLabelText("Package code")).toHaveValue(LABEL);
   });
 

@@ -325,3 +325,31 @@
 .plan-progress__state--warn {
   color: var(--quai-orange-text);
 }
+
+/* ---- SA-24: the name leads, the id is technical detail beside it. ---- */
+
+.plan-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The id stays readable but stops competing: an operator reads the name, and reaches for the code
+   only when matching the screen against the label on the box. Only when there is a name to lead
+   with — an unnamed box still shows its id at full size, because that is all it has. */
+.plan-id--aside {
+  font-size: 0.75rem;
+  flex: none;
+}
+
+.plan-next__code {
+  font-size: 0.75rem;
+}
