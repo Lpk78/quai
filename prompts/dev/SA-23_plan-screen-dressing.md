@@ -5,6 +5,11 @@
 - **Date**: 2026-10-02
 - **Branch**: `feature/plan-screen-dressing`
 - **Issue**: none — demo preparation
+- **Reviewer**: `Lpk78` by one-off swap — the rotation in CLAUDE.md puts `MORHI11` on
+  `SamDana-maker`'s PRs, but `MORHI11` was mid-`HY-17` (#62, the Home and Dictate alignment) and a
+  review here would have interrupted both visual screens. The rotation is unchanged; this is the
+  exception, recorded so that the documented rotation and the practised one do not diverge without a
+  trace.
 - **Reference**: `QUAI_DA_FINAL/08_SITE_IMAGES/phone_3d_plan.png`
 
 ## Prompt as typed
@@ -59,8 +64,17 @@ la règle. NE TOUCHE PAS À Home.jsx. Tests et README. Dans le PR, le même tabl
   solver's loading order, so the button is reading the plan rather than inventing a sequence. It stops
   at the end instead of looping.
 - **Three test files needed updating, all for the same honest reason:** the next box's id now appears
-  in the card as well as the list, so `getByText(id)` found two. The assertions were scoped to the
-  list rather than loosened. The `@react-three/fiber` mocks also gained a `useThree` stub, without
-  which the preset's effect threw and the whole screen rendered empty.
+  in the card as well as the list, so `getByText(id)` found two. The `@react-three/fiber` mocks also
+  gained a `useThree` stub, without which the preset's effect threw and the whole screen rendered
+  empty.
+- **One of those updates loosened an assertion rather than scoping it, and the PR description said
+  otherwise.** `app.test.jsx` went from `getByText("B18")` — exactly one, anywhere — to
+  `getAllByText("B18").length > 0`, which pins neither how many nor which nor where. `plan.test.jsx`
+  was scoped, but by `text.includes(id)` over the whole row, a substring match that would pass for a
+  partial id. Caught by `Lpk78` in review of #64, who checked the diff against the description rather
+  than taking the description's word. Both now read the `.plan-id` cell and compare it whole, and
+  both were mutation-tested: a wrong box and a truncated id each fail. The lesson is not about the
+  assertions — it is that a description claiming a diff says something is worth exactly nothing
+  unless someone opens the diff.
 - **Verified:** 130 web tests (115 before), 399 Python tests, 1 skip, `npm run build` clean.
   `Home.jsx` untouched, as asked — `MORHI11` is rewriting it.

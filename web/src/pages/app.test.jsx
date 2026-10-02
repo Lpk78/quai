@@ -259,8 +259,12 @@ describe("confirm sends the dictated constraints to /plan and shows what it retu
       expect.objectContaining({ constraints: [{ type: "load_last", item: "B18" }] }),
     );
     // Not just any plan: the one /plan returned for this constraint, not the no-constraint default.
-    // Twice now: in the list and in the "Next box" card, since B18 is first in the loading order.
-    expect(screen.getAllByText("B18").length).toBeGreaterThan(0);
+    // Scoped to the placed list rather than searched for anywhere, because B18 is also named in the
+    // "Next box" card now (`SA-23`). The ids in the list are compared whole: a bare text query would
+    // have found two, and `length > 0` would no longer pin which box or where.
+    const listedIds = screen.getAllByTestId("placed-box")
+      .map((row) => row.querySelector(".plan-id").textContent);
+    expect(listedIds).toEqual(["B18"]);
     // Eighteen, not nineteen: this test enters at /app/dictate without passing through /app/scan, so
     // the fragile parcel is not aboard. SA-17b took it out of BOXES — scanning its label is what adds
     // it. The nineteen-box path is covered in scan.test.jsx.

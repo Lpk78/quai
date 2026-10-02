@@ -269,8 +269,15 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
   const [attempt, setAttempt] = useState(0);
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState("3D");
-  // How many boxes the operator has marked loaded. The solver's placement order *is* the loading
-  // order, so advancing this index is not an invention — it is what that order means.
+  /* How many boxes the operator has marked loaded. The solver's placement order *is* the loading
+     order, so advancing this index is not an invention — it is what that order means.
+
+     Component state, not `sessionStorage`, which is deliberately unlike the scanned parcel in
+     `scan/scannedParcel.jsx`. The two are different kinds of state: a scanned parcel is a fact about
+     the world that the operator supplied, and losing it on reload destroys information nothing can
+     recompute. This is a reading position in a list that is itself unchanged and recomputable —
+     losing it costs a scroll, not information. Written down because an undocumented inconsistency
+     between two adjacent screens is what the next reader would stop on. */
   const [loaded, setLoaded] = useState(0);
 
   useEffect(() => {

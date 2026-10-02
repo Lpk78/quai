@@ -49,9 +49,13 @@ describe("the plan the solver returned", () => {
     // Not just the count: each id the server sent is in the list. Scoped to the list because the
     // next box's id also appears in the "Next box" card above it (`SA-23`), so a bare text query
     // would now find two of one id and none of the rest.
-    const listed = screen.getAllByTestId("placed-box").map((row) => row.textContent);
+    //
+    // The id cell is compared whole rather than searched for inside the row's text: a substring
+    // match would pass for a partial id, so `b1` would satisfy an assertion about `b12`.
+    const listedIds = screen.getAllByTestId("placed-box")
+      .map((row) => row.querySelector(".plan-id").textContent);
     for (const placement of PLAN_FIXTURE.placements) {
-      expect(listed.some((text) => text.includes(placement.id))).toBe(true);
+      expect(listedIds).toContain(placement.id);
     }
   });
 
