@@ -12,7 +12,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import demo_fixtures  # noqa: E402
+from quai import checks  # noqa: E402
 from quai.checks import find_problems  # noqa: E402
+from quai.constraints import parse  # noqa: E402
+from quai.solver import solve  # noqa: E402
 
 
 class TestLoadedVan(unittest.TestCase):
@@ -37,12 +40,13 @@ class TestLoadedVan(unittest.TestCase):
 
 
 class TestScannedParcel(unittest.TestCase):
-    # The two stop-1 cartons. Stop 1 comes off first, so it is loaded last — after the parcel, which
-    # goes in 17th of 19 — and these two end up on different corners once it is in. They are pinned
-    # rather than tolerated: until issue #36 lets the solver plan around what is already in the van,
-    # two boxes moving is a fact of this fixture, and a solver change that moved a third should turn
-    # this red rather than surprise anyone mid-demo.
+    # The two stop-1 cartons. The parcel is bound for stop 1, which is loaded last, so it goes in at
+    # the end and only these two shift around it. `SA-24` briefly made it a stop-8 box, which moved
+    # fifteen of the eighteen; stop 1 is what brought this back to two, and it is pinned exactly so
+    # that a change moving a different set turns red instead of passing on a matching count.
     SHIFTED_BY_THE_SCAN = {"B15", "B18"}
+    UNMOVED_BY_THE_SCAN = {"B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10",
+                           "B11", "B12", "B13", "B14", "B16", "B17"}
 
     @staticmethod
     def coordinates(plan):
@@ -62,11 +66,12 @@ class TestScannedParcel(unittest.TestCase):
         self.assertEqual(moved, self.SHIFTED_BY_THE_SCAN)
 
     def test_every_other_box_keeps_its_coordinates(self):
-        # The half of the claim that does hold, and the one the demo depends on: sixteen of the
-        # eighteen do not budge when the parcel goes in.
+        # Three of the eighteen are unaffected by the insertion. Asserted as the complement of the
+        # moved set, so the two lists cannot drift apart without one of these two tests failing.
         before = self.coordinates(demo_fixtures.plan())
         after = self.coordinates(demo_fixtures.plan(include_scanned=True))
-        for box in sorted(set(before) - self.SHIFTED_BY_THE_SCAN):
+        self.assertEqual(set(before) - self.SHIFTED_BY_THE_SCAN, self.UNMOVED_BY_THE_SCAN)
+        for box in sorted(self.UNMOVED_BY_THE_SCAN):
             with self.subTest(box):
                 self.assertEqual(after[box], before[box])
 
@@ -97,3 +102,83 @@ class TestRouteReachesTheSolverThroughTheContract(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTheDemonstration(unittest.TestCase):
+    """The moment the whole demo is built around (`SA-24`).
+
+    An operator says "this one is fragile, put it on top" and a box moves on screen. That only means
+    anything if the box was *not* already on top — a constraint satisfied before it is given changes
+    nothing, and the audience sees a sentence produce no effect. Both halves are asserted here, because
+    a demonstration whose central moment cannot be shown in a test is one nobody should rely on.
+    """
+
+    PARCEL = demo_fixtures.SCANNED_ITEM["code"]
+
+    def plan_with(self, *extra):
+        """The scanned load, planned the way the app plans it.
+
+        **No route.** `Dictate.jsx` sends `POST /plan` the boxes and whatever the model returned, and
+        nothing else — `unload_at` is not among the types that endpoint passes to the solver, so it
+        comes back in `not_applied`. Ordering is therefore by volume alone, and that is the ordering
+        the audience sees. Asserting this against the route-ordered plan would be testing a path the
+        demonstration never takes.
+        """
+        constraints = None
+        if extra:
+            constraints = parse({"constraints": list(extra), "unresolved": []},
+                                demo_fixtures.manifest(include_scanned=True))
+        return solve(demo_fixtures.boxes(include_scanned=True), demo_fixtures.VAN, constraints)
+
+    def above(self, plan):
+        placed = next(p for p in plan.placements if p.box.id == self.PARCEL)
+        return sorted(box.box.id for box in checks.covering(placed, plan.placements))
+
+    def test_the_parcel_starts_buried(self):
+        # The half that is easy to lose: tune the fixture and the parcel quietly becomes clear again,
+        # at which point the demo still "works" and demonstrates nothing.
+        buried = self.above(self.plan_with())
+        self.assertGreaterEqual(len(buried), 2,
+                                "the parcel must start under at least two boxes or the sentence "
+                                "below has nothing to change")
+
+    def test_the_sentence_clears_it(self):
+        clear = self.above(self.plan_with({"type": "on_top", "item": self.PARCEL}))
+        self.assertEqual(clear, [], "on_top must leave nothing above the parcel")
+
+    def test_the_box_visibly_moves(self):
+        # Not just "the column is empty": the box is somewhere else, and far enough that it reads from
+        # the back of a room.
+        before = next(p for p in self.plan_with().placements if p.box.id == self.PARCEL)
+        after = next(p for p in self.plan_with({"type": "on_top", "item": self.PARCEL}).placements
+                     if p.box.id == self.PARCEL)
+        self.assertNotEqual((before.x, before.y, before.z), (after.x, after.y, after.z))
+        self.assertGreater(after.z, before.z, "it should end up higher than it started")
+
+    def test_nothing_is_lost_either_way(self):
+        # A demonstration that drops a box to make its point is not one to give in front of anyone.
+        for label, plan in (("baseline", self.plan_with()),
+                            ("with on_top", self.plan_with({"type": "on_top", "item": self.PARCEL}))):
+            with self.subTest(label):
+                self.assertEqual(plan.unplaced, [])
+                self.assertEqual(len(plan.placements), 19)
+
+    def test_both_plans_pass_the_independent_checks(self):
+        clear = self.plan_with({"type": "on_top", "item": self.PARCEL})
+        self.assertEqual(find_problems(clear.placements, demo_fixtures.VAN,
+                                       must_be_clear={self.PARCEL}), [])
+        # And the baseline is *invalid* under that same rule, which is what "buried" means here.
+        self.assertTrue(find_problems(self.plan_with().placements, demo_fixtures.VAN,
+                                      must_be_clear={self.PARCEL}))
+
+    def test_the_fixture_makes_no_claim_about_fragility(self):
+        # The operator's line is the only place fragility may come from (`SA-24`).
+        parcel = demo_fixtures.SCANNED_ITEM
+        self.assertNotIn("fragile", parcel)
+        self.assertNotIn("fragile", parcel["label"].lower())
+
+    def test_every_box_in_the_load_has_a_human_name(self):
+        for item in demo_fixtures.items(include_scanned=True):
+            with self.subTest(item["id"]):
+                self.assertTrue(item["label"].strip(), "a box with no name shows as its id on screen")
+                self.assertNotEqual(item["label"], item["id"])

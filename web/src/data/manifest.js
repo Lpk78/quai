@@ -78,10 +78,21 @@ export const BOXES = [
    manifest, so a scan had nothing to do and the screen could only confirm what was there.
 
    It keeps its stop: the operator dictates what to do with it, but where it comes off is known from
-   the label. */
+   the label.
+
+   The label is deliberately dull and there is no fragility flag (`SA-24`). It used to read "fragile
+   parcel", which made the demo circular — the operator announced something the fixture had already
+   decided. Fragility is known to whoever is holding the box, so it arrives in what they say.
+
+   The size and the stop are load-bearing for the demonstration, not arbitrary. At 65 x 85 x 85 it is
+   among the largest boxes aboard, so the plan the app shows — ordered by volume, because `POST /plan`
+   is given no route — loads it early and stacks boxes over it, and "put it on top" visibly lifts it
+   out. Stop 1 is loaded last in the route-ordered plan, which is what keeps that plan whole. Keep both
+   in step with `src/demo_fixtures.py`, where the solver reads them and where the test proving both
+   states lives. */
 export const SCANNED_PARCEL = {
-  id: "QUAI-BOX-0001", label: "fragile parcel", length: 40, width: 30, height: 25, weight: 8,
-  stop: "S2",
+  id: "QUAI-BOX-0001", label: "carton, unmarked", length: 65, width: 85, height: 85, weight: 8,
+  stop: "S1",
 };
 
 /* Everything the van is carrying once the scanned parcel is aboard — eighteen, or nineteen. The one

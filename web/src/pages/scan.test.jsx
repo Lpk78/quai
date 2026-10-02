@@ -49,9 +49,9 @@ describe("the scan step", () => {
     at("/app/scan");
     readCode("QUAI:BOX:QUAI-BOX-0001");
     expect(screen.getByRole("region", { name: "Scanned package" })).toBeInTheDocument();
-    expect(screen.getByText("fragile parcel")).toBeInTheDocument();
+    expect(screen.getByText("carton, unmarked")).toBeInTheDocument();
     expect(screen.getByText("QUAI-BOX-0001")).toBeInTheDocument();
-    expect(screen.getByText(/40 × 30 × 25 cm · 8 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/65 × 85 × 85 cm · 8 kg/)).toBeInTheDocument();
   });
 
   it("offers the dictate step only after something has been read", () => {
@@ -116,7 +116,7 @@ describe("the scan putting the parcel into the load", () => {
     fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
 
     fireEvent.change(screen.getByLabelText(/transcript/i), {
-      target: { value: "The fragile parcel goes on top." },
+      target: { value: "This one is fragile, put it on top." },
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
     await waitFor(() => expect(postConstraints).toHaveBeenCalled());
@@ -133,7 +133,7 @@ describe("the scan putting the parcel into the load", () => {
     readCode("QUAI:BOX:QUAI-BOX-0001");
     fireEvent.click(screen.getByRole("button", { name: /say what to do with it/i }));
     fireEvent.change(screen.getByLabelText(/transcript/i), {
-      target: { value: "The fragile parcel goes on top." },
+      target: { value: "This one is fragile, put it on top." },
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
     fireEvent.click(await screen.findByRole("button", { name: /confirm/i }));
@@ -186,7 +186,7 @@ describe("the scan surviving a reload", () => {
 
     reload("/app/dictate");
     fireEvent.change(screen.getByLabelText(/transcript/i), {
-      target: { value: "The fragile parcel goes on top." },
+      target: { value: "This one is fragile, put it on top." },
     });
     fireEvent.click(screen.getByRole("button", { name: /send/i }));
     await waitFor(() => expect(postConstraints).toHaveBeenCalled());

@@ -302,3 +302,66 @@ describe("the dressing from the mockup (SA-23)", () => {
     expect(screen.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "false");
   });
 });
+
+describe("names rather than internal ids (SA-24)", () => {
+  // Real manifest ids, so the label and stop lookups resolve the way they do in the demo. The point
+  // of the task: `B16` and `S7` were what the screen put in front of whoever was watching it.
+  const NAMED = {
+    placements: [{ id: "B16", x: 0, y: 0, z: 0, dx: 40, dy: 85, dz: 45 }],
+    unplaced: [], fill_rate: 0.1, total_weight: 62, not_applied: [],
+  };
+  const REQ = {
+    container: { length: 300, width: 170, height: 170, max_weight: 1200 },
+    boxes: [{ id: "B16", length: 40, width: 85, height: 45, weight: 62 }],
+  };
+
+  function showNamed() {
+    return render(
+      <MemoryRouter>
+        <PlanScreen loadPlan={() => Promise.resolve(NAMED)} request={REQ} />
+      </MemoryRouter>,
+    );
+  }
+
+  it("leads with the box's name in the list", async () => {
+    showNamed();
+    await screen.findByTestId("loaded-count");
+    const row = screen.getByTestId("placed-box");
+    expect(row).toHaveTextContent("crate, tiles");
+  });
+
+  it("keeps the id, as technical detail rather than the label", async () => {
+    // Still there — it is what is printed on the box and what a test reads to say which row this is —
+    // but no longer the thing an operator is asked to recognise.
+    showNamed();
+    await screen.findByTestId("loaded-count");
+    const id = screen.getByTestId("placed-box").querySelector(".plan-id");
+    expect(id).toHaveTextContent("B16");
+    expect(id.className).toMatch(/plan-id--aside/);
+  });
+
+  it("names the stop on the next-box card instead of its id", async () => {
+    showNamed();
+    const card = await screen.findByRole("complementary", { name: "Next box" });
+    expect(card).toHaveTextContent("Saint-Germain");   // B16's stop is S7
+    expect(card).not.toHaveTextContent(/\bS7\b/);
+  });
+
+  it("falls back to the id when the manifest has never heard of the box", async () => {
+    // The eleven-box demo load. An id is a poor label, but inventing a name for a box we know nothing
+    // about would be worse, and the id cell has to stay present either way.
+    render(
+      <MemoryRouter>
+        <PlanScreen
+          loadPlan={() => Promise.resolve({ ...NAMED,
+            placements: [{ id: "sofa", x: 0, y: 0, z: 0, dx: 200, dy: 90, dz: 80 }] })}
+          request={{ ...REQ, boxes: [{ id: "sofa", length: 200, width: 90, height: 80, weight: 45 }] }}
+        />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId("loaded-count");
+    const id = screen.getByTestId("placed-box").querySelector(".plan-id");
+    expect(id).toHaveTextContent("sofa");
+    expect(id.className).not.toMatch(/plan-id--aside/);
+  });
+});
