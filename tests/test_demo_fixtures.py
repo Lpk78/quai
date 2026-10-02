@@ -15,6 +15,7 @@ import demo_fixtures  # noqa: E402
 from quai import checks  # noqa: E402
 from quai.checks import find_problems  # noqa: E402
 from quai.constraints import parse  # noqa: E402
+from quai import solver as solver_module  # noqa: E402
 from quai.solver import solve  # noqa: E402
 
 
@@ -182,3 +183,40 @@ class TestTheDemonstration(unittest.TestCase):
             with self.subTest(item["id"]):
                 self.assertTrue(item["label"].strip(), "a box with no name shows as its id on screen")
                 self.assertNotEqual(item["label"], item["id"])
+
+
+class TestTheSpokenLine(unittest.TestCase):
+    """The sentence the demo is given, pinned against the fixture it talks about.
+
+    It is settled wording, written in the README, and it only works because it names the box: the
+    model answers *"This one is fragile, put it on top"* with `ambiguous` and the question "Which item
+    is fragile?", which is correct and useless on stage. What could quietly break it is renaming the
+    box — the line would then name something no longer in the load, and the model would be right to
+    refuse it. That is what this checks: not the model, which costs an API call, but that the words
+    still match the manifest.
+    """
+
+    LINE = "The unmarked carton is fragile, put it on top."
+    README = Path(__file__).resolve().parent.parent / "README.md"
+
+    def test_the_readme_still_carries_the_agreed_line(self):
+        self.assertIn(self.LINE, self.README.read_text(encoding="utf-8"),
+                      "the demo line in the README has drifted from the one that was agreed")
+
+    def test_the_line_names_the_box_that_is_actually_scanned(self):
+        # "unmarked carton" against a label of "carton, unmarked": every word of the label appears in
+        # the sentence, which is what lets the model match speech to an id.
+        label = demo_fixtures.SCANNED_ITEM["label"]
+        spoken = self.LINE.lower()
+        for word in (w.strip(" ,") for w in label.lower().split()):
+            with self.subTest(word):
+                self.assertIn(word, spoken,
+                              f"the scanned box is called {label!r}, which the agreed line no longer "
+                              f"names — rename one or the other, not just the box")
+
+    def test_the_line_asks_for_the_constraint_the_solver_honours(self):
+        # "on top" is `on_top`, which the solver honours and `POST /plan` passes. Saying "nothing on
+        # top of it" would translate to `not_stackable`, which the solver refuses (#29) — the same
+        # sentence in spirit, and nothing would move.
+        self.assertIn("on top", self.LINE.lower())
+        self.assertIn("on_top", solver_module.HONOURED)
