@@ -51,6 +51,40 @@ out of: `Scan.jsx` ("decoded frames once #55's `jsqr` loop is shared out of `Log
 **No new library.** `jsqr` is already a dependency; the shared component is the only thing that
 imports it after this change.
 
+## What the shared component gained, and what it did not
+
+`QrScanner` is `Login.jsx`'s loop moved, not rewritten: same `getUserMedia({facingMode:
+"environment"})`, same off-screen canvas, same `requestAnimationFrame` walk, same per-frame
+`try/catch`, same teardown. Two things are new, and only two:
+
+1. **`onCode` returns whether the code counted.** `Login` latched unconditionally on a *good* card
+   and kept looking after a refused one; that is now the caller's answer rather than a rule baked
+   into the loop, which is what lets `/app/scan` stop on a label and `/login` stop on a card.
+2. **`resumeToken` clears the latch.** `/login` passes none and behaves exactly as before — one card
+   per visit. `/app/scan` bumps it from a "Read another label" button, because a loading screen
+   reads one parcel after another. Clearing the latch rather than remounting keeps the stream open,
+   so the viewfinder does not blink between parcels.
+
+The three no-camera reasons (`insecure`, `unsupported`, `refused`) are told apart and handed to the
+screen, which writes its own copy: `/login` talks about the operator card, `/app/scan` about the
+label under the QR square. `Login`'s own wording is unchanged to the character.
+
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/65 (reviewer: `Lpk78`)
+- **What the AI produced:** `web/src/scan/QrScanner.jsx`, the rewiring of `Login.jsx` and
+  `Scan.jsx` onto it, and the eleven tests in `web/src/pages/scanCamera.test.jsx`.
+- **How it was checked:** `npm test` and `python3 -m unittest discover tests` after every commit
+  (132 web, up from 121; 399 Python, untouched). Then driven in a real browser at 390 px: the camera
+  opens on `/app/scan` with the field still under it, a denied camera gives the refused wording and
+  the field, and `/login` still reaches "Looking for a card…".
+- **The safety net held.** `login.test.jsx` is **byte-identical** — the four camera tests (rear
+  camera asked for, decode then stop, permission refused, decoder throws) pass unmodified against
+  the refactored screen, which is what the task set as the condition for the refactor being right
+  rather than the tests being wrong. `scan.test.jsx` is untouched too; the new coverage went into
+  its own file rather than loosening anything there.
+- **What was changed by hand:** the decisions. Keeping the confirmation step instead of letting a
+  decode jump straight to `/app/dictate` — one source of truth beats one gesture saved, and a test
+  pins it. Putting "Read another label" inside the `status === "scanning"` branch so it cannot exist
+  without a camera to resume. And routing the decode through `read()`, the same function the typed
+  submit calls, so the camera fills the field rather than running past it.
