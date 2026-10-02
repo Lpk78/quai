@@ -1,8 +1,17 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { postRoute } from "../api.js";
 import { OPERATOR_NAME, STOPS, loadWith } from "../data/manifest.js";
 import { IconBox, IconClock, IconPin } from "../landing/icons.jsx";
 import { useScannedParcel } from "../scan/scannedParcel.jsx";
+
+/** Seconds of driving as the tile shows them: "4h 20m", or "35m" under the hour. */
+function asDuration(seconds) {
+  const total = Math.round(seconds / 60);
+  const hours = Math.floor(total / 60);
+  return hours ? `${hours}h ${String(total % 60).padStart(2, "0")}m` : `${total}m`;
+}
 
 /* The three steps of the round, as the mockup's "TODAY'S ROUTE" list.
  *
@@ -24,19 +33,35 @@ export default function Home() {
   const { parcel } = useScannedParcel();
   const boxes = loadWith(parcel);
 
-  /* The mockup's three figures are 124 parcels, 28 stops and 4h 20m. Two of them are real here and
-     read from the manifest; the third has no value to read.
+  /* The mockup's three figures are 124 parcels, 28 stops and 4h 20m. None of them is copied: the
+     first two are counted from the manifest, and the third is driving time from `POST /route`.
 
-     `Est. route time` would have to come from `POST /route`, and `POST /route` cannot answer for this
-     round: it geocodes through the Base Adresse Nationale, which covers France, and these are Madrid
-     districts. It does not fail either — asked for "Depot-Centro" it returns a Depot in Guadeloupe
-     and a nineteen-hour leg. So the tile shows an em dash rather than a number, and will show a
-     number once the stops carry real addresses (`SA`, in progress). A figure copied from the mockup,
-     or one computed from the wrong continent, is the same lie with different provenance. */
+     It is asked for here rather than passed down because Home is the first screen of the round, and
+     an em dash is the honest answer while the request is in flight or if it fails. The one thing
+     this tile must never do is show a number QUAI did not compute — which was a live risk until
+     `SA-21` / #63: the stops were Madrid districts, and the France-only geocoder answered them with
+     French and Guadeloupean addresses and a nineteen-hour leg, a wrong number rather than an error.
+     Real Paris addresses arrived with that PR, so the figure is now real too. */
+  const [routeSeconds, setRouteSeconds] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let live = true;
+    postRoute(STOPS, null, { signal: controller.signal })
+      .then((data) => { if (live) setRouteSeconds(data.total_duration_s ?? null); })
+      // A route that cannot be fetched leaves the dash. The round is still loadable without it, so
+      // this is not worth an error state on the screen the operator starts their morning on.
+      .catch(() => {});
+    return () => { live = false; controller.abort(); };
+  }, []);
+
   const stats = [
     [<IconBox key="i" />, String(boxes.length), "Parcels", null],
     [<IconPin key="i" />, String(STOPS.length), "Stops", null],
-    [<IconClock key="i" />, "—", "Est. route time", "No value yet: the round has no addresses to route"],
+    [<IconClock key="i" />,
+      routeSeconds === null ? "—" : asDuration(routeSeconds),
+      "Est. route time",
+      routeSeconds === null ? "Driving time not available yet" : null],
   ];
 
   return (

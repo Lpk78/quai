@@ -49,12 +49,20 @@ function at(path) {
 
 beforeEach(() => {
   postRoute.mockReset();
+  // Home asks for the round on mount too, for its "Est. route time" tile (`HY-17`), so a bare
+  // `mockReset()` would hand it `undefined` to call `.then` on. A promise that never settles is
+  // the neutral default: each test below overrides it with the answer it is actually about.
+  postRoute.mockReturnValue(new Promise(() => {}));
 });
 
 describe("the round screen", () => {
   it("is reachable from home", () => {
+    /* `SA-21` reached it through a "See today's round" button under the main one. `HY-17` rebuilt
+       this screen to the mockup, whose "Today's route" step list already has a row for exactly this
+       — so the destination moved onto that row rather than sitting beside it as a second button.
+       The guarantee is unchanged and still asserted: one link, from home, to `/app/route`. */
     at("/app");
-    expect(screen.getByRole("link", { name: /see today’s round/i }))
+    expect(screen.getByRole("link", { name: /deliver your stops/i }))
       .toHaveAttribute("href", "/app/route");
   });
 

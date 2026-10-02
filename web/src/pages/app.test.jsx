@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,12 +10,13 @@ vi.mock("@react-three/fiber", () => ({
 vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
 
 import App from "../App.jsx";
-import { ApiError, postConstraints, postPlan } from "../api.js";
+import { ApiError, postConstraints, postPlan, postRoute } from "../api.js";
 
 vi.mock("../api.js", async (importOriginal) => ({
   ...(await importOriginal()),
   postConstraints: vi.fn(),
   postPlan: vi.fn(),
+  postRoute: vi.fn(),
 }));
 
 function at(path) {
@@ -29,6 +30,9 @@ function at(path) {
 beforeEach(() => {
   postConstraints.mockReset();
   postPlan.mockReset();
+  postRoute.mockReset();
+  // Home asks for the round on mount; most tests here are not about that tile.
+  postRoute.mockReturnValue(new Promise(() => {}));
 });
 
 describe("home", () => {
@@ -60,21 +64,34 @@ describe("home", () => {
     expect(screen.getByText("Stops").previousElementSibling).toHaveTextContent("8");
   });
 
-  it("shows the route-time tile as a dash, never as a number it does not have", () => {
-    /* The mockup's third tile reads "4h 20m". That figure would have to come from `POST /route`,
-       which geocodes through the France-only Base Adresse Nationale and answers for these Madrid
-       stops with French and Guadeloupean addresses and a nineteen-hour leg — a wrong number rather
-       than an error. So the tile exists, and holds an em dash until the stops carry real addresses.
+  it("shows the route time the server returned, formatted but not rounded away", async () => {
+    // The mockup's "4h 20m" is never copied: this is `total_duration_s` from `POST /route`.
+    postRoute.mockResolvedValue({ stops: [], geometry: null, total_duration_s: 15600 });
+    at("/app");
+    expect(await screen.findByText("4h 20m")).toBeInTheDocument();
+  });
+
+  it("shows a dash rather than a number while the route is still being fetched", () => {
+    /* An em dash is the honest answer before the server has answered, and the one thing this tile
+       must never do is show a figure QUAI did not compute.
 
        The first version of this assertion was vacuous: it searched for "estimated route time" while
-       the tile is labelled "Est. route time", so it passed by matching nothing, both before and
-       after the tile was added. It now reads the tile's own value. */
+       the tile is labelled "Est. route time", so it matched nothing and passed both before and
+       after the tile existed. It reads the tile's own value now. */
+    postRoute.mockReturnValue(new Promise(() => {})); // never settles
     at("/app");
-    const label = screen.getByText("Est. route time");
-    const tile = label.closest(".stat-tile");
-    expect(tile).not.toBeNull();
+    const tile = screen.getByText("Est. route time").closest(".stat-tile");
     expect(tile.querySelector("strong").textContent).toBe("—");
-    expect(tile.textContent).not.toMatch(/\d/);
+  });
+
+  it("leaves the dash in place when the route cannot be fetched at all", async () => {
+    // A failing route must not take down the screen the operator starts their morning on.
+    postRoute.mockRejectedValue(new ApiError("unreachable", "no"));
+    at("/app");
+    const tile = screen.getByText("Est. route time").closest(".stat-tile");
+    await waitFor(() => expect(postRoute).toHaveBeenCalled());
+    expect(tile.querySelector("strong").textContent).toBe("—");
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 });
 
