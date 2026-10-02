@@ -85,7 +85,59 @@ export default function Dictate() {
   const recognitionRef = useRef(null);
   const navigate = useNavigate();
 
+  /* What the browser actually said, in its own words. Until `HY-19` this screen reported nothing at
+     all: there was no `onerror`, no `onnomatch`, and `onend` only flipped the button back — so six
+     different failures all looked like "the mic does nothing", which is undiagnosable from a dock
+     with a phone in your hand. Every entry here is the raw `event.error`, `event.name` or
+     permission string, never a message of ours: a code we invented would be one more thing to
+     disbelieve. */
+  const [speechLog, setSpeechLog] = useState([]);
+  const [micPermission, setMicPermission] = useState(null);
+
+  function note(what) {
+    setSpeechLog((log) => [...log, what].slice(-6));
+  }
+
+  /* Asking for the microphone directly, and only when the recogniser has actually said the
+     permission is the problem.
+
+     Safari on iOS will report `not-allowed` without ever having shown a prompt, because
+     `SpeechRecognition.start()` does not always raise one — `getUserMedia` does. This is offered
+     rather than run on load for two reasons: a permission sheet nobody asked for is its own kind of
+     rude, and triggering it unprompted would hide which of the two APIs the device is unhappy with.
+     It is driven by the error the browser gave, not by a guess about which browser this is. */
+  async function requestMicrophone() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      note("getUserMedia absent");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Released at once: this was about the permission, not about recording anything.
+      stream.getTracks().forEach((track) => track.stop());
+      note("microphone granted");
+      setMicPermission("granted");
+    } catch (cause) {
+      note(`microphone refused: ${cause?.name ?? cause}`);
+    }
+  }
+
   useEffect(() => () => recognitionRef.current?.stop(), []);
+
+  /* Safari exposes `navigator.permissions` but has historically not accepted `microphone` as a
+     name, throwing instead of answering. Both outcomes are recorded: knowing the query is
+     unsupported is itself a fact about the device we are debugging. */
+  useEffect(() => {
+    let live = true;
+    if (!navigator.permissions?.query) {
+      setMicPermission("permissions-api-absent");
+      return () => { live = false; };
+    }
+    navigator.permissions.query({ name: "microphone" })
+      .then((result) => { if (live) setMicPermission(result.state); })
+      .catch((cause) => { if (live) setMicPermission(`query-failed: ${cause?.name ?? cause}`); });
+    return () => { live = false; };
+  }, []);
 
   function toggleListening() {
     if (!SpeechRecognitionImpl) return;
@@ -105,13 +157,28 @@ export default function Dictate() {
           .trim(),
       );
     };
+    // The three events `HY-14` never wired. `error` is the one that matters — `not-allowed`,
+    // `service-not-allowed`, `no-speech`, `network`, `audio-capture`, `aborted` are all reported
+    // here and were all silent before.
+    recognition.onerror = (event) => note(`error: ${event?.error ?? "unknown"}`);
+    recognition.onnomatch = () => note("nomatch");
     recognition.onend = () => {
+      note("end");
       recognitionRef.current = null;
       setListening(false);
     };
     recognitionRef.current = recognition;
     setListening(true);
-    recognition.start();
+    note("start requested");
+    try {
+      recognition.start();
+    } catch (cause) {
+      // Safari throws `InvalidStateError` synchronously when `start()` is called on a recogniser
+      // that is already running. Thrown inside a click handler it reached nobody.
+      note(`start threw: ${cause?.name ?? cause}`);
+      recognitionRef.current = null;
+      setListening(false);
+    }
   }
 
   async function handleSend() {
@@ -167,6 +234,9 @@ export default function Dictate() {
           onToggleListening={toggleListening}
           onSend={handleSend}
           speechSupported={Boolean(SpeechRecognitionImpl)}
+          speechLog={speechLog}
+          micPermission={micPermission}
+          onRequestMicrophone={requestMicrophone}
         />
       )}
 
@@ -227,6 +297,46 @@ function SoundWave() {
   );
 }
 
+/* What a given error code means to do about it. The code is shown either way and always first —
+   this is a second line, never a replacement. An unrecognised code gets no sentence rather than a
+   vague one, which is the whole reason the raw value is on screen. */
+const SPEECH_ADVICE = {
+  "not-allowed": "The microphone was refused. Allow it in Settings, or type below.",
+  "service-not-allowed": "This browser refused its own speech service. Type below instead.",
+  "no-speech": "Nothing was heard. Hold the phone closer, or type below.",
+  "audio-capture": "No microphone was available to record from.",
+  network: "The speech service could not be reached from this network.",
+  aborted: "The recognition was stopped before it returned anything.",
+};
+
+/* The failure, in the browser's words, on the screen the failure happened on.
+ *
+ * `HY-19`: it is on the phone rather than behind a console because the phone is where this breaks
+ * and a dock is where it will break next. The codes are verbatim — `event.error` as the API gave it
+ * — so what gets read out over a phone call is the same string that can be searched. */
+function SpeechReport({ log, permission, onRequestMicrophone }) {
+  const failures = log.filter((entry) => entry.startsWith("error:") || entry.includes("threw"));
+  const last = failures[failures.length - 1];
+  const code = last?.startsWith("error: ") ? last.slice("error: ".length) : null;
+  // Nothing to report until something has actually been attempted.
+  if (!log.length) return null;
+  return (
+    <div className={`speech-report${failures.length ? " speech-report--bad" : ""}`} role="status">
+      {code && SPEECH_ADVICE[code] && <p>{SPEECH_ADVICE[code]}</p>}
+      {/* Shown only when the browser itself named a permission problem, so it is never a button
+          offering to fix something that is not broken. */}
+      {(code === "not-allowed" || code === "service-not-allowed") && (
+        <button type="button" className="button button--quiet" onClick={onRequestMicrophone}>
+          Ask for the microphone
+        </button>
+      )}
+      <p className="data muted">
+        mic: {permission ?? "checking…"} · {log.join(" → ")}
+      </p>
+    </div>
+  );
+}
+
 function TalkStep({
   transcript,
   onTranscriptChange,
@@ -234,6 +344,9 @@ function TalkStep({
   onToggleListening,
   onSend,
   speechSupported,
+  speechLog,
+  micPermission,
+  onRequestMicrophone,
 }) {
   return (
     <>
@@ -271,9 +384,22 @@ function TalkStep({
           <p className="mic-example">
             “Keep the pallet of tiles upright and load the toolbox last.”
           </p>
+          <SpeechReport
+            log={speechLog}
+            permission={micPermission}
+            onRequestMicrophone={onRequestMicrophone}
+          />
         </div>
       ) : (
-        <p className="muted">Speech isn’t available on this device. Type your rules instead.</p>
+        /* The explicit fallback. The keyboard's own dictation key still works in the field below,
+           which is the point worth saying: speech is not gone, this one API is. */
+        <div className="card status-card">
+          <p>This browser has no speech recognition.</p>
+          <p className="muted">
+            Type your rules in the field below — the microphone key on your keyboard dictates into
+            it just the same.
+          </p>
+        </div>
       )}
 
       <label className="field">
