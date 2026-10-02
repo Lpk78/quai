@@ -15,7 +15,7 @@ vi.mock("@react-three/fiber", () => ({
     return selector ? selector({ camera }) : { camera };
   },
 }));
-vi.mock("@react-three/drei", () => ({ OrbitControls: () => null }));
+vi.mock("@react-three/drei", () => ({ OrbitControls: () => null, Edges: () => null }));
 
 import App from "../App.jsx";
 import { ApiError, postConstraints, postPlan, postRoute } from "../api.js";

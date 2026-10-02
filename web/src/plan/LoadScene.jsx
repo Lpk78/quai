@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { OrbitControls } from "@react-three/drei";
+import { Edges, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 
 /* The plan as a shape rather than a list.
@@ -76,14 +76,36 @@ function CameraPreset({ view, controls }) {
   return null;
 }
 
+/* The load volume: a transparent box, and deliberately not a van.
+ *
+ * A modelled vehicle would be the most expensive thing on screen and the least informative — the
+ * operator is looking for one parcel among eighteen, not admiring a lorry, and every wheel arch is
+ * another thing between them and the boxes. So the volume is stated and then got out of the way:
+ * warm off-white walls at low opacity for the shape, thin navy edges for where it ends, a floor
+ * faint enough to read the boxes against. `LP-22`.
+ *
+ * The colours are `tokens.json` read as literals — `background` and `navy` — because a WebGL
+ * material cannot take a CSS variable.
+ */
 export function Van({ container }) {
   const { length, width, height } = container;
   return (
-    <mesh position={[length / 2, height / 2, width / 2]}>
-      <boxGeometry args={[length, height, width]} />
-      {/* Seen from outside, so the far faces are the ones that show the shape. */}
-      <meshStandardMaterial color="#102238" transparent opacity={0.08} depthWrite={false} />
-    </mesh>
+    <group position={[length / 2, 0, width / 2]}>
+      <mesh position={[0, height / 2, 0]}>
+        <boxGeometry args={[length, height, width]} />
+        <meshStandardMaterial color="#F7F6F3" transparent opacity={0.12} depthWrite={false} />
+        {/* The edges carry the shape; the walls only tint it. `threshold` at 15° keeps this to the
+            twelve edges of the box rather than outlining every triangle of its faces. */}
+        <Edges color="#102238" threshold={15} />
+      </mesh>
+      {/* The floor the boxes sit on, lifted half a centimetre so it does not fight the van's own
+          bottom face for the same pixels. Discreet on purpose: it is the surface the delivery zones
+          are drawn on, and a strong floor would compete with them. */}
+      <mesh position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[length, width]} />
+        <meshStandardMaterial color="#102238" transparent opacity={0.07} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
