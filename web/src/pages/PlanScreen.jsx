@@ -189,16 +189,19 @@ function NextBox({ placement, position, total, weight, stop }) {
   }
   return (
     <aside className="card plan-next" aria-label="Next box">
-      <h2>Next box</h2>
-      <p className="plan-next__who">
+      {/* Two lines, not four. The card sits above the canvas now rather than over it (`LP-22`), so
+          every line it takes is a line the scene does not get — and the heading, the stop and the id
+          are one thought, as are the size and the position in the order. */}
+      <div className="plan-next__who">
+        <h2>Next box</h2>
         {stop && <span className="plan-next__stop">{stop}</span>}
         <strong className="data">{placement.id}</strong>
-      </p>
-      <p className="muted data">
+      </div>
+      <p className="muted data plan-next__detail">
         {placement.dx} × {placement.dy} × {placement.dz} cm
         {weight != null && <> · {weight} kg</>}
+        {" · "}{position} of {total}
       </p>
-      <p className="muted plan-next__rank">{position} of {total} in the loading order</p>
     </aside>
   );
 }
@@ -333,6 +336,18 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
 
         {state.status === "ready" && (
           <>
+            {/* Above the canvas, not over it. Floating it on the scene cost the top third of the
+                volume — the van's own top edge went behind it — and the operator is looking at the
+                load, not at the card. The view controls stay over the scene: they are 52px of
+                buttons the eye skips, not a block of text. `LP-22`. */}
+            <NextBox
+              placement={nextPlacement}
+              position={Math.min(loaded + 1, state.plan.placements.length)}
+              total={state.plan.placements.length}
+              weight={weightOf(nextPlacement?.id)}
+              stop={nextPlacement ? stopOf(nextPlacement.id) : null}
+            />
+
             <div className="plan-stage">
               <section className="plan-scene" aria-label="The load in three dimensions">
                 <LoadScene
@@ -343,13 +358,6 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
                   view={view}
                 />
               </section>
-              <NextBox
-                placement={nextPlacement}
-                position={Math.min(loaded + 1, state.plan.placements.length)}
-                total={state.plan.placements.length}
-                weight={weightOf(nextPlacement?.id)}
-                stop={nextPlacement ? stopOf(nextPlacement.id) : null}
-              />
               <ViewControls view={view} onView={setView} />
             </div>
 

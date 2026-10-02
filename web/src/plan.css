@@ -219,26 +219,21 @@
   color: var(--quai-navy);
 }
 
-/* The scene, with the card and the view controls over it. */
+/* The scene, with the view controls over it. The card moved above it in `LP-22`. */
 .plan-stage {
   position: relative;
 }
 
-/* Still along the top, which `SA-23` chose and which is right: the load sits on the floor and builds
-   upwards, so the top of the frame is the emptiest part of a three-quarter view and the bottom is
-   where the boxes are. What changed is the width — it runs the full span now, because the column of
-   buttons it used to keep clear of has moved out from beside it. */
+/* In the flow above the canvas, not floating on it. `SA-23` put it over the scene and it covered
+   the top third of the volume, the van's own top edge included — which is the one thing the screen
+   exists to show. Two lines of text are cheaper as a band above the picture than as a lid on it. */
 .plan-next {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  right: 0.75rem;
+  margin-top: 0.75rem;
   padding: 0.625rem 0.75rem;
-  z-index: 2;
 }
 
 .plan-next h2 {
-  margin: 0 0 0.125rem;
+  margin: 0;
   font-size: 0.9375rem;
 }
 
@@ -246,19 +241,22 @@
   margin: 0;
 }
 
+/* Heading, stop and id on one baseline: they are one sentence read left to right. */
 .plan-next__who {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.plan-next__detail {
+  font-size: 0.8125rem;
 }
 
 .plan-next__stop {
   font-weight: 600;
 }
 
-.plan-next__rank {
-  font-size: 0.8125rem;
-}
 
 /* 3D / Top / Left / Right. 2.75rem is the 44px touch target design.md asks for, and this one is
    pressed with handling gloves on — the size is `SA-23`'s and stays.
@@ -290,9 +288,6 @@
     transform: none;
     flex-direction: column;
   }
-
-  /* The column is back in the top-right corner, so the card stops short of it again. */
-  .plan-next { right: 5.5rem; }
 }
 
 .plan-view {
