@@ -350,10 +350,15 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
 
             <div className="plan-stage">
               <section className="plan-scene" aria-label="The load in three dimensions">
+                {/* Two ids, never one. Until `LP-22` this passed `selected ?? nextPlacement?.id`,
+                    so the highlight was on the next box until a tap moved it — which read as the
+                    tap choosing what goes in the van. It never did: the loading order is the
+                    solver's and only `Loaded, next` advances it. The scene now says so. */}
                 <LoadScene
                   plan={state.plan}
                   container={request.container}
-                  selected={selected ?? nextPlacement?.id ?? null}
+                  nextId={nextPlacement?.id ?? null}
+                  consultedId={selected}
                   onSelect={setSelected}
                   view={view}
                 />
