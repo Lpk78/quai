@@ -148,10 +148,13 @@
   .plan-dims { grid-column: auto; }
 }
 
-/* The 3D view. A fixed height rather than an aspect ratio: on a phone the scene must leave room for
-   the list under it, and a square canvas pushes everything below the fold. */
+/* The 3D view. Viewport-relative rather than an aspect ratio: on a phone the scene must leave room
+   for the list under it, and a square canvas pushes everything below the fold — but 15rem was too
+   literal a reading of that. At 390 x 844 the old height left 240px, of which the stacked view
+   controls took 196 and the card covered the top, so the load itself had a corner. Half the
+   viewport is a scene the operator can actually read, and still leaves the list a screenful. */
 .plan-scene {
-  height: 15rem;
+  height: clamp(18rem, 52vh, 28rem);
   border-radius: 1.4rem; /* matches .card, same as the summary and failure surfaces below it */
   overflow: hidden;
   background: var(--quai-surface);
@@ -159,16 +162,37 @@
   touch-action: none; /* the canvas handles the gestures; the page must not scroll under them */
 }
 
+/* A `.card` now, like `.plan-next` above the scene. The two are siblings in one conversation — what
+   goes in next, and what you just asked about — so they are built from the same shell, and the
+   difference between them is carried by their words rather than by two unrelated surfaces. */
 .plan-inspector {
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.plan-inspector__head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  background: var(--quai-surface);
-  border-radius: 0.625rem;
-  padding: 0.625rem 0.75rem;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+}
+
+.plan-inspector__head h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+/* 44px, like every other target on this screen: it is pressed with the same gloves. */
+.plan-inspector__close {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--quai-orange-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .plan-hint {
@@ -216,22 +240,21 @@
   color: var(--quai-navy);
 }
 
-/* The scene, with the card and the view controls over it. */
+/* The scene, with the view controls over it. The card moved above it in `LP-22`. */
 .plan-stage {
   position: relative;
 }
 
+/* In the flow above the canvas, not floating on it. `SA-23` put it over the scene and it covered
+   the top third of the volume, the van's own top edge included — which is the one thing the screen
+   exists to show. Two lines of text are cheaper as a band above the picture than as a lid on it. */
 .plan-next {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  right: 5.5rem;   /* clear of the view controls */
+  margin-top: 0.75rem;
   padding: 0.625rem 0.75rem;
-  z-index: 2;
 }
 
 .plan-next h2 {
-  margin: 0 0 0.125rem;
+  margin: 0;
   font-size: 0.9375rem;
 }
 
@@ -239,33 +262,53 @@
   margin: 0;
 }
 
+/* Heading, stop and id on one baseline: they are one sentence read left to right. */
 .plan-next__who {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.plan-next__detail {
+  font-size: 0.8125rem;
 }
 
 .plan-next__stop {
   font-weight: 600;
 }
 
-.plan-next__rank {
-  font-size: 0.8125rem;
-}
 
-/* 3D / Top / Left / Right, stacked down the right. 2.75rem is the 44px touch target design.md asks
-   for, and this one is pressed with handling gloves on. */
+/* 3D / Top / Left / Right. 2.75rem is the 44px touch target design.md asks for, and this one is
+   pressed with handling gloves on — the size is `SA-23`'s and stays.
+
+   The axis is what changed. Stacked, four of them came to 196px down a 240px canvas: the controls
+   were taller than the picture they controlled. In a row along the bottom they cost that height
+   once, over the near floor corner, leaving the middle of the frame to the load. They go back to a
+   column on a wide screen, where there was never a shortage of height. */
 .plan-views {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.25rem;
   padding: 0.25rem;
   background: var(--quai-surface);
   border-radius: 1rem;
   z-index: 2;
+}
+
+@media (min-width: 40rem) {
+  .plan-views {
+    top: 0.75rem;
+    bottom: auto;
+    left: auto;
+    right: 0.75rem;
+    transform: none;
+    flex-direction: column;
+  }
 }
 
 .plan-view {

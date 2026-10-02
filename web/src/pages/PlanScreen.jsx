@@ -38,20 +38,32 @@ function Summary({ plan, requested }) {
   );
 }
 
-function Inspector({ placement, index }) {
+function Inspector({ placement, index, onClose }) {
   /* What the plan knows about one box. Not its stop and not the constraints applied to it: the
      response carries neither, and a panel with empty fields reads as missing data rather than
      absent data. SA-14c fills this in once #36 gives it something true to show. */
   if (!placement) {
-    return <p className="muted plan-hint">Tap a box to see what it is.</p>;
+    /* Two sentences, two elements. The second is the whole point of the first: a tap is a question,
+       never an instruction. Separate nodes because the first is asserted whole by `plan.test.jsx`. */
+    return (
+      <>
+        <p className="muted plan-hint">Tap a box to see what it is.</p>
+        <p className="muted plan-hint">It does not change what goes in next.</p>
+      </>
+    );
   }
   return (
-    <div className="plan-inspector" data-testid="inspector">
-      <span className="plan-swatch" style={{ background: colourFor(index) }} aria-hidden="true" />
-      <strong>{placement.id}</strong>
-      <span className="data">{placement.dx} × {placement.dy} × {placement.dz} cm</span>
-      <span className="data muted">at {placement.x}, {placement.y}, {placement.z}</span>
-    </div>
+    <aside className="card plan-inspector" data-testid="inspector" aria-label="Box you are looking at">
+      <div className="plan-inspector__head">
+        <span className="plan-swatch" style={{ background: colourFor(index) }} aria-hidden="true" />
+        <h2>Looking at</h2>
+        <strong className="data">{placement.id}</strong>
+        <button type="button" className="plan-inspector__close" onClick={onClose}>Done</button>
+      </div>
+      <p className="muted data">
+        {placement.dx} × {placement.dy} × {placement.dz} cm · at {placement.x}, {placement.y}, {placement.z}
+      </p>
+    </aside>
   );
 }
 
@@ -209,17 +221,26 @@ function NextBox({ placement, position, total, weight, stop }) {
   }
   return (
     <aside className="card plan-next" aria-label="Next box">
-      <h2>Next box</h2>
-      <p className="plan-next__who">
-        <strong>{labelOf(placement.id) ?? placement.id}</strong>
+      {/* Two lines, not four. The card is above the canvas now rather than over it (`LP-22`), so
+          every line it takes is a line the scene does not get.
+
+          The order is `SA-24`'s and kept: the name leads, because the operator recognises "washing
+          machine" and not `B16`, and the stop is a place rather than a key. The id follows on the
+          detail line — it is what they check against the label printed on the box, so it stays, but
+          only when it says something the name did not. */}
+      <div className="plan-next__who">
+        <h2>Next box</h2>
         {stop && <span className="plan-next__stop muted">{stop}</span>}
-      </p>
-      <p className="muted data plan-next__code">{placement.id}</p>
-      <p className="muted data">
+        <strong>{labelOf(placement.id) ?? placement.id}</strong>
+      </div>
+      <p className="muted data plan-next__detail">
+        {labelOf(placement.id) && (
+          <><span className="plan-next__code">{placement.id}</span>{" · "}</>
+        )}
         {placement.dx} × {placement.dy} × {placement.dz} cm
         {weight != null && <> · {weight} kg</>}
+        {" · "}{position} of {total}
       </p>
-      <p className="muted plan-next__rank">{position} of {total} in the loading order</p>
     </aside>
   );
 }
@@ -354,25 +375,41 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
 
         {state.status === "ready" && (
           <>
+            {/* Above the canvas, not over it. Floating it on the scene cost the top third of the
+                volume — the van's own top edge went behind it — and the operator is looking at the
+                load, not at the card. The view controls stay over the scene: they are 52px of
+                buttons the eye skips, not a block of text. `LP-22`. */}
+            <NextBox
+              placement={nextPlacement}
+              position={Math.min(loaded + 1, state.plan.placements.length)}
+              total={state.plan.placements.length}
+              weight={weightOf(nextPlacement?.id)}
+              stop={nextPlacement ? stopOf(nextPlacement.id) : null}
+            />
+
             <div className="plan-stage">
               <section className="plan-scene" aria-label="The load in three dimensions">
+                {/* Two ids, never one. Until `LP-22` this passed `selected ?? nextPlacement?.id`,
+                    so the highlight was on the next box until a tap moved it — which read as the
+                    tap choosing what goes in the van. It never did: the loading order is the
+                    solver's and only `Loaded, next` advances it. The scene now says so. */}
                 <LoadScene
                   plan={state.plan}
                   container={request.container}
-                  selected={selected ?? nextPlacement?.id ?? null}
+                  nextId={nextPlacement?.id ?? null}
+                  consultedId={selected}
                   onSelect={setSelected}
                   view={view}
                 />
               </section>
-              <NextBox
-                placement={nextPlacement}
-                position={Math.min(loaded + 1, state.plan.placements.length)}
-                total={state.plan.placements.length}
-                weight={weightOf(nextPlacement?.id)}
-                stop={nextPlacement ? stopOf(nextPlacement.id) : null}
-              />
               <ViewControls view={view} onView={setView} />
             </div>
+
+            <Inspector
+              placement={state.plan.placements.find((p) => p.id === selected) || null}
+              index={state.plan.placements.findIndex((p) => p.id === selected)}
+              onClose={() => setSelected(null)}
+            />
 
             <LoadProgress
               loaded={loaded}
@@ -389,10 +426,6 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
             >
               Loaded, next <span aria-hidden="true">→</span>
             </button>
-            <Inspector
-              placement={state.plan.placements.find((p) => p.id === selected) || null}
-              index={state.plan.placements.findIndex((p) => p.id === selected)}
-            />
             <Summary plan={state.plan} requested={requested} />
             <section aria-label="Where each box goes">
               <h2>In the van</h2>

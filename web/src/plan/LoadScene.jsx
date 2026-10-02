@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { OrbitControls } from "@react-three/drei";
+import { Edges, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 
 /* The plan as a shape rather than a list.
@@ -36,7 +36,18 @@ export function sceneScale(container) {
   return 2 / largest;
 }
 
-export function PlacedBox({ placement, colour, selected, onSelect }) {
+/* One box. Three states, and they are three different questions.
+ *
+ * `isNext` is the solver's answer to "what goes in now": it comes from the loading order and changes
+ * only when the operator says `Loaded, next`. It is the one object on screen that must be findable
+ * without reading, so it keeps its full colour and takes a bright orange outline while every other
+ * box drops to a quarter opacity — the operator should see where to go before they read a word.
+ *
+ * `isConsulted` is the operator's answer to "what is that one": it comes from a tap and says nothing
+ * about the plan. Its outline is thin and navy so the two can never be read as the same thing, and
+ * tapping never moves the orange. `LP-22`.
+ */
+export function PlacedBox({ placement, colour, isNext, isConsulted, onSelect }) {
   const { x, y, z, dx, dy, dz } = placement;
   return (
     <mesh
@@ -47,11 +58,17 @@ export function PlacedBox({ placement, colour, selected, onSelect }) {
       }}
     >
       <boxGeometry args={[dx, dz, dy]} />
+      {/* The faded boxes stop writing depth so the next one stays visible behind them: a parcel the
+          operator cannot see is not a highlight, and the one at the back of the van is exactly the
+          one they need help finding. */}
       <meshStandardMaterial
         color={colour}
-        emissive={selected ? "#FF8A00" : "#000000"}
-        emissiveIntensity={selected ? 0.5 : 0}
+        transparent={!isNext}
+        opacity={isNext ? 1 : 0.25}
+        depthWrite={isNext}
       />
+      {isNext && <Edges color="#FF8A00" lineWidth={3} />}
+      {isConsulted && !isNext && <Edges color="#102238" lineWidth={1.5} />}
     </mesh>
   );
 }
@@ -76,18 +93,40 @@ function CameraPreset({ view, controls }) {
   return null;
 }
 
+/* The load volume: a transparent box, and deliberately not a van.
+ *
+ * A modelled vehicle would be the most expensive thing on screen and the least informative — the
+ * operator is looking for one parcel among eighteen, not admiring a lorry, and every wheel arch is
+ * another thing between them and the boxes. So the volume is stated and then got out of the way:
+ * warm off-white walls at low opacity for the shape, thin navy edges for where it ends, a floor
+ * faint enough to read the boxes against. `LP-22`.
+ *
+ * The colours are `tokens.json` read as literals — `background` and `navy` — because a WebGL
+ * material cannot take a CSS variable.
+ */
 export function Van({ container }) {
   const { length, width, height } = container;
   return (
-    <mesh position={[length / 2, height / 2, width / 2]}>
-      <boxGeometry args={[length, height, width]} />
-      {/* Seen from outside, so the far faces are the ones that show the shape. */}
-      <meshStandardMaterial color="#102238" transparent opacity={0.08} depthWrite={false} />
-    </mesh>
+    <group position={[length / 2, 0, width / 2]}>
+      <mesh position={[0, height / 2, 0]}>
+        <boxGeometry args={[length, height, width]} />
+        <meshStandardMaterial color="#F7F6F3" transparent opacity={0.12} depthWrite={false} />
+        {/* The edges carry the shape; the walls only tint it. `threshold` at 15° keeps this to the
+            twelve edges of the box rather than outlining every triangle of its faces. */}
+        <Edges color="#102238" threshold={15} />
+      </mesh>
+      {/* The floor the boxes sit on, lifted half a centimetre so it does not fight the van's own
+          bottom face for the same pixels. Discreet on purpose: it is the surface the delivery zones
+          are drawn on, and a strong floor would compete with them. */}
+      <mesh position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[length, width]} />
+        <meshStandardMaterial color="#102238" transparent opacity={0.07} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
-export default function LoadScene({ plan, container, selected, onSelect, view = "3D" }) {
+export default function LoadScene({ plan, container, nextId, consultedId, onSelect, view = "3D" }) {
   const scale = sceneScale(container);
   const controls = useRef(null);
   return (
@@ -108,7 +147,8 @@ export default function LoadScene({ plan, container, selected, onSelect, view = 
               key={placement.id}
               placement={placement}
               colour={colourFor(index)}
-              selected={selected === placement.id}
+              isNext={nextId === placement.id}
+              isConsulted={consultedId === placement.id}
               onSelect={onSelect}
             />
           ))}
