@@ -301,6 +301,27 @@
   font-size: 0.92rem;
 }
 
+/* What the speech API actually said. Quiet by default — it carries "start requested → end" on a
+   working device too — and only coloured once there is a failure in it. */
+.speech-report {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.9rem;
+  background: rgba(16, 34, 56, 0.05);
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.speech-report--bad {
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.speech-report .data {
+  font-size: 0.74rem;
+  word-break: break-word;
+}
+
 /* The mockup's "Your loading rules" heading over the parsed rules. */
 .rules-title {
   font-size: 1.05rem;
