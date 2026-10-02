@@ -162,16 +162,37 @@
   touch-action: none; /* the canvas handles the gestures; the page must not scroll under them */
 }
 
+/* A `.card` now, like `.plan-next` above the scene. The two are siblings in one conversation — what
+   goes in next, and what you just asked about — so they are built from the same shell, and the
+   difference between them is carried by their words rather than by two unrelated surfaces. */
 .plan-inspector {
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.plan-inspector__head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  background: var(--quai-surface);
-  border-radius: 0.625rem;
-  padding: 0.625rem 0.75rem;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+}
+
+.plan-inspector__head h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+/* 44px, like every other target on this screen: it is pressed with the same gloves. */
+.plan-inspector__close {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--quai-orange-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .plan-hint {

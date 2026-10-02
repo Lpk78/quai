@@ -302,3 +302,74 @@ describe("the dressing from the mockup (SA-23)", () => {
     expect(screen.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "false");
   });
 });
+
+/* `LP-22`: a tap is a question about a box, never an instruction about the plan. The loading order
+   is the solver's, and `Loaded, next` is the only thing that moves through it — these hold that
+   line, because an interface that let a tap rewrite the plan would contradict the whole project. */
+describe("consulting a box (LP-22)", () => {
+  const PLAN = {
+    placements: [
+      { id: "a", x: 0, y: 0, z: 0, dx: 60, dy: 40, dz: 40 },
+      { id: "b", x: 60, y: 0, z: 0, dx: 50, dy: 40, dz: 40 },
+      { id: "c", x: 110, y: 0, z: 0, dx: 40, dy: 40, dz: 40 },
+    ],
+    unplaced: [],
+    fill_rate: 0.5,
+    total_weight: 40,
+    not_applied: [],
+  };
+  const REQUEST = {
+    container: { length: 200, width: 100, height: 100, max_weight: 500 },
+    boxes: [
+      { id: "a", length: 60, width: 40, height: 40, weight: 12 },
+      { id: "b", length: 50, width: 40, height: 40, weight: 18 },
+      { id: "c", length: 40, width: 40, height: 40, weight: 10 },
+    ],
+  };
+
+  const showPlan = () =>
+    render(
+      <MemoryRouter>
+        <PlanScreen loadPlan={() => Promise.resolve(PLAN)} request={REQUEST} />
+      </MemoryRouter>,
+    );
+
+  const nextCard = () => screen.getByRole("complementary", { name: "Next box" });
+
+  it("leaves the next box exactly as it was when another box is tapped", async () => {
+    const user = userEvent.setup();
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    const before = nextCard().textContent;
+    await user.click(screen.getAllByTestId("placed-box")[2]);
+    expect(screen.getByTestId("inspector")).toHaveTextContent("c");
+    expect(nextCard().textContent).toBe(before);
+  });
+
+  it("advances from the solver's order, not from what was tapped", async () => {
+    const user = userEvent.setup();
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    await user.click(screen.getAllByTestId("placed-box")[2]);
+    await user.click(screen.getByRole("button", { name: /loaded, next/i }));
+    // `b` follows `a`. Had the tap reassigned, the order would have jumped to `c`.
+    expect(nextCard()).toHaveTextContent("b");
+  });
+
+  it("says so in words before anything has been tapped", async () => {
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    expect(screen.getByText("It does not change what goes in next.")).toBeInTheDocument();
+  });
+
+  it("puts the card away without touching the plan", async () => {
+    const user = userEvent.setup();
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    const before = nextCard().textContent;
+    await user.click(screen.getAllByTestId("placed-box")[1]);
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByTestId("inspector")).not.toBeInTheDocument();
+    expect(nextCard().textContent).toBe(before);
+  });
+});

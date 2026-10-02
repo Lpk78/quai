@@ -38,20 +38,32 @@ function Summary({ plan, requested }) {
   );
 }
 
-function Inspector({ placement, index }) {
+function Inspector({ placement, index, onClose }) {
   /* What the plan knows about one box. Not its stop and not the constraints applied to it: the
      response carries neither, and a panel with empty fields reads as missing data rather than
      absent data. SA-14c fills this in once #36 gives it something true to show. */
   if (!placement) {
-    return <p className="muted plan-hint">Tap a box to see what it is.</p>;
+    /* Two sentences, two elements. The second is the whole point of the first: a tap is a question,
+       never an instruction. Separate nodes because the first is asserted whole by `plan.test.jsx`. */
+    return (
+      <>
+        <p className="muted plan-hint">Tap a box to see what it is.</p>
+        <p className="muted plan-hint">It does not change what goes in next.</p>
+      </>
+    );
   }
   return (
-    <div className="plan-inspector" data-testid="inspector">
-      <span className="plan-swatch" style={{ background: colourFor(index) }} aria-hidden="true" />
-      <strong>{placement.id}</strong>
-      <span className="data">{placement.dx} × {placement.dy} × {placement.dz} cm</span>
-      <span className="data muted">at {placement.x}, {placement.y}, {placement.z}</span>
-    </div>
+    <aside className="card plan-inspector" data-testid="inspector" aria-label="Box you are looking at">
+      <div className="plan-inspector__head">
+        <span className="plan-swatch" style={{ background: colourFor(index) }} aria-hidden="true" />
+        <h2>Looking at</h2>
+        <strong className="data">{placement.id}</strong>
+        <button type="button" className="plan-inspector__close" onClick={onClose}>Done</button>
+      </div>
+      <p className="muted data">
+        {placement.dx} × {placement.dy} × {placement.dz} cm · at {placement.x}, {placement.y}, {placement.z}
+      </p>
+    </aside>
   );
 }
 
@@ -366,6 +378,12 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
               <ViewControls view={view} onView={setView} />
             </div>
 
+            <Inspector
+              placement={state.plan.placements.find((p) => p.id === selected) || null}
+              index={state.plan.placements.findIndex((p) => p.id === selected)}
+              onClose={() => setSelected(null)}
+            />
+
             <LoadProgress
               loaded={loaded}
               total={state.plan.placements.length}
@@ -381,10 +399,6 @@ export default function PlanScreen({ loadPlan = postPlan, request: requestProp }
             >
               Loaded, next <span aria-hidden="true">→</span>
             </button>
-            <Inspector
-              placement={state.plan.placements.find((p) => p.id === selected) || null}
-              index={state.plan.placements.findIndex((p) => p.id === selected)}
-            />
             <Summary plan={state.plan} requested={requested} />
             <section aria-label="Where each box goes">
               <h2>In the van</h2>
