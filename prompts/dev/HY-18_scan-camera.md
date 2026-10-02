@@ -71,7 +71,7 @@ label under the QR square. `Login`'s own wording is unchanged to the character.
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/65 (reviewer: `Lpk78`)
+- **PR:** https://github.com/Lpk78/quai/pull/66 (reviewer: `Lpk78`)
 - **What the AI produced:** `web/src/scan/QrScanner.jsx`, the rewiring of `Login.jsx` and
   `Scan.jsx` onto it, and the eleven tests in `web/src/pages/scanCamera.test.jsx`.
 - **How it was checked:** `npm test` and `python3 -m unittest discover tests` after every commit
