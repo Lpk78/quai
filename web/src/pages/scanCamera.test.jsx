@@ -124,6 +124,28 @@ describe("the scan screen with a camera", () => {
     expect(await screen.findByText("washing machine")).toBeInTheDocument();
   });
 
+  it("stops on a code that is not a QUAI label too, and still offers the way out", async () => {
+    /* The deliberate asymmetry with `/login`, pinned because it is a decision rather than an
+       accident. There, a card for someone else does **not** stop the loop: there is no result to
+       read, and the operator simply holds up the right card. Here every decoded code produces a
+       result card the operator has to read — unreadable, unknown, or the box — so the picture has
+       to hold still, whichever of the three it is. Uniform "stop, then resume on purpose" is easier
+       to reason about than "stop on a good label, keep going on a bad one", and it is only safe
+       because the resume is always on screen next to the refusal. */
+    at("/app/scan");
+    await screen.findByText(/hold the label inside the frame/i);
+
+    jsQR.mockReturnValue({ data: "https://example.com/not-a-label" });
+    frames.shift()();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/not a QUAI package label/i);
+    const decodes = jsQR.mock.calls.length;
+    frames.shift()?.();
+    expect(jsQR.mock.calls.length).toBe(decodes);
+    // Never a dead end: the camera stopped, and the button that starts it again is right there.
+    expect(screen.getByRole("button", { name: /read another label/i })).toBeInTheDocument();
+  });
+
   it("offers no resume button before anything has been read", async () => {
     // It would do nothing: the loop is already running.
     at("/app/scan");

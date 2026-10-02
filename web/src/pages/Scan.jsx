@@ -94,6 +94,11 @@ export default function Scan() {
       {/* The viewfinder sits above the field, and never replaces it: a label on a dock is scuffed,
           wet or in the dark often enough that typing the code has to stay one glance away. */}
       <QrScanner
+        /* `true` for every code, not only a label this van carries — which is the opposite of
+           `/login`, where a card for someone else keeps the loop running. The difference is that
+           there is a result to read here in all three cases (unreadable, unknown, or the box), and
+           a picture that keeps re-deciding while it is being read is worse than one that waits to
+           be dismissed. Safe only because "Read another label" sits next to the result. */
         onCode={(text) => { read(text); return true; }}
         resumeToken={resumeToken}
         fallback={(why) => (
