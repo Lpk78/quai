@@ -34,6 +34,12 @@ export default function Home() {
       <Link className="button button--block" to="/app/scan">
         Scan a package <span aria-hidden="true">→</span>
       </Link>
+
+      {/* The round is reference, not the next action: the operator loads first and drives after, so
+          this sits under the main button rather than competing with it. */}
+      <Link className="button button--block button--quiet" to="/app/route">
+        See today’s round <span aria-hidden="true">→</span>
+      </Link>
     </>
   );
 }

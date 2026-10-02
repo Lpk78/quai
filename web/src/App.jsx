@@ -7,6 +7,8 @@ import Login from "./pages/Login.jsx";
 import AppShell from "./pages/AppShell.jsx";
 import Home from "./pages/Home.jsx";
 import Scan from "./pages/Scan.jsx";
+// Imported under a different name: `Route` is react-router's own element in this file.
+import RouteScreen from "./pages/Route.jsx";
 import Dictate from "./pages/Dictate.jsx";
 import PlanScreen from "./pages/PlanScreen.jsx";
 import NotFound from "./pages/NotFound.jsx";
@@ -20,6 +22,7 @@ export default function App() {
         <Route path="/app" element={<AppShell />}>
           <Route index element={<Home />} />
           <Route path="scan" element={<Scan />} />
+          <Route path="route" element={<RouteScreen />} />
           <Route path="dictate" element={<Dictate />} />
         </Route>
         <Route path="/app/plan" element={<PlanScreen />} />
