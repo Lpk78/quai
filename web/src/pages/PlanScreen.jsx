@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { ApiError, postPlan } from "../api.js";
 import LoadScene, { VIEWS, colourFor } from "../plan/LoadScene.jsx";
-import { BOXES } from "../data/manifest.js";
+import { BOXES, SCANNED_PARCEL, STOPS } from "../data/manifest.js";
 import { DEMO_REQUEST } from "../plan/demoLoad.js";
 
 /* The load plan at /app/plan.
@@ -83,7 +83,15 @@ function PlacedList({ placements, selected, onSelect }) {
           <span className="plan-swatch" style={{ background: colourFor(index) }}
                 aria-hidden="true" />
           <span className="plan-order" aria-hidden="true">{index + 1}</span>
-          <span className="plan-id">{p.id}</span>
+          {/* The id element is always present, named and unnamed boxes alike: it is what a test
+              reads to say *which* box a row is, and a row that sometimes has no id cell would make
+              that assertion silently unable to fail. The name leads when there is one. */}
+          <span className="plan-name">
+            {labelOf(p.id) && <strong>{labelOf(p.id)}</strong>}
+            <span className={`plan-id${labelOf(p.id) ? " plan-id--aside data muted" : ""}`}>
+              {p.id}
+            </span>
+          </span>
           <span className="plan-dims data">
             {p.dx} × {p.dy} × {p.dz}
           </span>
@@ -181,7 +189,19 @@ function ViewSwitch() {
  * that keeps the mockup's "A-12" off this screen.
  */
 function stopOf(boxId) {
-  return BOXES.find((box) => box.id === boxId)?.stop ?? null;
+  const stopId = [...BOXES, SCANNED_PARCEL].find((box) => box.id === boxId)?.stop ?? null;
+  // The name, not the id. "S7" is a database key; the operator is looking for Saint-Germain.
+  return STOPS.find((stop) => stop.id === stopId)?.name ?? null;
+}
+
+/* What the box is called, for the screen to lead with.
+ *
+ * `POST /plan` carries no label — the solver is given dimensions and weights — so this is a manifest
+ * lookup, and it comes back empty for the eleven-box demo load whose ids the manifest never heard of.
+ * The id is the fallback there, and the technical detail everywhere else: an operator reading `B16` on
+ * a screen learns nothing, and `SA-24` is the task that noticed people were being shown exactly that. */
+function labelOf(boxId) {
+  return [...BOXES, SCANNED_PARCEL].find((box) => box.id === boxId)?.label ?? null;
 }
 
 /* The box the operator should pick up next, and what they need to know to find it.
@@ -201,15 +221,22 @@ function NextBox({ placement, position, total, weight, stop }) {
   }
   return (
     <aside className="card plan-next" aria-label="Next box">
-      {/* Two lines, not four. The card sits above the canvas now rather than over it (`LP-22`), so
-          every line it takes is a line the scene does not get — and the heading, the stop and the id
-          are one thought, as are the size and the position in the order. */}
+      {/* Two lines, not four. The card is above the canvas now rather than over it (`LP-22`), so
+          every line it takes is a line the scene does not get.
+
+          The order is `SA-24`'s and kept: the name leads, because the operator recognises "washing
+          machine" and not `B16`, and the stop is a place rather than a key. The id follows on the
+          detail line — it is what they check against the label printed on the box, so it stays, but
+          only when it says something the name did not. */}
       <div className="plan-next__who">
         <h2>Next box</h2>
-        {stop && <span className="plan-next__stop">{stop}</span>}
-        <strong className="data">{placement.id}</strong>
+        {stop && <span className="plan-next__stop muted">{stop}</span>}
+        <strong>{labelOf(placement.id) ?? placement.id}</strong>
       </div>
       <p className="muted data plan-next__detail">
+        {labelOf(placement.id) && (
+          <><span className="plan-next__code">{placement.id}</span>{" · "}</>
+        )}
         {placement.dx} × {placement.dy} × {placement.dz} cm
         {weight != null && <> · {weight} kg</>}
         {" · "}{position} of {total}

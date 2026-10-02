@@ -4,7 +4,7 @@ import { identify, readCode } from "./scanCode.js";
 
 const BOXES = [
   { id: "B01", label: "washing machine", length: 85, width: 85, height: 85, weight: 74 },
-  { id: "QUAI-BOX-0001", label: "fragile parcel", length: 40, width: 30, height: 25, weight: 8 },
+  { id: "QUAI-BOX-0001", label: "carton, unmarked", length: 65, width: 85, height: 85, weight: 8 },
 ];
 
 describe("readCode", () => {
@@ -43,7 +43,7 @@ describe("identify", () => {
   it("returns the box when the manifest knows the code", () => {
     const found = identify("QUAI:BOX:QUAI-BOX-0001", BOXES);
     expect(found.status).toBe("known");
-    expect(found.box.label).toBe("fragile parcel");
+    expect(found.box.label).toBe("carton, unmarked");
   });
 
   it("separates a label we cannot read from one naming a box we do not carry", () => {

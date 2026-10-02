@@ -62,12 +62,21 @@ function withPermissions(value) {
   Object.defineProperty(navigator, "permissions", { value, configurable: true });
 }
 
+/* The device's own language, which `HY-20` stopped the recogniser from following. */
+let hadLanguage;
+function withDeviceLanguage(value) {
+  hadLanguage = Object.getOwnPropertyDescriptor(navigator, "language");
+  Object.defineProperty(navigator, "language", { value, configurable: true });
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   if (hadPermissions) Object.defineProperty(navigator, "permissions", hadPermissions);
   else delete navigator.permissions;
   hadPermissions = undefined;
+  if (hadLanguage) Object.defineProperty(navigator, "language", hadLanguage);
+  hadLanguage = undefined;
 });
 
 describe("the dictate screen reporting what the speech API said", () => {
@@ -160,6 +169,46 @@ describe("the dictate screen reporting what the speech API said", () => {
     made.instance.onend();
 
     expect(await screen.findByText(/query-failed: TypeError/)).toBeInTheDocument();
+  });
+});
+
+describe("the language the recogniser listens in", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it("is English on a phone set to French, which is the bug HY-20 fixed", async () => {
+    /* The assertion that can actually fail. jsdom's own `navigator.language` is already `en-US`, so
+       asserting `en-US` on a default environment passes against the old
+       `navigator.language || "en-US"` just as happily as against the fixed value — it would prove
+       nothing. Setting the device to French is what makes the two versions disagree: before
+       `HY-20` this read `fr-FR`, which is a French model transcribing an English sentence. */
+    withDeviceLanguage("fr-FR");
+    const made = await atDictate(recogniser());
+    tapMic();
+
+    expect(made.instance.lang).toBe("en-US");
+  });
+
+  it("is English on a phone set to Spanish too, so it is fixed rather than merely not French", async () => {
+    withDeviceLanguage("es-ES");
+    const made = await atDictate(recogniser());
+    tapMic();
+
+    expect(made.instance.lang).toBe("en-US");
+  });
+
+  it("does not read the device language at all", async () => {
+    // The property is removed outright: anything still reaching for it would throw rather than
+    // quietly fall back, so this fails loudly if the old line ever comes back in another form.
+    hadLanguage = Object.getOwnPropertyDescriptor(navigator, "language");
+    Object.defineProperty(navigator, "language", {
+      get() { throw new Error("navigator.language must not decide what the recogniser listens to"); },
+      configurable: true,
+    });
+    const made = await atDictate(recogniser());
+    expect(() => tapMic()).not.toThrow();
+    expect(made.instance.lang).toBe("en-US");
   });
 });
 

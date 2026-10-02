@@ -18,3 +18,12 @@ outputs/*
 
 # Local HTTPS certificates for the phone demo (mkcert). Never committed: the key is a key.
 .certs/
+
+# iCloud Drive's copies. Syncing the same file twice leaves "van-side 3.png" beside "van-side.png",
+# byte for byte identical and referenced by nothing — one reached `main` and shipped to `dist/` at
+# 909 KB because `public/` is copied verbatim. This lived in one clone's `.git/info/exclude`, which
+# is local and untracked, so it protected whoever wrote it and nobody else; and it matched only " 2",
+# which is why a " 3" got through. Tracked here, and numbered rather than literal, so it covers all
+# three clones and every copy iCloud makes next.
+* [0-9].*
+* [0-9]
