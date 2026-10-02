@@ -20,6 +20,24 @@ vi.mock("@react-three/fiber", () => ({
 }));
 vi.mock("@react-three/drei", () => ({ OrbitControls: () => null, Edges: () => null }));
 
+/* The scene is mocked here, and only here, so its props can be read.
+ *
+ * `LP-22` split one id into two — `nextId`, which the solver decides, and `consultedId`, which a tap
+ * decides — and the first version of those tests asserted on the card and the detail panel instead.
+ * Both read `nextPlacement` straight from the plan, so they behaved identically whether the props
+ * were split or not: the suite passed with the conflation restored, which means it was testing the
+ * HTML and not the thing the commit claimed. Reading the props is the only assertion that can tell
+ * the two versions apart. `VIEWS` is reproduced because `ViewControls` renders a button per key. */
+const scene = vi.hoisted(() => ({ props: null }));
+vi.mock("../plan/LoadScene.jsx", () => ({
+  default: (props) => {
+    scene.props = props;
+    return <div data-testid="scene" />;
+  },
+  VIEWS: { "3D": [3.2, 2.4, 3.2], Top: [0, 4.6, 0.001], Left: [0, 1.2, 4.4], Right: [4.4, 1.2, 0] },
+  colourFor: () => "#D7B899",
+}));
+
 import App from "../App.jsx";
 import PlanScreen from "./PlanScreen.jsx";
 import { ApiError } from "../api.js";
@@ -434,5 +452,67 @@ describe("consulting a box (LP-22)", () => {
     await user.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.queryByTestId("inspector")).not.toBeInTheDocument();
     expect(nextCard().textContent).toBe(before);
+  });
+});
+
+/* The props themselves, which is where the `LP-22` distinction actually lives. The tests above hold
+   what the operator reads; these hold what the scene is told, and only these fail if the two ids are
+   collapsed back into one. */
+describe("what the scene is told (LP-22)", () => {
+  const PLAN = {
+    placements: [
+      { id: "a", x: 0, y: 0, z: 0, dx: 60, dy: 40, dz: 40 },
+      { id: "b", x: 60, y: 0, z: 0, dx: 50, dy: 40, dz: 40 },
+      { id: "c", x: 110, y: 0, z: 0, dx: 40, dy: 40, dz: 40 },
+    ],
+    unplaced: [],
+    fill_rate: 0.5,
+    total_weight: 40,
+    not_applied: [],
+  };
+  const REQUEST = {
+    container: { length: 200, width: 100, height: 100, max_weight: 500 },
+    boxes: [
+      { id: "a", length: 60, width: 40, height: 40, weight: 12 },
+      { id: "b", length: 50, width: 40, height: 40, weight: 18 },
+      { id: "c", length: 40, width: 40, height: 40, weight: 10 },
+    ],
+  };
+
+  const showPlan = () =>
+    render(
+      <MemoryRouter>
+        <PlanScreen loadPlan={() => Promise.resolve(PLAN)} request={REQUEST} />
+      </MemoryRouter>,
+    );
+
+  it("leaves nextId on the solver's next box when a different one is tapped", async () => {
+    const user = userEvent.setup();
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    expect(scene.props.nextId).toBe("a");
+
+    await user.click(screen.getAllByTestId("placed-box")[2]);
+
+    // The one that fails if `nextId` goes back to `selected ?? nextPlacement?.id`.
+    expect(scene.props.nextId).toBe("a");
+    expect(scene.props.consultedId).toBe("c");
+  });
+
+  it("moves nextId only when the operator says loaded", async () => {
+    const user = userEvent.setup();
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    await user.click(screen.getAllByTestId("placed-box")[2]);
+    await user.click(screen.getByRole("button", { name: /loaded, next/i }));
+
+    expect(scene.props.nextId).toBe("b");
+    expect(scene.props.consultedId).toBe("c");
+  });
+
+  it("tells the scene nothing is being consulted before anything is tapped", async () => {
+    showPlan();
+    await screen.findByTestId("loaded-count");
+    expect(scene.props.consultedId).toBe(null);
   });
 });
