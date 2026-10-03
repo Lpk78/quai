@@ -20,6 +20,35 @@ function textOf(path) {
 /* The plan screen is a page like any other, so the same copy rules apply to it — including
    the ones about not claiming the AI plans the load or chooses the route. */
 const PAGES = ["/", "/login", "/app", "/app/dictate", "/app/plan"];
+
+/* Features the app does not have, named so that any surface claiming one has to carry the warning.
+ *
+ * This list is the test's whole reach, and `HY-25` is what that cost: it held four phrases, each
+ * added the day somebody noticed that phrase, and the landing page meanwhile promised "Replans when
+ * a parcel is missing" and "Replan on incident" through two releases. Nothing replans — the API is
+ * `/plan`, `/constraints`, `/route`, and #36 is still open — and the guard reported the page clean,
+ * because replanning was not a word it knew.
+ *
+ * So the rule for adding to it is the opposite of the habit that produced it: a phrase belongs here
+ * when the *capability* is unbuilt, not when a sentence using it has been spotted. Anything here
+ * stops being a claim the moment the feature ships, and the line should be deleted then. */
+const UNBUILT = new RegExp([
+  "estimated route time",
+  "navigation (app|and live)",
+  "hand-?off",
+  "delivery progress",
+  // `SA-14` / #36, open: there is no `/plan/recompute`, no `incident.py`, nothing that replans.
+  "re-?plan",
+  // No endpoint tracks a load as it is built, or a van once it leaves.
+  "live (tracking|updates|status)",
+  "track (the|your) (van|driver|delivery)",
+  // Nothing writes back to a catalogue, a WMS or an ERP.
+  "sync(s|ed)? with your (wms|erp|catalogue|system)",
+  // One van, one round: there is no fleet anywhere in the product.
+  "fleet (view|dashboard|overview)",
+  // No history is kept: every plan is computed fresh from the request.
+  "(plan|load) history|past (loads|rounds)",
+].join("|"), "i");
 const SLOGAN = "People talk. We load.";
 
 describe("one slogan", () => {
@@ -126,7 +155,7 @@ describe("an unbuilt feature carries its warning", () => {
         <App />
       </MemoryRouter>,
     );
-    const CLAIMS = /estimated route time|navigation (app|and live)|hand-?off|delivery progress/i;
+    const CLAIMS = UNBUILT;
     const surfaces = [...container.querySelectorAll("section, .panel")].filter(
       (node) =>
         CLAIMS.test(node.textContent) &&

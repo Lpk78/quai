@@ -265,7 +265,11 @@ const PANELS = [
   {
     eyebrow: "3D loading plan",
     title: "See every parcel in place",
-    bullets: ["Respects your rules", "Clear visual guidance", "Replans when a parcel is missing"],
+    /* The third bullet said "Replans when a parcel is missing". Nothing replans: the API is
+       `/plan`, `/constraints` and `/route`, and #36 is still open. Replaced with what the plan
+       screen really does — `POST /plan` returns `unplaced`, and the screen lists it under "Not
+       placed" rather than quietly showing fewer boxes than were handed in. */
+    bullets: ["Respects your rules", "Clear visual guidance", "Says what would not fit"],
     shot: "phone_3d_plan",
     alt: "The QUAI app showing the 3D load plan with the next parcel highlighted.",
   },
@@ -445,7 +449,11 @@ const STRIP = [
   [<IconMic key="i" />, "Voice instructions", "Say it, QUAI writes the rules"],
   [<IconCube key="i" />, "3D loading plans", "Every parcel has a place"],
   [<IconPin key="i" />, "Stop-order loading", "First stop behind the doors"],
-  [<IconRule key="i" />, "Replan on incident", "A missing parcel is not a stuck plan"],
+  /* Was "Replan on incident — A missing parcel is not a stuck plan", which no endpoint can do.
+     What is true, and a better thing to say: `/plan` answers with `not_applied` for every rule it
+     could not use, and the screen prints each one with its reason. A rule is never dropped without
+     the operator being told. */
+  [<IconRule key="i" />, "Rules you can check", "Anything not applied is named"],
 ];
 
 export function IconStrip() {
