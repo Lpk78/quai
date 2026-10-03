@@ -12,6 +12,15 @@ venv/
 outputs/*
 !outputs/.gitkeep
 
+# One exception, on purpose: the recorded run `SA-06`'s numbers were computed from. The table in
+# documentation/failures.md claims one valid plan in twenty, and that claim is only checkable by
+# somebody else if the replies behind it are in the repository — re-deriving it otherwise means
+# twenty billed calls and a different set of replies. Later runs stay ignored: a run is nobody's
+# evidence until a document cites it.
+!outputs/placement/
+outputs/placement/*
+!outputs/placement/llm_placement_20261001-141020.json
+
 # OS / editor
 .DS_Store
 .vscode/
