@@ -35,9 +35,44 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 
 ## Tools
 
-- Python 3.11+ (solver, LLM translation layer, evaluation scripts)
-- Git, GitHub, GitHub CLI (`gh`)
-- VS Code
+Python 3.11+ for the solver, the translation layer and the evaluation scripts; Node 20+ for the web
+app; Git, GitHub and the GitHub CLI (`gh`); VS Code. Everything below is declared in
+`requirements.txt`, `requirements-dev.txt` or `web/package.json`, except where said otherwise.
+
+**Server** — `requirements.txt`:
+
+| | What it does here |
+|---|---|
+| FastAPI | the HTTP API over the solver: `POST /plan`, `/constraints`, `/route` (`src/server.py`) |
+| Uvicorn | runs that API locally, and with the certificate for the phone demo |
+| httpx | drives FastAPI's `TestClient` in `tests/test_server.py` |
+| `anthropic` | the Claude client, used by `src/evaluate_prompt.py` to score a prompt version |
+| `unittest` | the Python test runner — 409 tests, from the standard library, no third-party framework |
+
+**Web app** — `web/package.json`:
+
+| | What it does here |
+|---|---|
+| React, React DOM | the interface |
+| Vite, `@vitejs/plugin-react` | dev server, production build, and the HTTPS switch the phone demo needs (`vite.config.js`) |
+| React Router | the routes: `/`, `/login`, `/app`, `/app/scan`, `/app/dictate`, `/app/plan`, `/app/route` |
+| three.js, `@react-three/fiber`, `@react-three/drei` | the 3D view of the load on `/app/plan` — the volume, the boxes, the camera presets |
+| Leaflet, React Leaflet | the map and the round on `/app/route` |
+| jsQR | decodes the QR codes the camera reads, shared by `/login` and `/app/scan` |
+| Vitest, jsdom, Testing Library | the web test runner and the DOM it runs against — 195 tests |
+| `@fontsource/inter`, `@fontsource/plus-jakarta-sans` | the two self-hosted typefaces, so no font is fetched from a third party |
+
+**Build-time only** — `requirements-dev.txt`: NumPy, Pillow and potracer, used by
+`assets/brand/logo/build_logo.py` to trace the logo SVGs from the brand sheet, and therefore by the
+drift check in `tests/test_brand.py`. They are not runtime dependencies of the product.
+
+**mkcert**, installed once per machine rather than declared in a manifest: it issues the local
+certificate in `.certs/` that lets the phone demo run over HTTPS, which is what `/login` needs to
+reach the camera at all. `vite.config.js` picks it up when it is there and stays on HTTP when it is
+not, so a clone without one still runs. See *Phone demo*.
+
+The two external services the product calls at runtime — the Base Adresse Nationale and OSRM — are
+not libraries and are described under *The two services this uses, and what they cost us*.
 
 AI was used in three distinct ways. They are listed apart because what each one is allowed to decide
 is different, and only the first is part of the product.
