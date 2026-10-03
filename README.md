@@ -1,16 +1,17 @@
 # QUAI
 
-**Constraint-driven 3D bin packing with natural-language input and live plan recomputation.**
-
-> Status: project scaffold (Session 2 checkpoint). Nothing below "Current scope" works yet.
+**Constraint-driven 3D bin packing with natural-language input.**
 
 ## Project
 
 QUAI is a load-planning tool for logistics operators (trucks, containers, pallets).
 An operator describes loading constraints in plain language ("the fridges go in last, nothing on top of the glass"),
 a deterministic 3D solver computes the placement, and a step-by-step view tells the forklift operator
-which item to load next and where. When reality changes on the dock (a missing parcel, a damaged box),
-the plan is recomputed live.
+which item to load next and where.
+
+Recomputing the plan live when reality changes on the dock — a missing parcel, a damaged box — is the
+second half of the idea and is **not built**: the API exposes `/plan`, `/constraints` and `/route`,
+and nothing replans. See *Current scope* for the line between what runs and what does not.
 
 ## Objective
 
@@ -29,7 +30,7 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 | Name | GitHub | Main area |
 |---|---|---|
 | Léo-Paul Kerrinckx | @Lpk78 | AI layer: prompts, evaluation, constraint translation |
-| Sam Dana | @SamDana-maker | Server: solver, FastAPI, Supabase database, routes |
+| Sam Dana | @SamDana-maker | Server: solver, FastAPI, routing and the demo fixtures |
 | Hippolyte Moraine | @MORHI11 | Interface: mobile app, 3D view, operator mode, landing page |
 
 ## Tools
@@ -241,9 +242,26 @@ Consequences worth knowing before relying on it:
 
 ### The web app
 
+The front end lives in `web/`. It needs Node 20 or later.
+
 ```bash
-cd web && npm install && npm run dev      # http://localhost:5173
+cd web
+npm install
+npm run dev                               # http://localhost:5173
 ```
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | dev server with hot reload |
+| `npm run dev:phone` | the same, bound to the LAN so a phone can reach it — see *Phone demo* |
+| `npm run build` | production bundle in `web/dist/` |
+| `npm run preview` | serve that bundle, to check the PWA as it ships |
+| `npm test` | the web unit tests: every screen, the scan and speech paths, the copy rules, the colour tokens |
+| `npm run test:watch` | the same, re-run on change |
+| `npm run build:tokens` | regenerate `src/tokens.css` from `assets/brand/tokens.json` |
+
+The API server above must be running for the app to reach the solver — they are separate processes,
+and the dev server's origin is allowed by the `CORSMiddleware` in `src/server.py`.
 
 `/` is the landing page and `/login` the way into the app: it reads an operator card shaped
 `QUAI:OPERATOR:<id>` off a QR code with the camera, and signs the operator in by name. Where there
@@ -253,8 +271,8 @@ and which ones did not fit. It needs the API running (`uvicorn server:app --app-
 its address from `VITE_API_URL`, defaulting to `http://127.0.0.1:8000`. Screenshots at phone width
 are in `documentation/screenshots/`.
 
-**`/app/plan`** shows that plan in three dimensions, with the dressing from
-`QUAI_DA_FINAL/08_SITE_IMAGES/phone_3d_plan.png`: a switch across to the round, a **Next box** card
+**`/app/plan`** shows that plan in three dimensions, dressed to the approved mockup (which lives
+outside the repository, in the brand hand-off): a switch across to the round, a **Next box** card
 naming what to pick up and its real size and weight, camera presets (3D, Top, Left, Right) sized to be
 pressed in handling gloves, and a progress panel. **Loaded, next** walks the solver's own loading order
 one box at a time and stops at the end.
@@ -266,6 +284,13 @@ because a tick over an incomplete plan is the one answer this project refuses.
 
 Entering your own boxes is issue #8; until then the screen plans the same eleven-box demo load as
 `src/demo.py`, and says so.
+
+**`/app/dictate`** is where the sentence becomes constraints. The operator speaks or types it, the
+screen sends it to `POST /constraints` (`web/src/api.js`, origin from `VITE_API_URL`), and the model's
+reply reaches the solver only if `quai.constraints.parse()` validates it — output that fails is
+refused, never repaired. The microphone reports what the speech API answered rather than failing in
+silence (`HY-19`), and it listens in English whatever the phone is set to (`HY-20`), because the box
+labels and stop names exist in one language.
 
 The operator's path through the app is `/app` → `/app/scan` → `/app/dictate` → `/app/plan`: read the
 label on the package in your hands, say what to do with it, see where the solver put it. `/app/route`
@@ -302,10 +327,20 @@ The scan survives a reload, through `sessionStorage` holding the box id — not 
 `manifest.js` stays the single source of what it measures. `sessionStorage` rather than
 `localStorage` because a scan belongs to one sitting: closing the tab ends the round.
 
-One thing it does not do yet: the **camera**. The code is typed rather than scanned, and
-`web/src/scan/scanCode.js` is the seam a decoder drops into, so the screen above it does not change.
-`LP-20` installed `jsqr` and built that camera loop for `/login`, inline in `Login.jsx` — wiring it
-here is a matter of lifting that loop into something both screens call, which no task has done yet.
+The **camera** reads that label since `HY-18`. `/app/scan` and `/login` drive one shared
+`QrScanner` (`web/src/scan/QrScanner.jsx`), lifted out of `Login.jsx` rather than written a second
+time, and `web/src/scan/scanCode.js` parses what it decodes. The typed field stays underneath it:
+a camera that is refused, missing, or on an `http://` LAN address still leaves a way in, and the
+screen names which of the three happened instead of showing an empty box.
+
+**Installing it on a phone.** The app is a PWA: run `npm run build && npm run preview`, open it on
+the phone over the same network, and use the browser's *Add to home screen*. It then opens at `/app`
+in its own window. Installation needs HTTPS or `localhost`, so a plain LAN address will not offer it.
+
+**Styling.** Every colour and font comes from `assets/brand/tokens.json` through the generated
+`web/src/tokens.css` — never typed by hand. The rules for using them are in `documentation/design.md`,
+including the two accessibility rules the interface must follow and the copy rules for anything the
+product says about itself. `npm test` checks both.
 
 ### Phone demo
 
@@ -396,43 +431,27 @@ nineteen placed. The route reaches the solver as a `ConstraintSet` built by
 production code and not from a second implementation. Import it as `demo_fixtures` to reuse the
 same load elsewhere; `tests/test_demo_fixtures.py` holds the fill rate to the quoted range.
 
-### Web app
-
-The front end lives in `web/`. It needs Node 20 or later.
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-It serves on `http://localhost:5173`: `/` is the landing page, `/app` shows today's van and its boxes,
-and `/app/dictate` turns a spoken or typed sentence into constraints through `POST /constraints`
-(`web/src/api.js`, origin from `VITE_API_URL`, `http://127.0.0.1:8000` by default). The API server above
-must be running for the app to reach the solver — the two are separate processes, and the dev server's
-origin is allowed by the `CORSMiddleware` in `src/server.py`.
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | dev server with hot reload |
-| `npm run build` | production bundle in `web/dist/` |
-| `npm run preview` | serve that bundle, to check the PWA as it ships |
-| `npm test` | unit tests (routing, the copy rules and the colour tokens) |
-| `npm run build:tokens` | regenerate `src/tokens.css` from `assets/brand/tokens.json` |
-
-**Installing it on a phone.** The app is a PWA: run `npm run build && npm run preview`, open it on the
-phone over the same network, and use the browser's *Add to home screen*. It then opens at `/app` in its
-own window. Installation needs HTTPS or `localhost`, so a plain LAN address will not offer it.
-
-**Styling.** Every colour and font comes from `assets/brand/tokens.json` through the generated
-`web/src/tokens.css` — never typed by hand. The rules for using them are in `documentation/design.md`,
-including the two accessibility rules the interface must follow and the copy rules for anything the
-product says about itself. `npm test` checks both.
-
 ## Current scope
 
-The smallest useful version: a hand-typed list of boxes and one container, a solver that places them
-without overlap, and a 3D view of the result. No scanning, no LLM yet.
+What runs end to end today: an operator signs in at `/login` by scanning an operator card, scans a
+parcel label at `/app/scan`, says what to do with the load at `/app/dictate`, and reads the plan the
+solver computed at `/app/plan`, one box at a time. `/app/route` shows the round beside that path.
+The solver is deterministic; the model never places anything, and its output reaches the solver only
+through `quai.constraints.parse()`, which refuses what does not validate rather than repairing it.
+
+What is **not** built. Each of these is marked on the screen that would otherwise imply it, because a
+plan that quietly omits something is the one answer this project refuses:
+
+- **Replanning on incident.** The API is `/plan`, `/constraints` and `/route`; nothing recomputes a
+  plan around what is already in the van (#36). This is half of the original idea and it is absent.
+- **Entering your own boxes** (#8). Every screen plans the same eleven-box demo load from
+  `src/demo.py`, and says so where it is shown.
+- **Four of the nine constraint types.** The schema accepts nine; the solver honours five
+  (`load_last`, `on_top`, `unload_at`, `max_weight_on`, `max_total_weight`) and refuses
+  `at_bottom`, `keep_upright`, `max_stack_height` and `not_stackable` rather than dropping them
+  silently — they come back in `not_applied` with the reason (#29).
+- **Accounts and storage.** Nothing persists between sessions except one scanned parcel id in
+  `sessionStorage`. There is no database.
 
 ## Project Structure
 
@@ -469,18 +488,93 @@ the stops, and no features the app does not have. Read them before writing any u
 
 ## AI Usage
 
-_To complete as the project evolves._ Summary so far: AI was used to explore and challenge project ideas
-(see `documentation/journal.md`). In the product, AI is limited to constraint translation and plan
-explanation.
+**In the product.** Claude, through the Anthropic API, with exactly two jobs: turning a spoken or
+typed sentence into constraints, and explaining the solver's output back in plain language. It never
+computes placement. Its reply reaches the solver only through `quai.constraints.parse()` — output
+that fails validation is refused, never repaired — and the key stays server-side, so the browser only
+ever calls our own API.
+
+Five prompt versions, none overwritten, each scored on the same 26 sentences against the same eight
+criteria, `claude-haiku-4-5-20251001` at temperature 0, three runs per sentence:
+
+| Version | Total /26 | What changed |
+|---|---|---|
+| `v1_zero_shot` | 0 | All 78 replies came back inside a ` ```json ` fence, so none parsed |
+| `v2_output_format` | 0 | Output section rewritten, rest byte-identical — 78 of 78 fenced again |
+| `v3_response_prefill` | 21 | Prompt identical to v2; the request ends on an assistant `{`. 78 of 78 parsed |
+| **`v4_few_shot`** | **22** | v3 plus four worked examples. **In production** |
+| `v5_bounded_examples` | 21 | Three examples from v3, one bounding another; fixed one sentence, broke two |
+
+The method, the rubric and the full per-criterion table are in `documentation/prompt_evaluation.md`.
+A score is recorded only if it was run; the one re-scored number in that document is labelled a
+diagnostic and credited to no version.
+
+**During development.** Claude Code in the terminal, recorded per task rather than per Pull Request.
+`prompts/dev/` holds 49 task files — 20 `LP-`, 17 `SA-`, 12 `HY-` — each with the prompt as it was
+typed, the decisions taken before any code was written, and an Outcome saying what the AI produced,
+how it was checked, and what was changed by hand. `documentation/ai_usage.md` is filled from those
+files. Reviews are drafted with AI, then read, edited and posted by the human reviewer from their own
+account; the author never merges their own Pull Request.
 
 ## Main Challenges
 
-_To complete._ See `documentation/failures.md`.
+Twenty-eight are written up in `documentation/failures.md`, each with what happened, why, what we
+tried and what we learned. The ones that changed how we work:
+
+- **Two prompt versions scored 0/26 on a code fence.** Every reply was wrapped in ` ```json `, so
+  nothing parsed and no field was ever looked at. v2 rewrote the output instructions and moved the
+  number not at all; what fixed it was ending the request on an assistant `{` so the model had
+  already started the object. Rewording a prompt and changing how it is delivered are different
+  tools, and we had been reaching for the wrong one.
+- **Tests that could not fail.** The failure this project kept relearning: a parser regex (#14), a
+  stop order (#35), an `on_top` pair (#60), a route-time tile (`HY-17`), and a speech-language
+  assertion that jsdom's own `en-US` already satisfied (`HY-20`). Every one was found the same way,
+  by changing the code to see whether the test noticed, and it is now the habit — a test is not
+  evidence for a change until it has been made to fail against it.
+- **The phone demo and the camera could not both work over `http://`.** `getUserMedia` needs a
+  secure context and a LAN address is not one, so the camera was absent rather than refused. Solved
+  with a local `mkcert` certificate and HTTPS on both servers, which then needed the phone to trust
+  the CA as well — the fix was three steps longer than the diagnosis.
+- **`Infinity` is valid JSON to Python and crashed the validator.** `json.loads` accepts it, the
+  schema did not expect it, and the failure surfaced as a 500 rather than a refusal.
+- **A geocoder that answered 200 about the wrong continent.** A Spanish district fuzzy-matched a
+  French commune, and OSRM dutifully drove nineteen hours between them. "The endpoint returned 200"
+  is not "the endpoint answered the question", and the honest placeholder — an em dash — was already
+  right when the data moved underneath it.
+- **Shared documents conflict because every branch appends to the end** (#32). `failures.md`,
+  `ai_usage.md` and this README collide on almost every merge. The rule that came out of it: keep
+  both sides, never pick one.
 
 ## Final Result
 
-_To complete at the end of the course._
+A working load-planning tool, demonstrated on a phone against a real Paris round.
+
+- **Deterministic solver** in `src/quai/`: placement without overlap, stack weight limits, loading
+  order by stop, `on_top` clearance.
+- **FastAPI server** exposing `POST /plan`, `POST /constraints` and `POST /route`.
+- **React + Vite app**, installable as a PWA: `/` landing page, `/login`, `/app`, `/app/scan`,
+  `/app/dictate`, `/app/plan` with a 3D view, `/app/route` with the round on a map.
+- **604 automated tests** — 409 Python (one skipped without an API key) and 195 web across 14 files
+  — run on every Pull Request by `.github/workflows/tests.yml`.
+- **50 Pull Requests merged**, one reviewer each from a fixed rotation, the author never merging
+  their own.
+
+What it does not do is listed under *Current scope*, and each limit is visible in the product rather
+than only here: a green tick appears only when nothing was left unplaced **and** no rule went
+unapplied, an unreachable service shows a dash instead of a number, and a constraint the solver
+cannot honour comes back named in `not_applied`.
 
 ## Future Improvements
 
-_To complete at the end of the course._
+In the order they would be worth doing:
+
+1. **Replanning on incident** (#36) — the second half of the original idea, and the one absence that
+   changes what the product is.
+2. **The four remaining constraint types** (#29): `at_bottom`, `keep_upright`, `max_stack_height`,
+   `not_stackable`. The schema and the refusal path already exist, so the work is in the solver.
+3. **Entering your own boxes** (#8), which is what lifts the app off the demo load.
+4. **Passing constraints through `POST /plan`** (#19): the solver honours five types that the plan
+   endpoint does not yet hand it, and `not_applied` says so on every plan today.
+5. **Accounts and persistence**, so a round survives closing the tab.
+6. **Lifting the round out of France.** `POST /route` geocodes through the Base Adresse Nationale,
+   which covers France only — a Spanish address returns a 422 no front-end work can fix.
