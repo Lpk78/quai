@@ -475,7 +475,14 @@ explanation.
 
 ## Main Challenges
 
-_To complete._ See `documentation/failures.md`.
+_To complete._ See `documentation/failures.md` for the full log, entry by entry.
+
+**`documentation/llm_failure_modes.md`** collects the ones that are limitations of language models
+rather than of our code: the test that passes because it is not looking (five instances, with the
+mutation that catches each), a hallucinated code detail caught before it reached a review, stated
+caution that did not hold, and prompt injection — which is the one we test rather than recount, through
+the `injection_attempt` case T25 and criteria C6 and C7 of the scoring rubric. It also records the
+counter-example, where a well-bounded task produces an honest refusal instead of an invention.
 
 ## Final Result
 
