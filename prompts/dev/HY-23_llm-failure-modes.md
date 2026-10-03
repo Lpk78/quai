@@ -77,4 +77,21 @@ Lpk78 can point me at it.
 
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/78 (reviewer: `Lpk78`)
+- **What the AI produced:** `documentation/llm_failure_modes.md` and the README section that links it.
+- **How it was checked:** every citation in the document was resolved against the file it names, in a
+  script rather than by eye — `llm.py:259`, `TestTheSpokenLine`, C6/C7 and their wording, T25's
+  injection text, the `operator_utterance` block, the four `failures.md` entries, the `13:36:57Z`
+  timestamp, and both internal links. Both quotes are verbatim against the posted review bodies.
+  409 Python and 195 web tests unchanged — this PR adds documentation only.
+- **What was changed by hand:** the decision not to write the hallucination section the way it was
+  briefed. The described case — a review inventing a *call* to make a *compliment* concrete — was
+  searched for systematically (all 15 backticked `name()`s across 54 review bodies, checked with
+  `git grep`; the two most specific compliments verified individually) and is not in the record. What
+  is there is the same failure inverted: a fabricated *criticism* in the #63 draft, caught before
+  posting. Writing the briefed version would have been an invented example inside a document about
+  invention.
+- **The second correction:** the brief said `SA-26` had finished #38 and the experiment's result was
+  recorded in `failures.md`. #38 is `open`, `merged=false`; `llm_placement.py` is not on `main`; and
+  that section still reads `_to run and record._`. The document points at #38 for the numbers and says
+  explicitly that they are not established in this repository yet.
