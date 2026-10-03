@@ -38,8 +38,38 @@ produces plausible but geometrically invalid, non-reproducible layouts (see `doc
 - Python 3.11+ (solver, LLM translation layer, evaluation scripts)
 - Git, GitHub, GitHub CLI (`gh`)
 - VS Code
-- LLM in the product: Claude, through the Anthropic API (constraint translation and plan explanation only)
-- AI assistant used during development: Claude Code in the terminal (see `documentation/ai_usage.md`)
+
+AI was used in three distinct ways. They are listed apart because what each one is allowed to decide
+is different, and only the first is part of the product.
+
+**1 — In the product.** Claude through the Anthropic API, `claude-haiku-4-5-20251001` at temperature
+0, for two jobs: turning a sentence into constraints, and explaining the solver's output back in
+plain language. **Never for placement.** Positions are computed by the deterministic solver in
+`src/quai/`, and the model's reply reaches it only through `quai.constraints.parse()`.
+
+**2 — In development.** Claude Code in the terminal, in three separate sessions, one per team
+member. What it produced on each task, how that was checked and what was changed by hand is recorded
+per task in `prompts/dev/<ID>_<slug>.md`, and summarised in `documentation/ai_usage.md`.
+
+**3 — In the creative process.** The visual identity is generated rather than drawn:
+
+- **ChatGPT** — the logo, the brand kit, the characters, the vehicles, the environments, the screen
+  mockups, the component boards and the isolated renders.
+- **Claude** — the 32-second film on the landing page (`web/public/quai-video.mp4`).
+
+Some assets were retouched by hand after generation.
+
+A detailed ten-shot production method had also been written for **Higgsfield**
+(`08_HIGGSFIELD/Higgsfield_website_workflow.txt`, in the brand hand-off rather than in this
+repository) and was not used: the film that shipped was made with Claude. The document is kept
+because the route it describes was real preparation, and dropping it was a decision rather than an
+oversight.
+
+What the generated material is allowed to settle is bounded by `documentation/design.md`: the
+reference images are renderings for mood and layout, never specifications, and where a mockup
+conflicts with the accessibility or copy rules, the rules win — and they did, which is written up
+in `documentation/failures.md` under *A brand kit whose own mockups failed accessibility* and
+*Mockups that advertised a product we are not building*.
 
 ## Installation / Access
 
