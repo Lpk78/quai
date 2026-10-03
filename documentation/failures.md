@@ -775,6 +775,109 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   stop order, #60's `on_top` pair, `HY-17`'s route-time tile), and every one was caught the same way,
   by changing the code to see whether the test noticed.
 - Related branch / PR: `fix/speech-language`, `HY-20`; follows `HY-19`, #68.
+---
+
+## 2026-10-01 — What happens when the model places the boxes itself
+
+- What happened: `CLAUDE.md` has said since the first week that the LLM never computes placement. It was
+  a design decision nobody had measured, so `SA-06` measured it. The model was asked to do the solver's
+  job directly — the eleven boxes of `src/demo.py`, the same van, coordinates out — ten times at
+  temperature 0 and ten at temperature 1, with every reply scored by `quai.checks.find_problems()`, the
+  same independent check the solver answers to. `claude-haiku-4-5-20251001`, the model `.env` names.
+
+  | | temperature 0 | temperature 1 | solver |
+  |---|---|---|---|
+  | replies that parsed | 10/10 | 10/10 | — |
+  | **physically valid plans** | **1/10** | **0/10** | always |
+  | distinct plans | 7 of 10 | 10 of 10 | 1 |
+  | problems per plan | 6.4 | 4.6 | 0 |
+  | most common fault | unsupported (32) | rotation (22) | — |
+
+  The failures are not near-misses. Across the twenty runs the checks found 41 boxes floating with
+  nothing under them, 41 laid on their side when the load is "this way up", 20 overlapping another box,
+  5 outside the van, and 3 never placed at all.
+
+- Why it is worth writing down rather than filing as "LLM bad": **the model is good at the part that
+  looks hard and bad at the part that looks easy.** It answered in the right JSON shape 20 times out of
+  20, and it placed all eleven boxes in 17 of them where the solver places ten and leaves the mattress
+  on the dock. What it cannot do is arithmetic that has to hold across eleven objects at once: whether
+  *this* box at *this* height has 75 % of its base on something, given the ten boxes already placed.
+  That is the whole of the job, and it is the thing a loop with a rectangle intersection does perfectly.
+
+- The result that complicates the story: **the one valid plan was better than the solver's.** At
+  temperature 0, run 10 placed all eleven boxes, every one upright, minimum support 0.81, nothing
+  overlapping, nothing outside — 46.9 % fill against the solver's 39.3 %. Once in twenty tries the model
+  beat the greedy first-fit by seven and a half points and fitted the mattress the solver gives up on.
+  That is not an argument for letting it place boxes; it is an argument about `solve()` being greedy,
+  which the roadmap already lists as a known limitation. It also suggests the shape a later experiment
+  could take: let the model propose, let `find_problems()` judge, keep it only when it is valid and
+  better, fall back to the solver otherwise. The checks are what make that safe, and they already exist.
+
+- The other finding, which lands on a live argument: **temperature 0 is not determinism.** Ten runs at
+  temperature 0 produced seven different plans. `documentation/prompt_evaluation.md` already says a
+  temperature of 0 "reduces variability; it has never guaranteed identical outputs" and that the three
+  runs per sentence are what measures the variability — this is that sentence with a number against it.
+  A solver that answered differently seven times out of ten would not be a solver.
+
+- What we learned: the rule stands, and now it stands on twenty runs rather than on taste. The useful
+  form of it is narrower than "the LLM is unreliable": the model is fluent about structure and unreliable
+  about constraint arithmetic, so the architecture should ask it for structure — translating a sentence
+  into validated JSON — and never for arithmetic. That is exactly the split `quai.constraints` and
+  `quai.solver` already draw, which is reassuring, and it is now a measured boundary rather than an
+  assumed one.
+
+- Check it without paying for it: the twenty replies are committed, at
+  `outputs/placement/llm_placement_20261001-141020.json`, and `TestTheRecordedRun` in
+  `tests/test_llm_placement.py` re-derives every figure above from them — the valid-plan counts, the
+  problems per plan, the distinct-plan counts, the five fault totals in the paragraph above, and the
+  39.3 % the comparison leans on, which is recomputed from `solve()` rather than stored. Every one of
+  those assertions was mutation-tested against both the document and the replies. So this entry is
+  checkable by anyone with the repository, and it fails loudly if a number here is edited or if the
+  solver moves.
+- Re-run it: `python3 src/run_placement_experiment.py` (20 calls, needs `ANTHROPIC_API_KEY` and
+  `LLM_MODEL`). Worth knowing what that does and does not do: a fresh run asks the same questions and
+  gets **different replies**, since temperature 0 is not deterministic — which is one of the findings
+  above. It can therefore neither confirm nor refute this run, only sit beside it as a second
+  measurement. `notebooks/llm_vs_solver.ipynb` explores a stored run without calling the model.
+- Related branch / PR: `experiment/llm-only-placement`, `SA-06`.
+
+---
+
+## 2026-10-04 — The founding claim was in the repository; its evidence was not
+
+- What happened: `README.md` has said since the first week that QUAI splits the work the way it does
+  because a model produces plausible but geometrically invalid plans, and it points at
+  `documentation/` for the proof. `SA-06` measured exactly that — twenty runs, one valid plan — and
+  then sat unmerged on a branch for two days while `main` moved 273 commits ahead. Worse, the write-up
+  it carried could not be checked by anybody but its author: the twenty replies every number came from
+  were written to `outputs/placement/`, which `.gitignore` excludes. Re-deriving the table meant
+  twenty billed calls, and because temperature 0 is not deterministic — a finding of the experiment
+  itself — a fresh run returns *different* replies and so cannot confirm or refute the recorded ones.
+  The one claim the whole architecture rests on was, in practice, unfalsifiable.
+- Why: `outputs/*` is the right default. A generated-results directory should not be committed, and
+  nobody writing that rule was thinking about the one run that stops being a generated artefact and
+  becomes a cited source the moment a document quotes it.
+- What we tried: the rebase first, which was eight commits and three conflicts, all in append-only
+  Markdown (`failures.md`, `README.md`, `roadmap.md`) — resolved by keeping both sides, as the
+  2026-09-30 entry above describes, and verified with `git diff main HEAD` showing exactly two deleted
+  lines, both rows this branch deliberately rewrites. Then the recorded run was committed as a
+  deliberate exception to `outputs/*`, with the reason written in `.gitignore` beside it, and
+  `TestTheRecordedRun` was added to re-derive every published figure from those replies through the
+  experiment's own `summarise()` rather than a second copy of its classifier. Checked that the
+  numbers still hold under *today's* code, not the code of 2026-10-01: all of them do, including the
+  39.3 % solver baseline the comparison leans on, which is recomputed rather than stored.
+- A mistake inside the fix, and the same one this project keeps making: the first version of the test
+  that pins the five fault totals asserted `str(total) in failures_text`. Mutating the prose from
+  "41 boxes floating" to "40" left it green, because "41" still appeared later in the same sentence.
+  It was a test of the test. It now reads each total out of the sentence with a regex and compares it
+  against the recount, and the mutation fails it. Every assertion in the class was then mutated both
+  ways — editing the document, and lifting one box 1 cm off the floor in the one valid reply, which
+  turns six of them red.
+- What we learned: a result is not in the repository until the thing it was computed from is. "Record
+  only results that were actually run" (`CLAUDE.md`) is half the rule; the other half is that somebody
+  else has to be able to see the run. The cost of the second half here was 38 KB of JSON and one test
+  class — against a 25 %-weighted claim that was otherwise take-it-or-leave-it.
+- Related branch / PR: `experiment/llm-only-placement`, `SA-06` finished as `SA-26`, #38.
 
 ---
 

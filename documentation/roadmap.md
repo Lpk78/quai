@@ -53,7 +53,7 @@ so #22 was merged after #21.
 | Branch | Deliverable | Owner | Status |
 |---|---|---|---|
 | `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
-| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | To do (`SA-06`) |
+| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | Run (`SA-06`, #38): 1 valid plan in 20 |
 | `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | Done (#35) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
@@ -70,7 +70,7 @@ than forgotten.
 | Limitation | What happens today | Why it matters |
 |---|---|---|
 | Stacking only knows the weight it was told about | The solver enforces a `max_weight_on` over the whole stack (#17), but a box nobody gave a limit for still carries anything that fits | A washing machine on cartons is a broken load even when the geometry checks out, and the operator has to say so for the solver to know |
-| First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load) |
+| First-fit is greedy, and never reconsiders | A box that fits nowhere is left out, even when reordering earlier boxes would have made room — the mattress in `src/demo.py` is the standing example | Fill rate stays lower than it needs to be (39 % on the demo load). `SA-06` found a model-written plan that fitted all eleven boxes at 46.9 %, so the headroom is real and measured |
 
 Weight-aware stacking was issue #17 (`feature/solver-v2`, row 2): a stated limit is now enforced, and
 what is left of that row is fragility the operator never states. The greedy first-fit stays open, for
