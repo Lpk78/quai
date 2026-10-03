@@ -775,3 +775,35 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   stop order, #60's `on_top` pair, `HY-17`'s route-time tile), and every one was caught the same way,
   by changing the code to see whether the test noticed.
 - Related branch / PR: `fix/speech-language`, `HY-20`; follows `HY-19`, #68.
+
+---
+
+## 2026-10-04 — A guard that could not fail, inside the pull request that added the guards
+
+- What happened: `HY-22` rewrote `prompts/README.md`, which had described a *planned* prompt tree —
+  "none of these version files exist yet" — while five tested versions sat beside it. Seven tests
+  were added so the file could not drift again, and the PR reported them mutation-tested: restoring
+  the old README produced **9 failures**. `Lpk78` read the sentence describing that result and found
+  it wrong on three counts. Two were miscounts — four versions fail rather than five, because
+  `v1_zero_shot` is named in *both* READMEs; three invented filenames fail rather than "both". The
+  third was the real one: **no test covered the "planned" sentence at all**, because the one written
+  for it could not fail.
+- Why: the guard was `assertNotIn("none of these version files exist yet", TEXT)`, and in the file it
+  was written to catch, that sentence wraps across a line — `"…so none\nof these version files exist
+  yet"`. Markdown prose is wrapped at column 100, so the phrase a human reads as one sentence is not
+  one string. The substring matched nothing in the old README, nothing in the new one, and the test
+  passed in both directions while appearing to stand guard over the exact sentence that caused the
+  task.
+- What we tried: matched against a whitespace-flattened copy of the file instead of the raw text, and
+  added the `**planned**` framing to the same assertion so the tripwire is about the claim rather
+  than one phrasing of it. Re-ran the mutation: **10 failures** now, with the tripwire among them,
+  and the description in the prompt file corrected to the verified breakdown.
+- What we learned: this is the sixth instance of the same shape in this project, and the first one
+  shipped *inside* a pull request whose entire subject was a document that described a plan instead
+  of what was on disk. The mutation test was run and its total — nine — was reported accurately; what
+  was never checked was *which* nine, so a missing guard hid inside a number that looked right.
+  Counting failures is not reading them. Where a mutation is cited as evidence, name the assertions
+  it trips, not how many.
+  The ordinary cause is worth keeping too: a test that searches prose for a sentence has to flatten
+  the whitespace first, or it is searching for something the file does not contain.
+- Related branch / PR: `docs/prompts-readme-accuracy`, `HY-22`, #75; found in review by `Lpk78`.

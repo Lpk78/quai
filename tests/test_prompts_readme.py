@@ -20,6 +20,13 @@ FAMILY = PROMPTS / "constraint-translation"
 
 TEXT = README.read_text(encoding="utf-8")
 
+# Whitespace-flattened, because Markdown wraps prose at column 100 and a phrase that matters can land
+# with a newline inside it. The first version of the tripwire below searched `TEXT` for
+# "none of these version files exist yet" — which never matched anything, in either README, because
+# the sentence it was hunting reads "…so none\nof these version files exist yet". It passed on the
+# file it was written to catch. Caught in review of #75 by Lpk78.
+FLAT = re.sub(r"\s+", " ", TEXT)
+
 # iCloud leaves "v4_few_shot 2.md" beside the real file. Those copies are git-ignored (#69) but they
 # are still on disk in a synced clone, so the comparison is against what git tracks in spirit: a
 # version file is `vN_name.md` with no trailing " 2".
@@ -66,9 +73,16 @@ class TestItDoesNotPromiseWhatIsNotThere(unittest.TestCase):
                                 f"prompts/README.md points at prompts/{claimed}/, which does not exist")
 
     def test_it_no_longer_calls_the_tree_planned(self):
-        # The specific sentence that was false, kept as a tripwire: if someone reintroduces the
-        # "planned" framing while five tested versions sit on disk, that is the bug again.
-        self.assertNotIn("none of these version files exist yet", TEXT)
+        """The sentence that was false, kept as a tripwire.
+
+        Matched against `FLAT` rather than `TEXT`: in the README this was written to catch, the
+        phrase wraps as "…so none\nof these version files exist yet", so the obvious substring
+        search found nothing and the guard passed on the broken file. Mutation-tested both ways now.
+        """
+        self.assertNotIn("none of these version files exist yet", FLAT)
+        # The framing, not just that one sentence: a "planned" tree beside five tested versions is
+        # the bug whatever words it arrives in.
+        self.assertNotIn("the **planned** layout", FLAT)
 
     def test_the_unmerged_experiment_is_marked_as_unmerged(self):
         """Kept in the table, but it has to say where it actually is."""

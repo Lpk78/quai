@@ -71,10 +71,19 @@ delete, and that is a recommendation, not an action taken.
 - **What the AI produced:** the rewritten product-prompts section of `prompts/README.md` and the
   seven guards in `tests/test_prompts_readme.py`.
 - **How it was checked:** `python3 -m unittest discover tests` — 416, up from 409. Then
-  mutation-tested by restoring the previous `prompts/README.md` from `main`: **9 failures**, naming
-  each of the five real versions as undocumented, both invented filenames as absent from disk, the
-  "planned" sentence, and the unmarked experiment. Guards that pass against the state they were
-  written to catch would have been decoration.
+  mutation-tested by restoring the previous `prompts/README.md` from `main`: **10 failures** —
+  **four** of the five real versions reported as undocumented (`v1_zero_shot` is named in both
+  READMEs, so it does not fail), all **three** invented filenames reported as absent from disk, the
+  "planned" tripwire, the unmarked experiment, and the quoted scores.
+
+  **That sentence first said "9 failures… each of the five… both invented filenames… the 'planned'
+  sentence", and it was wrong on three counts — caught by `Lpk78` reviewing #75.** Two were
+  miscounts. The third was not: the "planned" guard was *not* among the nine, because it could not
+  fail. It searched `TEXT` for `"none of these version files exist yet"`, and in the README it was
+  written to catch that sentence wraps as `"…so none\nof these version files exist yet"`, so the
+  substring matched nothing in either file. The guard is now matched against whitespace-flattened
+  text and asserts the `**planned**` framing too; with it fixed the mutation produces ten failures
+  rather than nine.
 - **What was changed by hand:** two things. Keeping the `llm-only-placement` row rather than
   deleting it, once checking the branch showed the experiment has no folder *by design* — the row is
   now about where the prompt really lives, which is more useful than its absence. And writing the
