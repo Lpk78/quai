@@ -8,12 +8,24 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
 
 ---
 
-## Planned experiment: LLM-only placement vs solver
+## Experiment: LLM-only placement vs solver — run, and recorded below
+
+This was written before the experiment, and kept as written: it is what fixes the method in advance,
+so the result cannot be a protocol chosen after seeing the numbers.
 
 - **Question:** can an LLM place boxes in a container on its own?
 - **Protocol:** same box lists given to the LLM and to the solver; count overlaps, out-of-bounds boxes,
   and differences between repeated runs.
-- **Results:** _to run and record._
+- **Results:** run on 2026-10-01 and written up in full under
+  [*2026-10-01 — What happens when the model places the boxes itself*](#2026-10-01--what-happens-when-the-model-places-the-boxes-itself),
+  at the end of this file. The headline: twenty runs of `claude-haiku-4-5-20251001` on the eleven
+  boxes of `src/demo.py`, every reply scored by `quai.checks.find_problems()` — **one physically
+  valid plan in twenty**, and ten runs at temperature 0 produced seven different plans. The protocol
+  above was followed and widened: overlaps, out-of-bounds and run-to-run differences were counted as
+  planned, plus unsupported boxes, rotations and boxes never placed at all.
+  The twenty replies are committed at `outputs/placement/llm_placement_20261001-141020.json` and
+  `TestTheRecordedRun` re-derives every figure from them, so the numbers can be checked without
+  calling the model (`SA-06`, finished in `SA-26`, #38).
 
 ---
 

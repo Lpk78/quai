@@ -52,14 +52,32 @@ so #22 was merged after #21.
 
 | Branch | Deliverable | Owner | Status |
 |---|---|---|---|
-| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
-| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | Run (`SA-06`, #38): 1 valid plan in 20 |
+| `feature/operator-mode` | Step-by-step loading view + recomputation on incident | `SamDana-maker` | Recomputation is written and open as #36, paused on one named defect (see *Open pull requests*); the step-by-step view is not started |
+| `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | Done (#38, `SA-06` finished as `SA-26`): 1 valid plan in 20 |
 | `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | Done (#35) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
 | `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done (#27, issue #17) |
 
 A dash means nobody has claimed it yet, not that it has no natural owner.
+
+## Open pull requests — work that exists and did not land
+
+Two pull requests are open on purpose rather than forgotten. Both are `SamDana-maker`'s, both have
+their full state written on the pull request itself (`SA-28`), and neither is close to `main` any
+more — they predate the last stretch and conflict with it. They are listed here because a repository
+that shows only what was merged describes a project that went smoothly, and this one did not.
+
+| PR | What it is | Why it is still open |
+|---|---|---|
+| #36 — `feature/plan-recompute` | `POST /plan/recompute` and `src/quai/incident.py`: replanning a load in progress around the boxes already in the van, after a parcel is reported missing, damaged or added. 671 lines, with tests | Two `CHANGES_REQUESTED` rounds from `MORHI11`. The first was fixed; the second is not — `refuse_impossible_start` checks the stack limits but never `weight_cap()`, so a start already over a stated `max_total_weight` is accepted and every box comes back unplaced with no cause named. Paused on the author, not on a reviewer |
+| #41 — `fix/container-max-weight` | Refuses a `NaN` weight limit, maps a bare `NaN` literal to `422` instead of `500`, and relaxes `max_weight` from `gt=0` to `ge=0` so the API accepts the zero the model allows. 167 lines, with tests | Never reviewed. Not on the demo's path — the app sends neither `NaN` nor a zero limit — so it queued behind the final push and did not come back out. All three defects are still present on `main` |
+
+The order in which #36 was handled is the part worth keeping. The landing page advertised
+"Replans when a parcel is missing" while nothing in the API could replan. #77 removed the claim
+rather than merging this to justify it, and widened the guard in `copy.test.jsx` that had missed it
+for two releases. Taking an untrue sentence off the product was the urgent half; the work that would
+make it true is still here, unfinished and visible, which is the honest way round.
 
 ## Known limitations of the v1 solver
 
