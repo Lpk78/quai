@@ -47,7 +47,7 @@ app; Git, GitHub and the GitHub CLI (`gh`); VS Code. Everything below is declare
 | Uvicorn | runs that API locally, and with the certificate for the phone demo |
 | httpx | drives FastAPI's `TestClient` in `tests/test_server.py` |
 | `anthropic` | the Claude client, used by `src/evaluate_prompt.py` to score a prompt version |
-| `unittest` | the Python test runner — 409 tests, from the standard library, no third-party framework |
+| `unittest` | the Python test runner, from the standard library — no third-party test framework |
 
 **Web app** — `web/package.json`:
 
@@ -59,7 +59,7 @@ app; Git, GitHub and the GitHub CLI (`gh`); VS Code. Everything below is declare
 | three.js, `@react-three/fiber`, `@react-three/drei` | the 3D view of the load on `/app/plan` — the volume, the boxes, the camera presets |
 | Leaflet, React Leaflet | the map and the round on `/app/route` |
 | jsQR | decodes the QR codes the camera reads, shared by `/login` and `/app/scan` |
-| Vitest, jsdom, Testing Library | the web test runner and the DOM it runs against — 195 tests |
+| Vitest, jsdom, Testing Library | the web test runner and the DOM it runs against |
 | `@fontsource/inter`, `@fontsource/plus-jakarta-sans` | the two self-hosted typefaces, so no font is fetched from a third party |
 
 **Build-time only** — `requirements-dev.txt`: NumPy, Pillow and potracer, used by
@@ -511,11 +511,12 @@ python3 src/demo_fixtures.py
 ```
 
 It prints the placement table and the fill rate the real solver computes, before and after the
-parcel is scanned: **77.8% with the eighteen loaded boxes, 78.2% once the parcel is in**, all
+parcel is scanned: **77.8% with the eighteen loaded boxes, 83.3% once the parcel is in**, all
 nineteen placed. The route reaches the solver as a `ConstraintSet` built by
 `quai.constraints.parse()`, the same path `POST /constraints` feeds, so the numbers come from the
 production code and not from a second implementation. Import it as `demo_fixtures` to reuse the
-same load elsewhere; `tests/test_demo_fixtures.py` holds the fill rate to the quoted range.
+same load elsewhere; `tests/test_demo_fixtures.py` holds both of those figures to the ranges
+quoted here.
 
 ## Current scope
 
@@ -596,7 +597,8 @@ A score is recorded only if it was run; the one re-scored number in that documen
 diagnostic and credited to no version.
 
 **During development.** Claude Code in the terminal, recorded per task rather than per Pull Request.
-`prompts/dev/` holds 49 task files — 20 `LP-`, 17 `SA-`, 12 `HY-` — each with the prompt as it was
+`prompts/dev/` holds one file per task — over fifty of them, under each member's prefix (`LP-`,
+`SA-`, `HY-`) — each with the prompt as it was
 typed, the decisions taken before any code was written, and an Outcome saying what the AI produced,
 how it was checked, and what was changed by hand. `documentation/ai_usage.md` is filled from those
 files. Reviews are drafted with AI, then read, edited and posted by the human reviewer from their own
@@ -604,8 +606,8 @@ account; the author never merges their own Pull Request.
 
 ## Main Challenges
 
-Twenty-eight are written up in `documentation/failures.md`, each with what happened, why, what we
-tried and what we learned. The ones that changed how we work:
+Every one is written up in `documentation/failures.md` — thirty-odd entries, each with what
+happened, why, what we tried and what we learned. The ones that changed how we work:
 
 - **Two prompt versions scored 0/26 on a code fence.** Every reply was wrapped in ` ```json `, so
   nothing parsed and no field was ever looked at. v2 rewrote the output instructions and moved the
@@ -640,10 +642,12 @@ A working load-planning tool, demonstrated on a phone against a real Paris round
 - **FastAPI server** exposing `POST /plan`, `POST /constraints` and `POST /route`.
 - **React + Vite app**, installable as a PWA: `/` landing page, `/login`, `/app`, `/app/scan`,
   `/app/dictate`, `/app/plan` with a 3D view, `/app/route` with the round on a map.
-- **604 automated tests** — 409 Python (one skipped without an API key) and 195 web across 14 files
-  — run on every Pull Request by `.github/workflows/tests.yml`.
-- **50 Pull Requests merged**, one reviewer each from a fixed rotation, the author never merging
-  their own.
+- **A test suite on both sides**, Python and web, run in full on every Pull Request by
+  `.github/workflows/tests.yml`. `python3 -m unittest discover tests` and `cd web && npm test`
+  print the current counts; they are in the hundreds and rise with each merge, which is why the
+  commands are here instead of a number that was true the day it was typed.
+- **Every change arrived through a reviewed Pull Request** — more than fifty of them — with one
+  reviewer each from a fixed rotation, and the author never merging their own.
 
 What it does not do is listed under *Current scope*, and each limit is visible in the product rather
 than only here: a green tick appears only when nothing was left unplaced **and** no rule went
