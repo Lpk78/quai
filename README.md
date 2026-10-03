@@ -357,9 +357,16 @@ python3 src/run_placement_experiment.py            # 10 runs at temperature 0, 1
 python3 src/run_placement_experiment.py --runs 2   # a short rehearsal
 ```
 
-It makes 20 billed calls. Replies are written to `outputs/placement/` (Git-ignored) so the results can
-be re-read without paying for them again; `notebooks/llm_vs_solver.ipynb` explores a stored run. What it
-found is in `documentation/failures.md` — one physically valid plan in twenty.
+It makes 20 billed calls, so **the run the published figures come from is in the repository**:
+`outputs/placement/llm_placement_20261001-141020.json` holds all twenty replies. `TestTheRecordedRun`
+in `tests/test_llm_placement.py` re-derives every number `documentation/failures.md` states from those
+replies, with today's checks — so reading the result costs nothing, and the table cannot drift from the
+evidence behind it. `notebooks/llm_vs_solver.ipynb` explores the same run.
+
+Re-running answers a *different* twenty questions: the model is not reproducible at temperature 0
+(that is one of the findings), so a fresh run can neither confirm nor refute the recorded one. Fresh
+runs land beside it and stay Git-ignored. What this one found is in `documentation/failures.md` — one
+physically valid plan in twenty.
 
 ### Prompt evaluation
 

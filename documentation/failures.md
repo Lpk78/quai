@@ -826,7 +826,55 @@ Git problems, merge conflicts, changes of direction, abandoned ideas.
   `quai.solver` already draw, which is reassuring, and it is now a measured boundary rather than an
   assumed one.
 
-- Reproduce it: `python3 src/run_placement_experiment.py` (20 calls, needs `ANTHROPIC_API_KEY` and
-  `LLM_MODEL`). Replies land in `outputs/placement/`, which is Git-ignored; `notebooks/llm_vs_solver.ipynb`
-  re-derives every number above from a stored run without calling the model again.
+- Check it without paying for it: the twenty replies are committed, at
+  `outputs/placement/llm_placement_20261001-141020.json`, and `TestTheRecordedRun` in
+  `tests/test_llm_placement.py` re-derives every figure above from them — the valid-plan counts, the
+  problems per plan, the distinct-plan counts, the five fault totals in the paragraph above, and the
+  39.3 % the comparison leans on, which is recomputed from `solve()` rather than stored. Every one of
+  those assertions was mutation-tested against both the document and the replies. So this entry is
+  checkable by anyone with the repository, and it fails loudly if a number here is edited or if the
+  solver moves.
+- Re-run it: `python3 src/run_placement_experiment.py` (20 calls, needs `ANTHROPIC_API_KEY` and
+  `LLM_MODEL`). Worth knowing what that does and does not do: a fresh run asks the same questions and
+  gets **different replies**, since temperature 0 is not deterministic — which is one of the findings
+  above. It can therefore neither confirm nor refute this run, only sit beside it as a second
+  measurement. `notebooks/llm_vs_solver.ipynb` explores a stored run without calling the model.
 - Related branch / PR: `experiment/llm-only-placement`, `SA-06`.
+
+---
+
+## 2026-10-04 — The founding claim was in the repository; its evidence was not
+
+- What happened: `README.md` has said since the first week that QUAI splits the work the way it does
+  because a model produces plausible but geometrically invalid plans, and it points at
+  `documentation/` for the proof. `SA-06` measured exactly that — twenty runs, one valid plan — and
+  then sat unmerged on a branch for two days while `main` moved 273 commits ahead. Worse, the write-up
+  it carried could not be checked by anybody but its author: the twenty replies every number came from
+  were written to `outputs/placement/`, which `.gitignore` excludes. Re-deriving the table meant
+  twenty billed calls, and because temperature 0 is not deterministic — a finding of the experiment
+  itself — a fresh run returns *different* replies and so cannot confirm or refute the recorded ones.
+  The one claim the whole architecture rests on was, in practice, unfalsifiable.
+- Why: `outputs/*` is the right default. A generated-results directory should not be committed, and
+  nobody writing that rule was thinking about the one run that stops being a generated artefact and
+  becomes a cited source the moment a document quotes it.
+- What we tried: the rebase first, which was eight commits and three conflicts, all in append-only
+  Markdown (`failures.md`, `README.md`, `roadmap.md`) — resolved by keeping both sides, as the
+  2026-09-30 entry above describes, and verified with `git diff main HEAD` showing exactly two deleted
+  lines, both rows this branch deliberately rewrites. Then the recorded run was committed as a
+  deliberate exception to `outputs/*`, with the reason written in `.gitignore` beside it, and
+  `TestTheRecordedRun` was added to re-derive every published figure from those replies through the
+  experiment's own `summarise()` rather than a second copy of its classifier. Checked that the
+  numbers still hold under *today's* code, not the code of 2026-10-01: all of them do, including the
+  39.3 % solver baseline the comparison leans on, which is recomputed rather than stored.
+- A mistake inside the fix, and the same one this project keeps making: the first version of the test
+  that pins the five fault totals asserted `str(total) in failures_text`. Mutating the prose from
+  "41 boxes floating" to "40" left it green, because "41" still appeared later in the same sentence.
+  It was a test of the test. It now reads each total out of the sentence with a regex and compares it
+  against the recount, and the mutation fails it. Every assertion in the class was then mutated both
+  ways — editing the document, and lifting one box 1 cm off the floor in the one valid reply, which
+  turns six of them red.
+- What we learned: a result is not in the repository until the thing it was computed from is. "Record
+  only results that were actually run" (`CLAUDE.md`) is half the rule; the other half is that somebody
+  else has to be able to see the run. The cost of the second half here was 38 KB of JSON and one test
+  class — against a 25 %-weighted claim that was otherwise take-it-or-leave-it.
+- Related branch / PR: `experiment/llm-only-placement`, `SA-06` finished as `SA-26`, #38.
