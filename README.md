@@ -612,11 +612,16 @@ tried and what we learned. The ones that changed how we work:
   number not at all; what fixed it was ending the request on an assistant `{` so the model had
   already started the object. Rewording a prompt and changing how it is delivered are different
   tools, and we had been reaching for the wrong one.
-- **Tests that could not fail.** The failure this project kept relearning: a parser regex (#14), a
-  stop order (#35), an `on_top` pair (#60), a route-time tile (`HY-17`), and a speech-language
-  assertion that jsdom's own `en-US` already satisfied (`HY-20`). Every one was found the same way,
-  by changing the code to see whether the test noticed, and it is now the habit — a test is not
-  evidence for a change until it has been made to fail against it.
+- **Tests that could not fail.** The failure this project kept relearning, eight times: a parser
+  regex (#14), a `load_last` box the tie-break already loaded last (#51), a stop order (#35), an
+  `on_top` pair (#60), a route-time tile (`HY-17`), a speech-language assertion that jsdom's own
+  `en-US` already satisfied (`HY-20`), a copy guard holding four hard-coded phrases (#77), and a
+  tripwire hunting a sentence that wraps across a line (#75). Every one was found the same way, by
+  changing the code to see whether the test noticed, and it is now the habit — a test is not
+  evidence for a change until it has been made to fail against it. The eighth was shipped *inside*
+  the pull request that added the guards, which is why the habit now has a third half: the #75
+  mutation ran and its total was right, and the gap survived because nobody read *which* assertions
+  tripped.
 - **The phone demo and the camera could not both work over `http://`.** `getUserMedia` needs a
   secure context and a LAN address is not one, so the camera was absent rather than refused. Solved
   with a local `mkcert` certificate and HTTPS on both servers, which then needed the phone to trust
@@ -630,6 +635,14 @@ tried and what we learned. The ones that changed how we work:
 - **Shared documents conflict because every branch appends to the end** (#32). `failures.md`,
   `ai_usage.md` and this README collide on almost every merge. The rule that came out of it: keep
   both sides, never pick one.
+
+**`documentation/llm_failure_modes.md`** collects the ones that are limitations of language models
+rather than of our code, with the evidence for each: the test that does not look (the eight above,
+with the mutation that catches each), a hallucinated code detail caught before it reached a review,
+stated caution that did not hold, prompt injection — which is the one we test rather than recount,
+through the `injection_attempt` case T25 and criteria C6 and C7 — and what the model did when asked
+to place the boxes itself. It also records the counter-example, where a well-bounded task produces an
+honest refusal instead of an invention.
 
 ## Final Result
 
