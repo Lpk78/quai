@@ -10,10 +10,10 @@ Owners follow the area split in `CLAUDE.md`, and each PR is reviewed by the othe
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
 | 1 | #5 | `feature/solver-v1` | Boxes + container model, placement without overlap | `Lpk78` | `SamDana-maker` | Done (#3) |
-| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | In review (#27) |
-| 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | In review (#16) |
-| 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | In review (#33) |
-| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `SamDana-maker` | `MORHI11` | Plan screen in review (#45); 3D view next |
+| 2 | #17 | `feature/solver-v2` | Stack weight limit + stop-ordered loading (`SA-05`) | `SamDana-maker` | `MORHI11` | Done (#27) |
+| 3 | #6 | `feature/solver-api` | FastAPI exposing the solver over `POST /plan` | `SamDana-maker` | `MORHI11` | Done (#16) |
+| 4 | #18 | `feature/web-app` | React + Vite app installable on a phone: `/` landing, `/app` shell (`HY-01`) | `MORHI11` | `Lpk78` | Done (#33) |
+| 5 | #7 | `feature/3d-view` | 3D supervisor view of the plan | `SamDana-maker` | `MORHI11` | Done (#45 the plan screen, #48 the 3D view, #72 the scene rework) |
 | 6 | #8 | `feature/box-form` | Box entry form: dimensions, weight, quantity, container | `MORHI11` | `Lpk78` | To do |
 
 Row 1 is the one place where the owner column does not mean "wrote it": `Lpk78` wrote the v1 solver,
@@ -25,19 +25,28 @@ starting with row 2.
 | # | Issue | Branch | Deliverable | Owner | Reviewer | Status |
 |---|---|---|---|---|---|---|
 | 7 | #9 | `docs/constraint-test-sentences` | Fixed test sentences + expected JSON, including injection cases | `Lpk78` | `SamDana-maker` | Done (#14) |
-| 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | In review (#21) |
-| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | In review (#22) |
-| 10 | #12 | `prompt/constraint-translation-v5-bounded-examples` | The `constraint-translation` family, v1 to v5, each with real scores; v4 stays in production (`documentation/failures.md`) | `Lpk78` | `SamDana-maker` | In review (#43) |
-| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | In review (#46) |
-| 12 | #19 | `feature/constraint-solving` | Constraints accumulated across sentences and handed to the solver | `Lpk78` | `SamDana-maker` | To do |
+| 8 | #10 | `feature/constraint-schema` | Strict JSON schema for constraints, validated before the solver | `Lpk78` | `SamDana-maker` | Done (#21) |
+| 9 | #11 | `feature/prompt-evaluation` | Script scoring a prompt version on the fixed inputs | `Lpk78` | `SamDana-maker` | Done (#22) |
+| 10 | #12 | `prompt/constraint-translation-v5-bounded-examples` | The `constraint-translation` family, v1 to v5, each with real scores; v4 stays in production (`documentation/failures.md`) | `Lpk78` | `SamDana-maker` | Done (#43) |
+| 11 | #19 | `feature/constraint-translation` | Spoken sentence → validated JSON, over `POST /constraints` (`LP-11`) | `Lpk78` | `SamDana-maker` | Done (#46) |
+| 12 | #19 | `feature/constraint-solving` | Constraints accumulated across sentences and handed to the solver | `Lpk78` | `SamDana-maker` | Partly done (#51, #61): the hand-off exists, the accumulation does not |
 
 Row 11 is the translation step: one operator sentence into validated constraint JSON, over
 `POST /constraints` on the server from row 3; rows 7 to 10 are what make it possible, and #10 points
 at this row. Row 12 is the feature the whole AI layer builds towards — it is where the prompt, the
 schema and the solver become one path, consuming what row 11 produces.
 
+Row 12 is half built, and the half matters. `POST /plan` takes a `constraints` field and hands the
+solver the types it honours — `load_last` since #51, `on_top` since #61 — while every other type comes
+back in `not_applied` with a reason rather than being dropped in silence. So a dictated sentence does
+move a box, which is what the demo shows. What does not exist is the accumulation this row is named
+for: `Dictate.jsx` sends the constraints of the *last* sentence it translated, so a second rule
+replaces the first instead of joining it. The screen is honest about it — the mockup's "Edit" and
+"+ Add a rule" controls are deliberately absent, because editing one rule in place or adding one by
+hand means a list that accumulates, and that is this row.
+
 Row 9 is branched off row 8 rather than off `main`: C1 of the rubric is `quai.constraints.parse()`,
-so #22 has to be merged after #21.
+so #22 was merged after #21.
 
 ## Later — not yet opened as issues
 
@@ -45,10 +54,10 @@ so #22 has to be merged after #21.
 |---|---|---|---|
 | `feature/operator-mode` | Step-by-step loading view + recomputation on incident | — | To do |
 | `experiment/llm-only-placement` | LLM vs solver comparison, logged in `failures.md` | `SamDana-maker` | Run (`SA-06`, #38): 1 valid plan in 20 |
-| `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | In review (#35) |
+| `feature/route-display` | Addresses → geocoded points, road geometry and per-stop ETA (`SA-12`) | `SamDana-maker` | Done (#35) |
 | `feature/dimension-scan` | Phone photo + scale marker → box dimensions | — | Bonus |
 | `feature/barcode-catalogue` | Barcode scan fills a reusable catalogue | — | Bonus |
-| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done in #17 |
+| `feature/delivery-order` | Ordered list of stops → loading sequence | `SamDana-maker` | Done (#27, issue #17) |
 
 A dash means nobody has claimed it yet, not that it has no natural owner.
 

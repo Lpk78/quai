@@ -1,0 +1,67 @@
+QUAI — HIGGSFIELD WEBSITE WORKFLOW
+
+You do NOT need the ChatGPT Higgsfield plugin for this workflow.
+Use the Higgsfield website directly.
+
+SOURCE OF TRUTH
+Use 00_MASTER_BOARD/QUAI_master_brand_board.png as the visual master.
+Use 02_CHARACTERS/QUAI_main_operator_reference.png for the recurring operator.
+Use 03_OBJECTS_VEHICLES/QUAI_objects_vehicles.png for forklift/truck/boxes.
+Use 04_ENVIRONMENTS/QUAI_environments.png for the warehouse and delivery world.
+
+STEP 1 — CREATE CLEAN REFERENCE IMAGES
+Before video, create or upload:
+A. Operator turnaround: front / 3-4 / side / back.
+B. Operator action sheet: scanning / speaking / walking / pointing.
+C. Forklift turnaround.
+D. Truck: side / rear closed / rear open / cargo interior.
+E. Box family.
+F. Warehouse wide establishing frame.
+
+Do not start the final film until these references feel consistent.
+
+STEP 2 — ON HIGGSFIELD
+Open Create Video / Image-to-Video.
+Upload the relevant reference image for the shot.
+When the model supports References / Elements, add the operator reference and the object/environment reference.
+Keep Elements enabled where available.
+Use 16:9, 5 seconds for first tests, 1080p when available.
+Do NOT ask the video model to render the QUAI logo or typography. Add them later in editing.
+
+STEP 3 — STYLE BLOCK TO PASTE INTO EVERY SHOT
+Bright premium miniature diorama of a modern logistics warehouse, realistic small-scale figures
+like premium painted vinyl toys, rounded simple friendly faces, matte tactile materials, cinematic
+tilt-shift macro photography, shallow depth of field, soft morning daylight, pale warm-grey floor,
+warm kraft cardboard boxes, navy structural details, safety orange accents, clean cheerful precise
+engineering aesthetic. Keep the exact same operator, outfit, forklift, truck, boxes and warehouse
+design as the uploaded references. No brand logos, no text, no cyberpunk, no neon, no holograms,
+no generic AI gradients, no LEGO-like/blocky figures.
+
+STEP 4 — FILM SHOTS
+01 Establishing: slow push-in over the logistics hub. Parcels move on conveyor; operator beside them;
+forklift and open truck visible. Calm physical miniature motion.
+02 Scan: medium 3/4 shot. Same operator scans one kraft box with the same dark smartphone.
+03 Speak: same operator raises phone slightly and speaks naturally. Gentle push-in.
+04 Understand: keep camera stable; operator watches while boxes are visually organized by physical
+placement cues. No floating UI.
+05 Plan: top-down 3/4 truck interior. One specific orange-highlighted box is clearly next.
+06 Load: forklift lifts that exact box, moves slowly, places it precisely in the open truck.
+07 Exception: operator notices one damaged/missing parcel; focused expression, checks phone.
+08 Recompute: stable camera. Only affected boxes shift to new positions; calm precise motion.
+09 Delivery: rear truck doors open at a destination; the correct stop's boxes are immediately accessible.
+10 End: truck leaves the miniature depot toward the town. Leave clean negative space for logo in post.
+
+STEP 5 — CONSISTENCY RULE
+For every new shot, reference the SAME operator sheet and whichever recurring object is visible.
+Do not regenerate the character from text alone after shot 1.
+
+STEP 6 — VERTICAL VERSION
+First make the master in 16:9.
+Keep operator and action in the central 45% of frame.
+Then create/reframe a 9:16 version. Do not independently redesign the vertical shot unless necessary.
+
+STEP 7 — EDIT
+Add QUAI logo and slogan only after video generation.
+Suggested final copy:
+People talk.
+We load.
