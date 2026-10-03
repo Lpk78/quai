@@ -67,7 +67,7 @@ delete, and that is a recommendation, not an action taken.
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/74 (reviewer: `Lpk78`)
+- **PR:** https://github.com/Lpk78/quai/pull/75 (reviewer: `Lpk78`)
 - **What the AI produced:** the rewritten product-prompts section of `prompts/README.md` and the
   seven guards in `tests/test_prompts_readme.py`.
 - **How it was checked:** `python3 -m unittest discover tests` — 416, up from 409. Then
