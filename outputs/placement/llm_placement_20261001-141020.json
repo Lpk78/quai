@@ -1,0 +1,324 @@
+{
+ "model": "claude-haiku-4-5-20251001",
+ "runs_per_temperature": 10,
+ "summaries": {
+  "0.0": {
+   "runs": 10,
+   "parsed": 10,
+   "valid": 1,
+   "distinct_plans": 7,
+   "problems_by_kind": {
+    "rotation": 19,
+    "unsupported": 32,
+    "overlap": 8,
+    "outside": 2,
+    "not placed": 3
+   },
+   "problems_per_parsed_run": 6.4
+  },
+  "1.0": {
+   "runs": 10,
+   "parsed": 10,
+   "valid": 0,
+   "distinct_plans": 10,
+   "problems_by_kind": {
+    "rotation": 22,
+    "unsupported": 9,
+    "overlap": 12,
+    "outside": 3
+   },
+   "problems_per_parsed_run": 4.6
+  }
+ },
+ "attempts": [
+  {
+   "temperature": 0.0,
+   "run": 1,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 120, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 170, \"y\": 90, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-4 is not supported enough",
+    "carton-5 is not supported enough",
+    "mattress is not one of its upright rotations",
+    "washer overlaps carton-5"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 2,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 130,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 190,\n      \"dy\": 140,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 130,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 130,\n      \"y\": 130,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 190,\n      \"y\": 110,\n      \"z\": 25,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 260,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 260,\n      \"y\": 30,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "mattress is outside the container",
+    "carton-3 is not supported enough",
+    "fridge overlaps carton-4",
+    "fridge overlaps carton-5",
+    "washer overlaps carton-3",
+    "dryer overlaps carton-3",
+    "mattress overlaps carton-1",
+    "mattress overlaps carton-2"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 3,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 120, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 270, \"y\": 0, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 270, \"y\": 40, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "mattress is not one of its upright rotations"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 4,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 150, \"z\": 80, \"dx\": 40, \"dy\": 20, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "carton-4 is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "carton-5 was not placed"
+   ],
+   "placed": 10
+  },
+  {
+   "temperature": 0.0,
+   "run": 5,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 120, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 170, \"y\": 90, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-4 is not supported enough",
+    "carton-5 is not supported enough",
+    "mattress is not one of its upright rotations",
+    "washer overlaps carton-5"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 6,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 150, \"z\": 80, \"dx\": 40, \"dy\": 20, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "carton-4 is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "carton-5 was not placed"
+   ],
+   "placed": 10
+  },
+  {
+   "temperature": 0.0,
+   "run": 7,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 270, \"y\": 0, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 270, \"y\": 40, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 160, \"dx\": 190, \"dy\": 140, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "mattress is outside the container",
+    "mattress is not supported enough"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 8,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 150, \"z\": 80, \"dx\": 40, \"dy\": 20, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "carton-4 is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "carton-5 was not placed"
+   ],
+   "placed": 10
+  },
+  {
+   "temperature": 0.0,
+   "run": 9,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 90, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 270, \"y\": 0, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 270, \"y\": 40, \"z\": 0, \"dx\": 30, \"dy\": 40, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough",
+    "mattress is not one of its upright rotations"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 0.0,
+   "run": 10,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 85,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 40,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 60,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 130,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 130,\n      \"y\": 140,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 190,\n      \"dy\": 140,\n      \"dz\": 25\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 1,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 90, \"z\": 0, \"dx\": 190, \"dy\": 80, \"dz\": 25},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 270, \"y\": 0, \"z\": 0, \"dx\": 20, \"dy\": 130, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 90, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 90, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 120, \"y\": 90, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 200, \"y\": 85, \"z\": 85, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 240, \"y\": 85, \"z\": 85, \"dx\": 40, \"dy\": 30, \"dz\": 30}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "mattress is not one of its upright rotations",
+    "dryer is not one of its upright rotations",
+    "carton-5 is not supported enough"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 2,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 85,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 0,\n      \"y\": 150,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 20,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 190,\n      \"dy\": 90,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 130,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 130,\n      \"y\": 140,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "carton-3 is not one of its upright rotations",
+    "mattress is not one of its upright rotations"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 3,
+   "raw": "I need to pack these items into a 300\u00d7170\u00d7170 cm container with a 1200 kg weight limit.\n\nLet me start by analyzing the items and their weights:\n- fridge: 70\u00d770\u00d7160, 60 kg\n- washer: 60\u00d760\u00d785, 70 kg\n- dryer: 60\u00d760\u00d785, 40 kg\n- sofa: 200\u00d790\u00d780, 45 kg\n- tv: 130\u00d720\u00d780, 15 kg\n- carton-1: 60\u00d740\u00d740, 12 kg\n- carton-2: 60\u00d740\u00d740, 12 kg\n- carton-3: 60\u00d740\u00d740, 10 kg\n- carton-4: 40\u00d730\u00d730, 6 kg\n- carton-5: 40\u00d730\u00d730, 6 kg\n- mattress: 190\u00d7140\u00d725, 25 kg\n\nTotal weight: 60+70+40+45+15+12+12+10+6+6+25 = 301 kg (well under 1200 kg limit)\n\nStrategy: Place larger items first on the floor, stack lighter items on top.\n\n1. **Mattress** (190\u00d7140\u00d725): On floor at back-left, oriented 190 along x\n   - Position: (0, 0, 0), dimensions 190\u00d7140\u00d725\n\n2. **Sofa** (200\u00d790\u00d780): On floor next to mattress along x\n   - Position: (190, 0, 0), dimensions 200\u00d790\u00d780\n   - Wait, 190+200=390 > 300. Let me reconsider.\n\nLet me restart with better planning:\n\n1. **Mattress** (190\u00d7140\u00d725): Floor, back-left\n   - (0, 0, 0), 190\u00d7140\u00d725\n\n2. **Sofa** (200\u00d790\u00d780): Floor, front area\n   - (0, 140, 0), 200\u00d790\u00d780 - but 140+90=230 > 170. Won't fit width-wise.\n   - Try rotating: (100, 0, 0) - overlaps with mattress.\n   \nLet me place sofa differently:\n1. **Sofa** (200\u00d790\u00d780): Floor at back\n   - (0, 0, 0), 200\u00d790\u00d780\n\n2. **Mattress** (190\u00d7140\u00d725): Floor beside sofa (limited space)\n   - (0, 90, 0), 190\u00d7140\u00d725 - width: 90+140=230 > 170. Won't fit.\n\nBetter approach:\n1. **Sofa** (200\u00d790\u00d780): (0, 0, 0), 200\u00d790\u00d780\n2. **Fridge** (70\u00d770\u00d7160): (200, 0, 0), 70\u00d770\u00d7160\n3. **Washer** (60\u00d760\u00d785): (270, 0, 0), 60\u00d760\u00d785\n4. **Mattress** (190\u00d7140\u00d725): (0, 90, 0), 190\u00d7140\u00d725\n5. **Dryer** (60\u00d760\u00d785): (190, 90, 0), 60\u00d760\u00d785 - x: 190+60=250 \u2264 300 \u2713, y: 90+60=150 \u2264 170 \u2713\n6. **TV** (130\u00d720\u00d780): (0, 0, 80), 130\u00d720\u00d780 - on top of sofa\n7. **Carton-1** (60\u00d740\u00d740): (270, 60, 0), 60\u00d740\u00d740\n8. **Carton-2** (60\u00d740\u00d740): (270, 100, 0), 60\u00d740\u00d740\n9. **Carton-3** (60\u00d740\u00d740): (200, 70, 0), 60\u00d740\u00d740\n10. **Carton-4** (40\u00d730\u00d730): (130, 0, 80), 40\u00d730\u00d730\n11. **Carton-5** (40\u00d730\u00d730): (170, 0, 80), 40\u00d730\u00d730\n\n```json\n{\"placements\": [{\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80}, {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160}, {\"id\": \"washer\", \"x\": 270, \"y\": 0, \"z\": 0, \"dx\": 30, \"dy\": 60, \"dz\": 85}, {\"id\": \"mattress\", \"x\": 0, \"y\": 90, \"z\": 0, \"dx\": 190, \"dy\": 80, \"dz\": 25}, {\"id\": \"dryer\", \"x\": 190, \"y\": 90, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85}, {\"id\": \"tv\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80}, {\"id\": \"carton-1\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40}, {\"id\": \"carton-2\", \"x\": 260, \"y\": 60, \"z\": 0, \"dx\": 40, \"dy\": 60, \"dz\": 40}, {\"id\": \"carton-3\", \"x\": 130, \"y\": 0, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40}, {\"id\": \"carton-4\", \"x\": 0, \"y\": 110, \"z\": 25, \"dx\": 40, \"dy\": 30, \"dz\": 30}, {\"id\": \"carton-5\", \"x\": 40, \"y\": 110, \"z\": 25, \"dx\": 40, \"dy\": 30, \"dz\": 30}]}\n```",
+   "parse_error": null,
+   "problems": [
+    "washer is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "fridge overlaps carton-2",
+    "dryer overlaps carton-1"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 4,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 130,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 190,\n      \"dy\": 60,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 90,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 120,\n      \"y\": 90,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 270,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 30,\n      \"dy\": 40,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 270,\n      \"y\": 40,\n      \"z\": 0,\n      \"dx\": 30,\n      \"dy\": 40,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "dryer is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "carton-1 is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-3 is not supported enough"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 5,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 190,\n      \"dy\": 80,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 190,\n      \"y\": 90,\n      \"z\": 25,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 120,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 0,\n      \"y\": 40,\n      \"z\": 80,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 40,\n      \"y\": 40,\n      \"z\": 80,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "mattress is not one of its upright rotations",
+    "tv is outside the container",
+    "tv is not supported enough",
+    "washer overlaps dryer",
+    "washer overlaps tv"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 6,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 85,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 120,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 0,\n      \"y\": 150,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 20,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 40,\n      \"y\": 150,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 20,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 80,\n      \"dx\": 190,\n      \"dy\": 140,\n      \"dz\": 25\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "carton-4 is not one of its upright rotations",
+    "carton-5 is not one of its upright rotations",
+    "mattress is not supported enough"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 7,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 240, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 90, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 0, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 60, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 120, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 150, \"z\": 0, \"dx\": 40, \"dy\": 20, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 40, \"y\": 150, \"z\": 0, \"dx\": 40, \"dy\": 20, \"dz\": 30},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 190, \"dy\": 90, \"dz\": 25}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "tv is not supported enough",
+    "carton-4 is not one of its upright rotations",
+    "carton-5 is not one of its upright rotations",
+    "mattress is not one of its upright rotations",
+    "washer overlaps dryer"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 8,
+   "raw": "```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 90, \"z\": 0, \"dx\": 190, \"dy\": 80, \"dz\": 25},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 130, \"z\": 0, \"dx\": 60, \"dy\": 40, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 80, \"z\": 25, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 130, \"y\": 80, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 190, \"y\": 80, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 120, \"z\": 25, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 170, \"z\": 0, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 40, \"y\": 170, \"z\": 0, \"dx\": 40, \"dy\": 30, \"dz\": 30}\n  ]\n}\n```\n\nWait, let me recalculate. The container is 170 wide. Let me reposition:\n\n```json\n{\n  \"placements\": [\n    {\"id\": \"sofa\", \"x\": 0, \"y\": 0, \"z\": 0, \"dx\": 200, \"dy\": 90, \"dz\": 80},\n    {\"id\": \"mattress\", \"x\": 0, \"y\": 90, \"z\": 0, \"dx\": 190, \"dy\": 80, \"dz\": 25},\n    {\"id\": \"fridge\", \"x\": 200, \"y\": 0, \"z\": 0, \"dx\": 70, \"dy\": 70, \"dz\": 160},\n    {\"id\": \"washer\", \"x\": 200, \"y\": 70, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"dryer\", \"x\": 200, \"y\": 110, \"z\": 0, \"dx\": 60, \"dy\": 60, \"dz\": 85},\n    {\"id\": \"tv\", \"x\": 0, \"y\": 0, \"z\": 80, \"dx\": 130, \"dy\": 20, \"dz\": 80},\n    {\"id\": \"carton-1\", \"x\": 130, \"y\": 0, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-2\", \"x\": 190, \"y\": 0, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-3\", \"x\": 130, \"y\": 40, \"z\": 80, \"dx\": 60, \"dy\": 40, \"dz\": 40},\n    {\"id\": \"carton-4\", \"x\": 0, \"y\": 20, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30},\n    {\"id\": \"carton-5\", \"x\": 0, \"y\": 50, \"z\": 80, \"dx\": 40, \"dy\": 30, \"dz\": 30}\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "mattress is not one of its upright rotations",
+    "dryer is not one of its upright rotations",
+    "tv is not supported enough",
+    "carton-2 is not supported enough",
+    "carton-4 is outside the container",
+    "carton-5 is outside the container",
+    "sofa overlaps tv",
+    "sofa overlaps carton-1",
+    "sofa overlaps carton-2",
+    "washer overlaps carton-2"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 9,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 85,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 190,\n      \"dy\": 25,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 135,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 35,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 135,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 35,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 130,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 190,\n      \"y\": 130,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 230,\n      \"y\": 130,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 30,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "mattress is not one of its upright rotations",
+    "carton-1 is not one of its upright rotations",
+    "carton-2 is not one of its upright rotations",
+    "mattress overlaps carton-3"
+   ],
+   "placed": 11
+  },
+  {
+   "temperature": 1.0,
+   "run": 10,
+   "raw": "```json\n{\n  \"placements\": [\n    {\n      \"id\": \"sofa\",\n      \"x\": 0,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 200,\n      \"dy\": 90,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"fridge\",\n      \"x\": 200,\n      \"y\": 0,\n      \"z\": 0,\n      \"dx\": 70,\n      \"dy\": 70,\n      \"dz\": 160\n    },\n    {\n      \"id\": \"washer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 0,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"dryer\",\n      \"x\": 200,\n      \"y\": 70,\n      \"z\": 85,\n      \"dx\": 60,\n      \"dy\": 60,\n      \"dz\": 85\n    },\n    {\n      \"id\": \"tv\",\n      \"x\": 0,\n      \"y\": 90,\n      \"z\": 0,\n      \"dx\": 130,\n      \"dy\": 20,\n      \"dz\": 80\n    },\n    {\n      \"id\": \"mattress\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 0,\n      \"dx\": 190,\n      \"dy\": 60,\n      \"dz\": 25\n    },\n    {\n      \"id\": \"carton-1\",\n      \"x\": 0,\n      \"y\": 110,\n      \"z\": 25,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-2\",\n      \"x\": 60,\n      \"y\": 110,\n      \"z\": 25,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-3\",\n      \"x\": 120,\n      \"y\": 110,\n      \"z\": 25,\n      \"dx\": 60,\n      \"dy\": 40,\n      \"dz\": 40\n    },\n    {\n      \"id\": \"carton-4\",\n      \"x\": 0,\n      \"y\": 150,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 20,\n      \"dz\": 30\n    },\n    {\n      \"id\": \"carton-5\",\n      \"x\": 40,\n      \"y\": 150,\n      \"z\": 0,\n      \"dx\": 40,\n      \"dy\": 20,\n      \"dz\": 30\n    }\n  ]\n}\n```",
+   "parse_error": null,
+   "problems": [
+    "mattress is not one of its upright rotations",
+    "carton-4 is not one of its upright rotations",
+    "carton-5 is not one of its upright rotations",
+    "mattress overlaps carton-4",
+    "mattress overlaps carton-5"
+   ],
+   "placed": 11
+  }
+ ]
+}
