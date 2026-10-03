@@ -59,6 +59,34 @@ Et dis-y ce qui vaut plus que les images : les quatre maquettes documentent auss
 Reviewer : SamDana-maker. PR normale.
 ```
 
+## The brand guide PDF was asked for and is not here
+
+The one item on the list that could not be committed. `documentation/design.md` already states that
+the 4.8 MB guide is "deliberately not in this repository… a rendering of everything above", and
+`tests/test_brand.py::test_the_heavy_brand_guide_pdf_is_not_in_the_repository` enforces it with
+`assertEqual(list(ROOT.rglob("*.pdf")), [])`. Committing it turned the suite red.
+
+Weakening that test to admit the file would have been the exact move `CONTRIBUTING.md` forbids, so
+the PDF was left out, the reason written into `assets/brand/README.md`, and the decision left to
+`Lpk78`, who owns `design.md`. The old reasoning also got stronger rather than weaker in the course
+of this task: the guide is a rendering of the palette, the typography, the characters, the
+environments and the master board — all of which this PR now commits individually, as WebP, for less
+than the PDF alone would have cost.
+
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/79 (reviewer: `SamDana-maker`)
+- **What the AI produced:** the WebP conversion of 27 images, the two QR copies, `assets/brand/README.md`,
+  and the twelve guards in `tests/test_brand_assets.py`.
+- **How it was checked:** all 31 named sources confirmed present before any copying. The two QR codes
+  **decoded with `opencv-python-headless`** in a throwaway venv rather than trusted from the brief —
+  both match, and the committed copies are byte-identical to the sources and still decode. Their
+  strings were also checked against `CODE_PATTERN` in `Login.jsx`, `LABEL` in `scanCode.js`, and the
+  two ids in `manifest.js`, so a rename on either side now fails a test. 422 Python tests, up from
+  409; 195 web unchanged.
+- **What was changed by hand:** three decisions. Leaving the PDF out, above. Writing the mockup
+  section around what was *refused* — the 124 parcels, the invented doors, the van photograph standing
+  in for a computed plan — with links to the departure tables in #63, #64 and #72, since that is what
+  makes the images evidence rather than decoration. And asserting in the tests that no tool name
+  beyond the confirmed two appears in the index, because an unconfirmed tool is the one thing a
+  section-9 document must not invent.
