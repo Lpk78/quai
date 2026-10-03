@@ -73,7 +73,7 @@ So both replacements are things the endpoint demonstrably does:
 
 ## Outcome
 
-- **PR:** https://github.com/Lpk78/quai/pull/76 (reviewer: `SamDana-maker`)
+- **PR:** https://github.com/Lpk78/quai/pull/77 (reviewer: `SamDana-maker`)
 - **What the AI produced:** the two replacement strings, the `UNBUILT` pattern and its comment in
   `copy.test.jsx`, and the corrected title on issue #29.
 - **How it was checked:** `npm test` (195 web) and `python3 -m unittest discover tests` (409 on this
