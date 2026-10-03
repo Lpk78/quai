@@ -48,6 +48,36 @@ versions scored against each other, and this experiment was run once to measure 
 iterated. So the row stays — the experiment is real and the roadmap depends on its result — and it
 now says where the prompt actually lives, that the work sits on an open PR, and why it has no folder.
 
+## The branches
+
+`feature/app-visual-polish` — 0 commits ahead of `main`, no open PR using it as head or base. Both
+checked before deleting rather than taken from the task. Deleted, local and remote.
+
+The other two were investigated and **not** deleted. Both carry one commit `main` does not have by
+SHA, and in both cases the *content* of that commit is already on `main` by another route — so
+neither holds unmerged work, but that is a thing to be told rather than assumed on someone's behalf:
+
+| Branch | Its one commit | Already on `main`? |
+|---|---|---|
+| `feature/demo-scenario` | `523bfd9` "Fix the agreed demo line in the README, and tie it to the box it names" | **Yes** — this is the change that merged as #70 from `fix/demo-line-in-readme`. `main` has both the line (`README.md:369`) and the guard (`TestTheSpokenLine`). The branch is also 34 commits behind, so its README still shows `_to fill_` placeholders. |
+| `docs/fill-repository-details` | `2fbd084` "Add third team member to README" | **Yes** — it fills one placeholder row with `@MORHI11`. `main`'s team table has had all three real names and areas for a long time. 492 commits behind. |
+
+Neither needs a PR: opening one would propose reverting `main` to an older README. Both are safe to
+delete, and that is a recommendation, not an action taken.
+
 ## Outcome
 
-(filled at the end)
+- **PR:** https://github.com/Lpk78/quai/pull/74 (reviewer: `Lpk78`)
+- **What the AI produced:** the rewritten product-prompts section of `prompts/README.md` and the
+  seven guards in `tests/test_prompts_readme.py`.
+- **How it was checked:** `python3 -m unittest discover tests` — 416, up from 409. Then
+  mutation-tested by restoring the previous `prompts/README.md` from `main`: **9 failures**, naming
+  each of the five real versions as undocumented, both invented filenames as absent from disk, the
+  "planned" sentence, and the unmarked experiment. Guards that pass against the state they were
+  written to catch would have been decoration.
+- **What was changed by hand:** two things. Keeping the `llm-only-placement` row rather than
+  deleting it, once checking the branch showed the experiment has no folder *by design* — the row is
+  now about where the prompt really lives, which is more useful than its absence. And writing the
+  scores into the tree rather than only linking the evaluation: the summary a grader reads first
+  should carry the result, including that the best score is `v4`'s 22/26 and that `v5` deliberately
+  restarts from `v3`.
