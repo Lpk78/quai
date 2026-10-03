@@ -8,11 +8,18 @@ large language models. We met several, on real work, and they are scattered thro
 evidence is.** Where a category has no reproduced case, it says so rather than being filled in. An
 invented example in a document about hallucination would be a poor joke.
 
-Two sentences carry most of the practical weight, and are repeated in the sections they come from:
+Three sentences carry most of the practical weight, and are repeated in the sections they come from:
 
 > **Read the diff, never the description.**
 >
 > **Change the code and see whether the test notices.**
+>
+> **Counting failures is not reading them.**
+
+The third exists because the first two were both followed and a gap survived anyway. On #75 the
+mutation *was* run and its total — nine failures — *was* reported accurately. What was never checked
+was **which** nine, so a guard that could not fail hid inside a number that looked right. A mutation
+cited as evidence has to name the assertions it trips.
 
 ---
 
@@ -22,7 +29,7 @@ The most frequent failure in this project by a wide margin, and the only one tha
 being written up. It is not a model failure in the usual sense: the model writes a test that passes,
 the test is genuinely green, and it is green because it is not looking at the thing it names.
 
-Five instances, each verified in the repository before being listed here:
+Eight instances, each verified in the repository before being listed here:
 
 | # | Where | What the test claimed | Why it could not fail |
 |---|---|---|---|
@@ -30,12 +37,15 @@ Five instances, each verified in the repository before being listed here:
 | 2 | #51 — `load_last` wiring | that a box moved "nearer the doors" | the box chosen was one the volume tie-break **already loaded last**, and the container was a 100 cm cube where everything stacks at `x=0`, so the position could not be observed even when correct ([`failures.md`](failures.md) — *The wiring we specified for `load_last`…*) |
 | 3 | #35 — `POST /route` stop order | that stops reach OSRM unsorted | the fixture drove Amiens → Paris → Lille, **already ascending in longitude**, so replacing the list with `sorted(points, key=lambda q: q.lon)` changed nothing and the assertion compared a list to itself ([`failures.md`](failures.md) — *The order test that could not fail*) |
 | 4 | #60 — `on_top` | that two `on_top` boxes do not bury each other | with full-floor crates one box was simply **unplaced**, so "they do not bury each other" asserted nothing (PR #60, *Two of my own tests were vacuous first time*) |
-| 5 | `HY-20` — speech language | that the recogniser listens in `en-US` | jsdom's own `navigator.language` **is already `en-US`**, so `expect(lang).toBe("en-US")` passed against the broken `navigator.language \|\| "en-US"` exactly as happily as against the fix ([`failures.md`](failures.md) — *A fallback that never fires…*) |
+| 5 | `HY-17` — the route-time tile | that `/app` shows no estimated route time | it searched for `estimated route time` while the tile is labelled **`Est. route time`**, so it matched nothing and passed both before *and* after the tile was added (`prompts/dev/HY-17_home-dictate-alignment.md`) |
+| 6 | `HY-20` — speech language | that the recogniser listens in `en-US` | jsdom's own `navigator.language` **is already `en-US`**, so `expect(lang).toBe("en-US")` passed against the broken `navigator.language \|\| "en-US"` exactly as happily as against the fix ([`failures.md`](failures.md) — *A fallback that never fires…*) |
+| 7 | `HY-25` / #77 — the landing-page copy guard | that no page claims an unbuilt feature | the guard held **four hard-coded phrases**, each added the day someone noticed it. "Replans when a parcel is missing" — a feature no endpoint has — was not among them, so the page shipped the claim through two releases with the guard reporting it clean |
+| 8 | `HY-22` / #75 — the `"planned"` tripwire | that `prompts/README.md` no longer calls its tree *planned* | it searched the raw file for `"none of these version files exist yet"`, and in the README it was written to catch, that sentence **wraps across a line** — `"…so none\nof these version files exist yet"`. The substring matched nothing in either file ([`failures.md`](failures.md) — *A guard that could not fail, inside the pull request that added the guards*) |
 
-A sixth is in flight at the time of writing — `HY-25` / #77 — and is the same shape one level up: the
-landing-page guard in `copy.test.jsx` held **four hard-coded phrases**, so when the page promised
-*"Replans when a parcel is missing"* — a feature no endpoint has — the guard reported the page clean
-through two releases. It is listed separately because it is not yet on `main`.
+Rows 7 and 8 are the two that say most about the pattern. **Row 8 was shipped inside the pull request
+that added the guards**, in a PR whose entire subject was a file describing a plan instead of what was
+on disk; it was caught in review by `Lpk78`. Row 5 was missing from this table until he pointed out
+that row 8 was, which is the failure one level up again.
 
 ### How it was reproduced
 
@@ -46,6 +56,10 @@ The same way every time, and it is the only method that has ever worked:
 Restore the bug, run the test, and watch it fail. In #35 the mutation was `sorted(points, key=lambda
 q: q.lon)`; in `HY-20`, putting `navigator.language || "en-US"` back; in #77, reinstating the removed
 sentence. A test that has never been seen to fail is a claim, not evidence.
+
+**And read the failures, do not count them** — row 8 is the case that makes this a separate rule. The
+mutation ran, nine assertions tripped, and the total was reported correctly; the guard that could not
+fail was simply not among the nine, which no total can show. Name the assertions, not the number.
 
 ### Countermeasure
 
@@ -232,18 +246,35 @@ it.
 ## LLM-only placement
 
 The experiment that asks whether a model can place boxes at all — the measurement behind the
-architectural rule that the LLM never computes placement — **has been run, and its results are not in
-this repository yet.**
+architectural rule that the LLM never computes placement — **was run, and merged in
+[#38](https://github.com/Lpk78/quai/pull/38) on 2026-10-03.** `src/quai/llm_placement.py`,
+`tests/test_llm_placement.py` and the raw transcript in `outputs/placement/` are on `main`, with the
+write-up in [`failures.md`](failures.md) — *What happens when the model places the boxes itself*.
 
-They are in **[PR #38](https://github.com/Lpk78/quai/pull/38)**, which is still open: 20 calls over
-the eleven boxes of `src/demo.py`, scored by `quai.checks.find_problems`. Headline numbers from that
-PR's own write-up: **1 physically valid plan out of 10 at temperature 0, 0 out of 10 at temperature
-1**, with 41 boxes floating unsupported and 41 laid on their side across the twenty runs.
+20 calls over the eleven boxes of `src/demo.py`, every reply scored by `quai.checks.find_problems` —
+the same independent check the solver answers to:
 
-`failures.md`'s *Planned experiment: LLM-only placement vs solver* section still reads
-`**Results:** _to run and record._`, and `src/quai/llm_placement.py` does not exist on `main`. **This
-document deliberately does not restate the numbers as though they were established here.** When #38
-merges, that section is where they belong, and this one should become a link to it.
+| | temperature 0 | temperature 1 | solver |
+|---|---|---|---|
+| replies that parsed | 10/10 | 10/10 | — |
+| **physically valid plans** | **1/10** | **0/10** | always |
+| distinct plans | 7 of 10 | 10 of 10 | 1 |
+
+These were re-derived from the committed transcript rather than copied from the write-up, while
+reviewing #38: the counts come out of `attempts` rather than the stored `summaries`, the solver's
+39.3 % fill recomputes from `solve(BOXES, VAN)`, and the single valid plan re-scores to 11/11 placed
+at 46.9 %.
+
+That last figure is the uncomfortable one and is kept here because it is true: once in twenty tries
+the model produced a *valid* plan that was **better filled than the solver's**, placing the mattress
+`solve()` gives up on. It is not an argument for letting a model place boxes — nineteen of twenty
+were invalid, and the failures were overlaps, floating boxes and boxes outside the van. It is an
+argument about our greedy first-fit, which the roadmap already lists as a known limitation.
+
+**One thing this section promised and `failures.md` still does not deliver.** That file's *Planned
+experiment: LLM-only placement vs solver* heading still reads `**Results:** _to run and record._`,
+even though the results are now in the same file about seven hundred lines further down. The numbers
+are in the repository; the section that promised them does not point at them.
 
 ---
 
@@ -251,9 +282,10 @@ merges, that section is where they belong, and this one should become a link to 
 
 Not made in this PR, so that it can be decided rather than slipped in.
 
-The failure in section 1 has now occurred **five times with a sixth in flight**, which is more than
-any other in this project, and every instance was caught the same way. That is a strong enough
-pattern to deserve a standing question rather than six separate write-ups.
+The failure in section 1 has now occurred **eight times**, which is more than any other in this
+project, and every instance was caught the same way. The most recent was shipped inside the pull
+request that added the guards. That is a strong enough pattern to deserve a standing question rather
+than eight separate write-ups.
 
 **Proposed for `CONTRIBUTING.md`** (under the testing rules) and for the **`/review` skill** (as a
 step before the review is drafted):
