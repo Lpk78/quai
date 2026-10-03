@@ -33,6 +33,18 @@ class TestLoadedVan(unittest.TestCase):
         self.assertGreaterEqual(self.plan.fill_rate, 0.75)
         self.assertLessEqual(self.plan.fill_rate, 0.80)
 
+    def test_the_fill_rate_with_the_scanned_parcel_is_the_one_the_demo_quotes(self):
+        # The figure the README prints for the scanned load had no test, and drifted: `SA-24` grew
+        # the parcel from 40x30x25 to 65x85x85, which moved it from 78.2% to 83.3% while the
+        # sentence kept saying 78.2. Only the unscanned rate was pinned, so nothing noticed
+        # (`SA-27`). Both are held now, and against the README rather than against a constant here.
+        scanned = demo_fixtures.plan(include_scanned=True)
+        self.assertGreaterEqual(scanned.fill_rate, 0.81)
+        self.assertLessEqual(scanned.fill_rate, 0.85)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"{self.plan.fill_rate:.1%} with the eighteen loaded boxes", readme)
+        self.assertIn(f"{scanned.fill_rate:.1%} once the parcel is in", readme)
+
     def test_the_plan_passes_the_independent_checks(self):
         self.assertEqual(find_problems(self.plan.placements, demo_fixtures.VAN), [])
 
